@@ -7,10 +7,20 @@ import { BatchManager, detectGoogleSheetTabs } from './sheetConnector.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
+import { WorkloadManager } from './workloadData.js';
+import { renderWorkloadView } from './workloadView.js';
 
 class AdminDashboardController {
   constructor() {
     this.batchManager = new BatchManager();
+    this.workloadManager = new WorkloadManager();
+    this.workloadState = {
+      selectedMonth: 'All',
+      selectedPlatform: 'All',
+      selectedBatch: 'All',
+      facultyQuery: '',
+      sortBy: 'hours'
+    };
     this.currentBatchId = 'batch-prarambh-2026';
     this.currentYear = 2026;
     this.currentMonth = 9; // 0-indexed: 9 = October
@@ -35,6 +45,8 @@ class AdminDashboardController {
       this.mainTab = 'dashboard';
     } else if (urlParams.get('tab') === 'faculty' || window.location.hash === '#faculty') {
       this.mainTab = 'faculty';
+    } else if (urlParams.get('tab') === 'workload' || window.location.hash === '#workload' || path.includes('workload')) {
+      this.mainTab = 'workload';
     } else if (urlParams.get('tab') === 'onboarding' || window.location.hash === '#onboarding' || path.includes('onboard')) {
       this.mainTab = 'onboarding';
     }
@@ -214,6 +226,14 @@ class AdminDashboardController {
       deanDropdown?.classList.add('hidden');
       this.mainTab = 'faculty';
       this.updateDockState('faculty');
+      this.renderMainContent();
+    });
+
+    document.getElementById('deanMenuWorkloadBtn')?.addEventListener('click', () => {
+      deanDropdown?.classList.add('hidden');
+      this.mainTab = 'workload';
+      this.updateDockState('workload');
+      window.location.hash = 'workload';
       this.renderMainContent();
     });
 
@@ -1080,6 +1100,7 @@ class AdminDashboardController {
     const dashboardSection = document.getElementById('viewSectionDashboard');
     const facultySection = document.getElementById('viewSectionFaculty');
     const onboardingSection = document.getElementById('viewSectionOnboarding');
+    const workloadSection = document.getElementById('viewSectionWorkload');
     const actionControls = document.getElementById('adminActionControlsBar');
     const summaryCards = document.getElementById('adminSummaryCardsContainer');
 
@@ -1090,6 +1111,7 @@ class AdminDashboardController {
     dashboardSection?.classList.add('hidden');
     facultySection?.classList.add('hidden');
     onboardingSection?.classList.add('hidden');
+    workloadSection?.classList.add('hidden');
     summaryCards?.classList.remove('hidden');
 
     if (this.mainTab === 'calendar') {
@@ -1116,6 +1138,11 @@ class AdminDashboardController {
       actionControls?.classList.add('hidden');
       summaryCards?.classList.remove('hidden');
       this.renderFacultyView();
+    } else if (this.mainTab === 'workload') {
+      workloadSection?.classList.remove('hidden');
+      actionControls?.classList.add('hidden');
+      summaryCards?.classList.remove('hidden');
+      renderWorkloadView(workloadSection, this.workloadManager, this.workloadState);
     } else if (this.mainTab === 'onboarding') {
       onboardingSection?.classList.remove('hidden');
       actionControls?.classList.add('hidden');
