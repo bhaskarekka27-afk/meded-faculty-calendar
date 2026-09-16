@@ -268,22 +268,27 @@
     <div id="adminActionControlsBar" class="mb-5 space-y-3">
       <!-- Top Row: Date Navigation and View Mode Switcher -->
       <div class="flex flex-wrap items-center justify-between gap-3 px-0.5 py-1">
-        <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
-          <div class="flex items-center gap-2 sm:gap-2.5">
-            <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2c332d] tracking-tight">
-              <span id="adminCurrentMonthTitle">October 2026</span>
-            </h2>
-            <div class="track-3d flex items-center rounded-xl overflow-hidden">
-              <button id="prevMonthBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous">
-                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-              </button>
-              <button id="todayMonthBtn" class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer">Today</button>
-              <button id="nextMonthBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Next">
-                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-              </button>
-            </div>
+        <!-- Left: Month/Period Title -->
+        <div>
+          <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2c332d] tracking-tight">
+            <span id="adminCurrentMonthTitle">October 2026</span>
+          </h2>
+        </div>
+
+        <!-- Right: Filters (Date Navigation & View Mode Switcher) -->
+        <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
+          <!-- Date Navigation (< Today >) -->
+          <div class="track-3d flex items-center rounded-xl overflow-hidden">
+            <button id="prevMonthBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous">
+              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            <button id="todayMonthBtn" class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer">Today</button>
+            <button id="nextMonthBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Next">
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
           </div>
 
+          <!-- View Mode Switcher Track (Month, Week, Timeline) -->
           <div class="track-3d flex items-center p-1 rounded-xl text-xs">
             <button id="btnViewMonth" class="px-3.5 py-1 rounded-lg btn-3d-primary font-bold text-white cursor-pointer border-none">Month</button>
             <button id="btnViewWeek" class="px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent">Week</button>
