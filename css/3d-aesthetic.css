@@ -1,0 +1,218 @@
+/* ==========================================================================
+   PW MedEd - 3D Aesthetic & Layered Elevation System
+   Adds rich tactile depth, ambient studio lighting, and smooth micro-lifts
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&display=swap');
+
+html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, span, p, div, a, label {
+  font-family: 'Reddit Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+}
+
+:root {
+  /* 3D Shadows & Layered Depths */
+  --shadow-3d-ambient: 0 1px 2px rgba(44, 51, 45, 0.04);
+  --shadow-3d-card: 0 4px 14px -2px rgba(44, 51, 45, 0.07), 0 2px 6px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --shadow-3d-card-hover: 0 14px 28px -4px rgba(44, 51, 45, 0.12), 0 6px 12px -2px rgba(74, 124, 89, 0.14), inset 0 1px 0 #ffffff;
+  --shadow-3d-elevated: 0 8px 24px -4px rgba(44, 51, 45, 0.08), 0 3px 8px rgba(44, 51, 45, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --shadow-3d-elevated-hover: 0 16px 36px -6px rgba(44, 51, 45, 0.13), 0 6px 14px rgba(44, 51, 45, 0.06), inset 0 1px 0 #ffffff;
+  --shadow-3d-float: 0 20px 45px -8px rgba(35, 45, 38, 0.20), 0 8px 18px -3px rgba(35, 45, 38, 0.10), inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  --shadow-3d-modal: 0 30px 75px -12px rgba(20, 30, 24, 0.32), 0 12px 28px rgba(44, 51, 45, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  
+  /* Thematic Glows & Highlights */
+  --shadow-3d-primary: 0 6px 18px -3px rgba(74, 124, 89, 0.42), 0 2px 6px rgba(74, 124, 89, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  --shadow-3d-primary-hover: 0 10px 24px -3px rgba(74, 124, 89, 0.52), 0 4px 10px rgba(74, 124, 89, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  --shadow-3d-terracotta: 0 6px 18px -3px rgba(194, 109, 62, 0.30), 0 2px 6px rgba(194, 109, 62, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-3d-amber: 0 6px 18px -3px rgba(112, 92, 48, 0.28), 0 2px 6px rgba(112, 92, 48, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-3d-inset: inset 0 2px 4px rgba(44, 51, 45, 0.06), inset 0 1px 2px rgba(44, 51, 45, 0.04);
+}
+
+/* Studio Ambient Light Body Background */
+body {
+  background-color: #fbf9f5;
+  background-image: 
+    radial-gradient(ellipse 80% 45% at 50% -5%, rgba(74, 124, 89, 0.07), transparent 70%),
+    radial-gradient(circle 700px at 92% 18%, rgba(194, 109, 62, 0.04), transparent 60%),
+    radial-gradient(circle 600px at 8% 28%, rgba(112, 92, 48, 0.035), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* 3D Tile & Card Classes */
+.card-3d {
+  background: #ffffff;
+  border: 1px solid #ded5c6;
+  box-shadow: var(--shadow-3d-card);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+}
+
+.card-3d:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-3d-card-hover);
+  border-color: #4a7c59;
+}
+
+.card-3d-static {
+  background: #ffffff;
+  border: 1px solid #ded5c6;
+  box-shadow: var(--shadow-3d-card);
+}
+
+.panel-3d {
+  background: #fdfbf7;
+  border: 1px solid #ded5c6;
+  box-shadow: var(--shadow-3d-elevated);
+  transition: box-shadow 0.25s ease;
+}
+
+.panel-3d:hover {
+  box-shadow: var(--shadow-3d-elevated-hover);
+}
+
+/* Primary 3D Green Buttons */
+.btn-3d-primary {
+  background: linear-gradient(180deg, #528963 0%, #4a7c59 100%) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-3d-primary) !important;
+  border: 1px solid #3c6849 !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), filter 0.18s ease !important;
+}
+
+.btn-3d-primary:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-3d-primary-hover) !important;
+  filter: brightness(1.04);
+}
+
+.btn-3d-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(74, 124, 89, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 3D Segmented Control Track */
+.track-3d {
+  background-color: #f3ece1;
+  box-shadow: var(--shadow-3d-inset);
+  border: 1px solid #ded5c6;
+}
+
+/* Floating 3D Navigation Dock */
+.dock-3d {
+  background: rgba(247, 244, 237, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(222, 213, 198, 0.9) !important;
+  box-shadow: var(--shadow-3d-float) !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+}
+
+.dock-3d:hover {
+  box-shadow: 0 24px 50px -8px rgba(35, 45, 38, 0.24), 0 10px 22px -3px rgba(35, 45, 38, 0.12), inset 0 1px 1px #ffffff !important;
+}
+
+/* 3D Filter Pills */
+.pill-3d {
+  box-shadow: 0 2px 5px rgba(44, 51, 45, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pill-3d:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px -2px rgba(44, 51, 45, 0.10), inset 0 1px 0 #ffffff;
+}
+
+.pill-3d-active {
+  box-shadow: var(--shadow-3d-primary) !important;
+  transform: translateY(-1px);
+}
+
+/* 3D Modal Overlay Windows */
+.modal-3d {
+  box-shadow: var(--shadow-3d-modal) !important;
+  border: 1px solid rgba(222, 213, 198, 0.9) !important;
+}
+
+/* 3D Calendar Grid Cell Class Cards */
+.class-card-clickable {
+  box-shadow: 0 3px 10px -1px rgba(44, 51, 45, 0.06), 0 1px 3px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.class-card-clickable:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 10px 22px -3px rgba(74, 124, 89, 0.20), 0 3px 8px rgba(44, 51, 45, 0.05), inset 0 1px 0 #ffffff;
+  border-color: #4a7c59 !important;
+}
+
+/* Week View Class Cards */
+.week-class-card {
+  box-shadow: 0 3px 10px -1px rgba(44, 51, 45, 0.07), 0 1px 3px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.week-class-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px -4px rgba(74, 124, 89, 0.22), 0 4px 10px rgba(44, 51, 45, 0.06), inset 0 1px 0 #ffffff !important;
+  border-color: #4a7c59 !important;
+}
+
+/* Micro Badge 3D Elevation */
+.badge-3d {
+  box-shadow: 0 1px 3px rgba(44, 51, 45, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Secondary 3D Neutral Buttons */
+.btn-3d-secondary {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f4ed 100%) !important;
+  color: #2c332d !important;
+  border: 1px solid #ded5c6 !important;
+  box-shadow: 0 2px 5px rgba(44, 51, 45, 0.05), inset 0 1px 0 #ffffff !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease !important;
+}
+
+.btn-3d-secondary:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 14px -2px rgba(44, 51, 45, 0.10), inset 0 1px 0 #ffffff !important;
+  border-color: #c7bcab !important;
+}
+
+.btn-3d-secondary:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(44, 51, 45, 0.08) !important;
+}
+
+/* 3D Timeline Stream Card */
+.timeline-card-3d {
+  background: #ffffff;
+  border: 1px solid #ded5c6;
+  box-shadow: 0 4px 14px -2px rgba(44, 51, 45, 0.06), 0 2px 6px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timeline-card-3d:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -4px rgba(74, 124, 89, 0.18), 0 5px 12px rgba(44, 51, 45, 0.06), inset 0 1px 0 #ffffff;
+  border-color: #4a7c59 !important;
+}
+
+/* 3D Spine Node Bead */
+.spine-node-3d {
+  box-shadow: 0 3px 8px rgba(44, 51, 45, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* 3D Tactile Form Inputs */
+.input-3d {
+  background-color: #fbf9f5;
+  border: 1px solid #ded5c6;
+  box-shadow: inset 0 1px 3px rgba(44, 51, 45, 0.05);
+  transition: all 0.18s ease;
+}
+
+.input-3d:focus {
+  background-color: #ffffff;
+  border-color: #4a7c59;
+  box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.15), inset 0 1px 2px rgba(44, 51, 45, 0.04);
+}

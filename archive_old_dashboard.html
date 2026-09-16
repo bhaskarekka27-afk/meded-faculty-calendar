@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Instant redirect to new Admin Dashboard
+    window.location.replace('/admin.html' + window.location.hash);
+  </script>
+  <meta http-equiv="refresh" content="0;url=/admin.html">
+  <title>PW MedEd - Faculty & Batch Schedule Planner</title>
+  <meta name="description" content="Smooth, fluent faculty calendar and lecture planner for batch-wise classes on PW MedEd APP with multi-sheet connectivity.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/calendar.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Top App Navigation Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-section">
+        <div class="brand-logo-badge">PW</div>
+        <div class="brand-titles">
+          <div class="brand-title">
+            <span>PW <span class="brand-accent">MedEd</span></span>
+            <span class="live-badge">Live Planner</span>
+          </div>
+          <span class="brand-subtitle" id="current-batch-meta">Prarambh 2026 Batch for MBBS 1st Year</span>
+        </div>
+      </div>
+
+      <!-- Batch Switcher Bar -->
+      <div class="header-batch-control">
+        <div class="batch-select-wrapper">
+          <i data-lucide="graduation-cap"></i>
+          <select id="batch-select" class="batch-select" aria-label="Select Batch">
+            <!-- Dynamic Options -->
+          </select>
+          <i data-lucide="chevron-down" class="batch-chevron"></i>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="sync-current-batch-btn" title="Sync live updates from Google Sheet">
+          <i data-lucide="refresh-cw"></i> Sync
+        </button>
+      </div>
+
+      <!-- Top Action Buttons -->
+      <div class="header-actions">
+        <!-- Faculty Auth Profile / Sign In Button -->
+        <div id="faculty-auth-container" class="faculty-auth-container">
+          <!-- Rendered dynamically: Sign In button or Profile Pill -->
+        </div>
+
+        <button class="btn btn-primary btn-sm" id="open-connect-sheet-modal">
+          <i data-lucide="sheet"></i> Connect Sheet
+        </button>
+        <button class="btn-icon" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
+          <i data-lucide="sun"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="app-main">
+
+    <!-- Top View Switcher & Actions Bar -->
+    <section class="top-controls-bar">
+      <div class="view-tabs-container" role="tablist">
+        <button class="view-tab-btn active" data-view="month" role="tab" aria-selected="true">
+          <i data-lucide="calendar"></i> Month Grid
+        </button>
+        <button class="view-tab-btn" data-view="timetable" role="tab" aria-selected="false">
+          <i data-lucide="calendar-range"></i> Weekly Timetable
+        </button>
+        <button class="view-tab-btn" data-view="agenda" role="tab" aria-selected="false">
+          <i data-lucide="table"></i> Planner Table
+        </button>
+        <button class="view-tab-btn" data-view="faculty" role="tab" aria-selected="false">
+          <i data-lucide="users-round"></i> Faculty Directory
+        </button>
+      </div>
+
+      <div class="bar-actions-right">
+        <button class="btn btn-secondary btn-sm" id="export-all-ics-btn">
+          <i data-lucide="calendar-arrow-down"></i> Export Schedule (.ics)
+        </button>
+      </div>
+    </section>
+
+    <!-- Metrics Summary Cards -->
+    <section class="stats-cards-grid">
+      <div class="stat-card">
+        <div class="stat-icon-circle stat-icon-lectures">
+          <i data-lucide="book-open"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-total-lectures">--</span>
+          <span class="stat-label">Total Lectures</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon-circle stat-icon-hours">
+          <i data-lucide="clock"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-total-hours">--</span>
+          <span class="stat-label">Teaching Hours</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon-circle stat-icon-faculty">
+          <i data-lucide="user-check"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-total-faculty">--</span>
+          <span class="stat-label">Medical Faculty</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon-circle stat-icon-subjects">
+          <i data-lucide="stethoscope"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-total-subjects">--</span>
+          <span class="stat-label">Subjects</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon-circle stat-icon-cooloff">
+          <i data-lucide="coffee"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-total-cooloff">--</span>
+          <span class="stat-label">Cool Off & Breaks</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter & Search Toolbar -->
+    <section class="filter-toolbar">
+      <div class="search-and-dropdowns">
+        <div class="search-input-wrapper">
+          <i data-lucide="search"></i>
+          <input type="text" id="global-search" class="search-input" placeholder="Search by topic, chapter, faculty, date or keyword...">
+          <button class="clear-search-btn" id="clear-search-btn" title="Clear Search">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <div class="select-filter-wrapper">
+          <select id="faculty-filter-select" class="select-filter" aria-label="Filter by Faculty">
+            <option value="">All Faculty Members</option>
+          </select>
+        </div>
+
+        <label class="toggle-filter-label" title="Hide Sundays and Cool-Off days">
+          <input type="checkbox" id="hide-breaks-toggle">
+          <span>Hide Breaks</span>
+        </label>
+
+        <button class="btn btn-secondary btn-sm" id="reset-filters-btn">
+          <i data-lucide="rotate-ccw"></i> Reset
+        </button>
+      </div>
+
+      <!-- Subject Filter Chips -->
+      <div class="subject-chips-bar" id="subject-chips-container">
+        <!-- Dynamic Subject Chips -->
+      </div>
+    </section>
+
+    <!-- Main View Dynamic Container -->
+    <section id="main-content-view" class="main-view-container">
+      <!-- Dynamic View Injected Here -->
+    </section>
+
+  </main>
+
+  <!-- Lecture Detail Modal / Drawer -->
+  <div class="modal-backdrop" id="event-detail-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <button class="modal-close-btn" id="close-event-modal" aria-label="Close modal">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="modal-inner" id="event-modal-content">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect Google Sheet Modal -->
+  <div class="modal-backdrop" id="connect-sheet-modal" role="dialog" aria-modal="true">
+    <div class="modal-window modal-window-lg">
+      <button class="modal-close-btn" id="close-connect-modal" aria-label="Close modal">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="modal-inner">
+        <div class="modal-header-section">
+          <h2 class="modal-lecture-title">Connect Batch Google Sheet</h2>
+          <p class="text-muted" style="font-size: 0.82rem; margin-top: 4px;">
+            Link any Google Sheet to automatically sync and display batch-wise faculty calendars.
+          </p>
+        </div>
+
+        <div class="modal-form-group">
+          <label class="form-label" for="new-sheet-url">Google Sheet Shareable Link or ID *</label>
+          <input type="url" id="new-sheet-url" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+          <span class="form-hint">Tip: In Google Sheets, make sure File → Share is set to "Anyone with the link can view".</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+          <div class="modal-form-group">
+            <label class="form-label" for="new-sheet-tab">Sheet Tab Name</label>
+            <input type="text" id="new-sheet-tab" class="form-input" value="Lecture Planner" placeholder="Lecture Planner">
+            <span class="form-hint">Matches the tab name at the bottom of the sheet.</span>
+          </div>
+
+          <div class="modal-form-group">
+            <label class="form-label" for="new-sheet-name">Batch Name (Optional Override)</label>
+            <input type="text" id="new-sheet-name" class="form-input" placeholder="Auto-detected from Header">
+            <span class="form-hint">Leave blank to auto-detect from Header Cell A1.</span>
+          </div>
+        </div>
+
+        <div id="connect-status-box" class="connect-status-box"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button class="btn btn-secondary" id="cancel-connect-btn">Cancel</button>
+          <button class="btn btn-primary" id="save-new-sheet-btn">
+            <i data-lucide="plus-circle"></i> Connect & Import Batch
+          </button>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+
+        <div class="connected-batches-section">
+          <h4 class="section-subheading"><i data-lucide="layers"></i> Currently Connected Batches</h4>
+          <div class="connected-batches-list" id="connected-batches-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

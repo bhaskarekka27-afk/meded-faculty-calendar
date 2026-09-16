@@ -1,0 +1,18 @@
+services:
+  - type: static
+    name: meded-faculty-calendar
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /admin
+        destination: /admin.html
+      - type: rewrite
+        source: /faculty
+        destination: /faculty.html
+      - type: rewrite
+        source: /week
+        destination: /week.html
+      - type: rewrite
+        source: /timeline
+        destination: /timeline.html

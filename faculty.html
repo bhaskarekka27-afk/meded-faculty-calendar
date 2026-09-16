@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>PW MedEd - Faculty Academic Calendar</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#4a7c59",
+            "primary-hover": "#3d6b4b",
+            "primary-dark": "#2d4d37",
+            "primary-container": "#eef4f0",
+            "on-primary-container": "#2d4d37",
+            "primary-fixed": "#eef4f0",
+            "primary-fixed-dim": "#d8e8dc",
+            "on-primary-fixed": "#2d4d37",
+            "on-primary-fixed-variant": "#3b6347",
+            "on-primary": "#ffffff",
+            "surface-tint": "#3d6b4b",
+            "surface": "#fbf9f5",
+            "surface-bright": "#fbf9f5",
+            "surface-dim": "#f0ece4",
+            "surface-variant": "#f4efe6",
+            "on-surface": "#2c332d",
+            "on-surface-variant": "#576058",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f7f4ed",
+            "surface-container": "#f4efe6",
+            "surface-container-high": "#ede7da",
+            "surface-container-highest": "#e5dfd5",
+            "background": "#fbf9f5",
+            "on-background": "#2c332d",
+            "secondary": "#576058",
+            "secondary-container": "#f4efe6",
+            "on-secondary-container": "#2c332d",
+            "secondary-fixed": "#f4efe6",
+            "secondary-fixed-dim": "#ede7da",
+            "on-secondary-fixed": "#2c332d",
+            "on-secondary-fixed-variant": "#576058",
+            "on-secondary": "#ffffff",
+            "tertiary": "#705c30",
+            "tertiary-container": "#fdf8f0",
+            "on-tertiary-container": "#705c30",
+            "tertiary-fixed": "#f8e0a8",
+            "tertiary-fixed-dim": "#ebe0ca",
+            "on-tertiary-fixed": "#554020",
+            "on-tertiary-fixed-variant": "#705c30",
+            "on-tertiary": "#ffffff",
+            "outline": "#8b958c",
+            "outline-variant": "#ded5c6",
+            "inverse-surface": "#2c332d",
+            "inverse-on-surface": "#fbf9f5",
+            "inverse-primary": "#8ecf9e",
+            "error": "#b83230",
+            "error-container": "#ffdad8",
+            "on-error": "#ffffff",
+            "on-error-container": "#690005"
+          },
+          fontFamily: {
+            sans: ["'Reddit Sans'", "sans-serif"],
+            headline: ["'Reddit Sans'", "sans-serif"],
+            body: ["'Reddit Sans'", "sans-serif"],
+            display: ["'Reddit Sans'", "sans-serif"],
+            label: ["'Reddit Sans'", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="stylesheet" href="css/3d-aesthetic.css">
+  <style>
+    * { font-family: 'Reddit Sans', sans-serif !important; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined' !important; }
+    ::-webkit-scrollbar { display: none; }
+    .tab-active-glow {
+      border-color: #4a7c59 !important;
+      box-shadow: 0 4px 16px -2px rgba(74, 124, 89, 0.25), 0 2px 6px -1px rgba(74, 124, 89, 0.15) !important;
+    }
+  </style>
+</head>
+<body class="bg-[#fbf9f5] text-[#2c332d] min-h-screen antialiased flex flex-col justify-between font-body selection:bg-[#4a7c59]/20 selection:text-[#4a7c59] overflow-x-hidden relative">
+
+  <!-- TOP HEADER (Identical to Admin Header with Faculty Badge) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#ded5c6] px-6 py-3.5 flex items-center justify-between shadow-[0_4px_20px_-2px_rgba(44,51,45,0.08)]">
+    <div class="flex items-center gap-5">
+      <!-- Logo -->
+      <a href="/faculty.html" class="flex items-center gap-3 text-inherit no-underline cursor-pointer group" title="PW MedEd Faculty Calendar">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-b from-[#558d67] to-[#4a7c59] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(74,124,89,0.35)] border border-[#3d6b4b] group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-[20px]">local_hospital</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-headline font-bold text-[18px] tracking-tight text-[#2d4d37]">PW MedEd</span>
+          <span class="text-[11px] font-bold text-[#4a7c59] bg-[#eef4f0] border border-[#cde0d3] px-2.5 py-0.5 rounded-md uppercase tracking-wider font-body badge-3d">Faculty Portal</span>
+        </div>
+      </a>
+
+      <div class="h-4 w-[1px] bg-[#e2dad0] hidden sm:block"></div>
+
+      <!-- Batch Selector Dropdown Pill -->
+      <div class="relative">
+        <div id="facultyBatchPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+          <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">school</span>
+          <span class="font-semibold text-xs truncate max-w-[230px]" id="facultyBatchLabel">Prarambh 2026 Batch • MBBS 1st Year</span>
+          <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <div id="facultyBatchDropdown" class="hidden absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
+          <div class="px-3.5 py-2 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between">
+            <span>Select Active Batch</span>
+            <span class="text-[#4a7c59] font-semibold">Live Google Sheets</span>
+          </div>
+          <div id="facultyBatchDropdownList" class="max-h-60 overflow-y-auto py-1">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Header: Search, Export .ics, Faculty Profile & Switcher -->
+    <div class="flex items-center gap-3">
+      
+      <!-- Search Input -->
+      <div class="relative hidden md:block w-56 lg:w-64">
+        <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
+        <input type="text" id="facultySearchInput" class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d" placeholder="Search my topics...">
+      </div>
+
+      <!-- Export .ics Schedule Button -->
+      <button id="facultyExportIcsBtn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#f4efe6] border border-[#ded5c6] text-[#2c332d] text-xs font-bold transition-all cursor-pointer shadow-xs" title="Export schedule to Apple/Outlook/Google Calendar">
+        <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">calendar_add_on</span>
+        <span class="hidden sm:inline">Export .ics</span>
+      </button>
+
+      <!-- Faculty Notifications Bell Button -->
+      <button class="w-9 h-9 rounded-xl btn-3d-secondary flex items-center justify-center transition-all relative cursor-pointer" id="openFacultyNotificationBtn" title="Class Reminders &amp; Notifications">
+        <span class="material-symbols-outlined text-[19px]">notifications</span>
+        <span id="facultyNotifPulse" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e] animate-ping"></span>
+        <span id="facultyNotifDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e]"></span>
+        <span id="facultyNotifBadgeCount" class="hidden absolute -top-1 -right-1 bg-[#c26d3e] text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full ring-2 ring-white">0</span>
+      </button>
+
+      <!-- Logged-in Faculty Profile & Switcher Pill -->
+      <div class="relative">
+        <button id="facultyProfileBtn" class="pill-3d flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] text-xs transition-all cursor-pointer">
+          <div class="w-7 h-7 rounded-full bg-[#4a7c59] text-white flex items-center justify-center font-bold text-[11px] shadow-xs" id="facultyHeaderAvatar">
+            RJ
+          </div>
+          <div class="text-left hidden sm:block">
+            <span class="block text-xs font-bold text-[#2c332d] leading-tight" id="facultyHeaderName">Dr. Rajesh Jambhulkar</span>
+            <span class="block text-[10px] text-[#4a7c59] font-medium" id="facultyHeaderSubject">Biochemistry</span>
+          </div>
+          <span class="material-symbols-outlined text-[#788279] text-[16px]">expand_more</span>
+        </button>
+
+        <!-- Faculty Switcher Dropdown Menu -->
+        <div id="facultyProfileDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
+          <div class="px-3.5 py-2.5 border-b border-[#f0ece4]">
+            <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block">Logged In Faculty</span>
+            <p class="font-bold text-[#2c332d] text-sm mt-0.5" id="facultyDropdownCurrentName">Dr. Rajesh Jambhulkar</p>
+            <p class="text-[11px] text-[#4a7c59] font-semibold" id="facultyDropdownCurrentSubject">Department of Biochemistry</p>
+          </div>
+          
+          <div class="px-3.5 py-1.5 text-[10px] font-bold uppercase text-[#68736a] tracking-wider">
+            Switch Faculty Profile:
+          </div>
+          <div id="facultyProfilesList" class="max-h-52 overflow-y-auto py-1">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="border-t border-[#f0ece4] pt-1.5 mt-1">
+            <a href="/login.html" class="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[#b83230] hover:bg-[#fdf2f2] transition-colors">
+              <span class="material-symbols-outlined text-[16px]">logout</span>
+              <span>Sign Out to Login</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN VIEW CONTENT (Calendar & 3 Dynamic Tabs ONLY) -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- 3 DYNAMIC METRIC TABS (Admin Card-3D Design & Elevation) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      
+      <!-- Tab 1: Today's Classes -->
+      <div id="tabFacultyToday" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all group" title="Click to view Today's Scheduled Classes">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#4a7c59] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
+          <span class="material-symbols-outlined text-[22px]">today</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Today's Classes</span>
+            <span id="facultyTodayBadge" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Today</span>
+          </div>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <span id="facultyTodayCount" class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
+            <span class="text-xs font-semibold text-[#68736a]">Classes Today</span>
+          </div>
+          <p id="facultyTodaySubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">No clinical sessions today</p>
+        </div>
+      </div>
+
+      <!-- Tab 2: Upcoming Classes (Dynamic to Month/Week/Today) -->
+      <div id="tabFacultyUpcoming" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#c26d3e] transition-all group" title="Click to view Upcoming Lectures">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fbf3ec] to-[#f4e2d2] text-[#c26d3e] flex items-center justify-center shrink-0 border border-[#eed9cc] shadow-xs">
+          <span class="material-symbols-outlined text-[22px]">event_upcoming</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Upcoming Classes</span>
+            <span id="facultyUpcomingScopeBadge" class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded-md border border-[#eed9cc] badge-3d">This Month</span>
+          </div>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <span id="facultyUpcomingCount" class="font-headline text-[22px] font-bold text-[#c26d3e] leading-tight">0</span>
+            <span class="text-xs font-semibold text-[#68736a]">Lectures Ahead</span>
+          </div>
+          <p id="facultyUpcomingSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Calculated dynamically</p>
+        </div>
+      </div>
+
+      <!-- Tab 3: Total Classes (Dynamic to Month/Week/Today) -->
+      <div id="tabFacultyTotal" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#3b6347] transition-all group tab-active-glow" title="Click to view Total Scheduled Classes">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
+          <span class="material-symbols-outlined text-[22px]">calendar_month</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Total Classes</span>
+            <span id="facultyTotalScopeBadge" class="text-[10px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Period Total</span>
+          </div>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <span id="facultyTotalCount" class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
+            <span class="text-xs font-semibold text-[#68736a]">Classes in Scope</span>
+          </div>
+          <p id="facultyTotalSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Teaching hours assigned</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ACTION CONTROLS BAR (Identical to Admin Action Controls Bar) -->
+    <div id="facultyActionControlsBar" class="mb-5 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-0.5 py-1">
+        <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
+          
+          <!-- Month/Period Title & Navigation -->
+          <div class="flex items-center gap-2 sm:gap-2.5">
+            <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2c332d] tracking-tight">
+              <span id="facultyPeriodTitle">October 2026</span>
+            </h2>
+            <div class="track-3d flex items-center rounded-xl overflow-hidden">
+              <button id="prevPeriodBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous">
+                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              <button id="todayPeriodBtn" class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer">
+                Today
+              </button>
+              <button id="nextPeriodBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Next">
+                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- View Mode Switcher Track (Month, Week, Timeline) -->
+          <div class="track-3d flex items-center p-1 rounded-xl text-xs">
+            <button id="btnViewMonth" class="px-3.5 py-1 rounded-lg btn-3d-primary font-bold text-white cursor-pointer border-none">Month</button>
+            <button id="btnViewWeek" class="px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent">Week</button>
+            <button id="btnViewTimeline" class="px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent">Timeline</button>
+          </div>
+        </div>
+
+        <!-- Right Quick Pill: Active Faculty Status -->
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#ded5c6] text-xs shadow-xs">
+            <span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>
+            <span class="text-[#68736a] font-medium">Viewing schedule for:</span>
+            <strong class="text-[#2c332d]" id="facultyActiveNameBadge">Dr. Rajesh Jambhulkar</strong>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MAIN CALENDAR GRID VIEW SECTION (Identical to Admin Calendar Grid Structure) -->
+    <div id="viewSectionCalendar" class="panel-3d rounded-2xl overflow-hidden mb-6">
+      <!-- Weekday Headers -->
+      <div id="facultyWeekdayHeaders" class="grid grid-cols-7 border-b border-[#e5dfd5] bg-[#f7f4ed] text-center text-xs font-bold text-[#576058]">
+        <div class="py-3 text-[#c26d3e] font-extrabold">Sun</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Mon</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Tue</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Wed</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Thu</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Fri</div>
+        <div class="py-3 border-l border-[#e5dfd5]">Sat</div>
+      </div>
+
+      <!-- Grid Body (Populated dynamically with divide-y divide-[#ece5d8]) -->
+      <div class="grid grid-cols-7 auto-rows-fr divide-y divide-[#ece5d8]" id="facultyCalendarGrid">
+        <!-- Dynamic calendar rows rendered here by facultyApp.js -->
+      </div>
+    </div>
+
+    <!-- DEDICATED WEEK VIEW SECTION (Identical to Admin Weekly Timetable Matrix) -->
+    <div id="viewSectionWeek" class="hidden mb-6">
+      <div id="facultyWeekContainer"></div>
+    </div>
+
+    <!-- DEDICATED TIMELINE VIEW SECTION (Identical to Admin Timeline Agenda) -->
+    <div id="viewSectionTimeline" class="hidden mb-6">
+      <div id="facultyTimelineContainer"></div>
+    </div>
+
+  </main>
+
+  <!-- LECTURE DETAIL MODAL (Matching Admin Modal Structure with Google Calendar & .ics export) -->
+  <div id="facultyEventDetailModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-[#ded5c6] modal-3d max-w-lg w-full p-6 relative">
+      <div class="flex items-start justify-between pb-3 border-b border-[#e5dfd5] mb-4">
+        <div>
+          <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d" id="modalSubjectBadge">
+            Biochemistry
+          </span>
+          <h3 class="font-headline font-bold text-xl text-[#2c332d] mt-1.5 leading-snug" id="modalDetailTitle">
+            Lecture Topic
+          </h3>
+          <p class="text-xs text-[#68736a] mt-0.5" id="modalDetailBatch">Batch Name</p>
+        </div>
+        <button id="closeFacultyEventModal" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#f4efe6] cursor-pointer">
+          <span class="material-symbols-outlined text-[22px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3 p-3 bg-[#faf7f2] rounded-xl border border-[#e8e2d8]">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Date &amp; Day</span>
+            <span class="font-bold text-[#2c332d]" id="modalDetailDate">Date</span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Timings &amp; Duration</span>
+            <span class="font-bold text-[#4a7c59] font-mono" id="modalDetailTimings">7:00 PM - 9:00 PM</span>
+            <span class="text-[10px] text-[#788279] block" id="modalDetailDuration">• 2 Hours</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Assigned Faculty</span>
+            <span class="font-bold text-[#2c332d]" id="modalDetailFaculty">Faculty</span>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] uppercase font-bold text-[#68736a] block mb-1">Curriculum Topic &amp; Objectives</span>
+          <p class="text-xs text-[#576058] bg-[#fdfbf7] p-3 rounded-xl border border-[#e8e2d8] leading-relaxed" id="modalDetailTopic">
+            Detailed syllabus coverage.
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end pt-3 border-t border-[#e5dfd5]">
+          <button id="modalDetailCloseBtn" class="btn-3d-primary px-5 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACULTY RIGHT-SIDE NOTIFICATION SLIDE-OVER DRAWER -->
+  <div id="facultyNotificationModal" class="fixed inset-0 z-50 pointer-events-none transition-all">
+    <!-- Backdrop -->
+    <div id="facultyNotificationBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Drawer Panel -->
+    <aside id="facultyNotificationDrawer" class="fixed inset-y-0 right-0 max-w-md w-full bg-white modal-3d p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 pointer-events-auto shadow-2xl">
+      <div>
+        <!-- Drawer Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-[#e5dfd5]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+              <span class="material-symbols-outlined text-[20px]">mark_email_unread</span>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#2c332d]">Faculty Notifications</h3>
+              <p class="text-[11px] text-[#68736a] font-medium">Automated class reminders sent to registered email</p>
+            </div>
+          </div>
+          <button id="closeFacultyNotificationBtn" class="w-8 h-8 rounded-lg hover:bg-[#f4efe6] text-[#68736a] flex items-center justify-center transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <!-- Notification Filters & Controls -->
+        <div class="mt-4 flex items-center justify-between px-0.5 border-b border-[#ece5d8] pb-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] font-bold text-[#2c332d]">My Class Reminders</span>
+            <span id="facultyNotifBadgeFilterCount" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3] badge-3d">0 Received</span>
+          </div>
+          <button type="button" id="facultyMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent">
+            Mark all read
+          </button>
+        </div>
+
+        <!-- Dynamic Notification Feed -->
+        <div id="facultyNotificationFeed" class="mt-3 space-y-3 overflow-y-auto max-h-[calc(100vh-250px)] pr-1">
+          <!-- Populated dynamically by facultyApp.js with class reminder emails received for this faculty member -->
+        </div>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="pt-4 border-t border-[#e5dfd5] text-center">
+        <span class="text-[11px] text-[#68736a] font-medium">
+          Logged in: <strong class="text-[#2c332d]" id="facultyDrawerFooterName">Dr. Rajesh Jambhulkar</strong>
+        </span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MODAL: FACULTY EMAIL PREVIEW MODAL -->
+  <div id="facultyEmailPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
+      
+      <!-- Email Client Window Bar -->
+      <div class="px-4 py-3 bg-[#ede7da] border-b border-[#ded5c6] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-[#e06c75] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-[#e5c07b] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-[#98c379] inline-block"></span>
+          <span class="text-xs font-bold text-[#2c332d] ml-2 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">mail</span>
+            <span>PW MedEd Notification Delivery</span>
+          </span>
+        </div>
+        <button id="closeFacultyEmailPreviewBtn" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#ded5c6] cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Email Envelope Headers -->
+      <div class="px-5 py-3 bg-white border-b border-[#e5dfd5] text-xs space-y-1.5">
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">From:</span>
+          <span id="facultyEmailPreviewFrom" class="font-semibold text-[#2c332d]">academic-reminders@pwmeded.edu.in</span>
+          <span class="ml-2 text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3]">Verified Sender</span>
+        </div>
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">To:</span>
+          <span id="facultyEmailPreviewTo" class="font-semibold text-[#2c332d]">Dr. Rajesh Jambhulkar &lt;rajesh.j@pwmeded.edu.in&gt;</span>
+          <span class="ml-2 text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-1.5 py-0.2 rounded border border-[#eed9cc]">My Registered Email</span>
+        </div>
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">Subject:</span>
+          <span id="facultyEmailPreviewSubject" class="font-bold text-[#2c332d]">[PW MedEd] Class Reminder: Enzymes &amp; Catalysis</span>
+        </div>
+      </div>
+
+      <!-- Email Rendered Body Area -->
+      <div class="flex-1 overflow-y-auto p-4 bg-[#fbf9f5]" id="facultyEmailPreviewContainer">
+        <!-- Rendered HTML Email injected here -->
+      </div>
+
+      <!-- Footer Action -->
+      <div class="px-5 py-3 bg-white border-t border-[#e5dfd5] flex items-center justify-between">
+        <span class="text-[11px] text-[#68736a] flex items-center gap-1">
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">check_circle</span>
+          <span>Delivered automatically prior to live lecture</span>
+        </span>
+        <button id="closeFacultyEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+          Close Email
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="facultyToast" class="fixed bottom-6 right-6 z-50 bg-[#2d4d37] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all transform translate-y-10 opacity-0 pointer-events-none">
+    <span class="material-symbols-outlined text-[16px] text-[#8ecf9e]">check_circle</span>
+    <span id="facultyToastText">Action successful</span>
+  </div>
+
+  <!-- Application Script -->
+  <script type="module" src="js/facultyApp.js"></script>
+</body>
+</html>

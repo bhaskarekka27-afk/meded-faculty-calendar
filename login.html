@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>PW MedEd - Academic Suite Login</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#4a7c59",
+            "primary-hover": "#3c6749",
+            secondary: "#6b6358",
+            "surface-container-highest": "#e4e0d8",
+            "surface-container-low": "#f5f1ea",
+            "outline-variant": "#e8e2d8",
+            "on-surface-variant": "#5a5e57",
+            "on-surface": "#2e3230",
+            surface: "#fcf9f2",
+            "surface-card": "#ffffff",
+            outline: "#74796e",
+          },
+          fontFamily: {
+            sans: ["'Reddit Sans'", "sans-serif"],
+            body: ["'Reddit Sans'", "sans-serif"],
+            headline: ["'Reddit Sans'", "sans-serif"],
+          },
+          boxShadow: {
+            'soft': '0 8px 30px -4px rgba(46, 50, 48, 0.08), 0 2px 8px -1px rgba(46, 50, 48, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="css/3d-aesthetic.css">
+  <style>
+    * { font-family: 'Reddit Sans', sans-serif !important; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined' !important; }
+    body {
+      background-color: #fbf9f5;
+    }
+    .role-tab-active {
+      background: #ffffff !important;
+      color: #2d4d37 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      border-color: #ded5c6;
+    }
+  </style>
+</head>
+<body class="bg-[#fbf9f5] font-body text-on-surface antialiased min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 selection:bg-[#c8e8d0]">
+
+  <!-- Top System Status Indicator -->
+  <header class="w-full max-w-[440px] flex items-center justify-between pt-2 pb-1">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 border border-[#e5dfd5] text-[11px] text-[#576058] shadow-xs backdrop-blur-xs">
+      <span class="inline-block w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>
+      <span>NMC Central Gateway: <strong class="text-[#2c332d] font-semibold">Active</strong></span>
+    </div>
+    <span class="text-[11px] font-semibold text-[#68736a] bg-[#f0e8db] px-2.5 py-0.5 rounded-full border border-[#ded5c6]">
+      CBME 2026
+    </span>
+  </header>
+
+  <!-- Centered Login Card -->
+  <main class="w-full max-w-[440px] my-auto">
+    <div class="bg-white rounded-2xl border border-[#ded5c6] shadow-soft p-6 sm:p-8 transition-all card-3d-static">
+      
+      <!-- Brand & Header -->
+      <div class="flex flex-col items-center text-center mb-6">
+        <div class="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#4a7c59] to-[#2d4d37] text-white flex items-center justify-center font-bold text-2xl tracking-tight shadow-md mb-3 border-2 border-white/60">
+          PW
+        </div>
+        <div class="flex items-center gap-1.5 mb-1">
+          <span class="font-headline font-bold text-xl text-on-surface tracking-tight">PW MedEd</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#f0e8db] text-[#5e5548] border border-[#e2d8c7]">Academic Suite</span>
+        </div>
+        <p class="text-xs text-on-surface-variant font-medium" id="portalSubtitle">Sign in to access faculty schedules &amp; governance</p>
+      </div>
+
+      <!-- Role Switcher Tabs (Faculty vs Admin) -->
+      <div class="bg-[#f5f1ea] p-1 rounded-xl flex items-center mb-5 border border-[#e5dfd5] shadow-inner">
+        <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-transparent cursor-pointer" id="facultyTab" onclick="switchRole('faculty')" type="button">
+          <span class="material-symbols-outlined text-[17px]">school</span>
+          <span>Faculty Login</span>
+        </button>
+        <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-transparent cursor-pointer" id="adminTab" onclick="switchRole('admin')" type="button">
+          <span class="material-symbols-outlined text-[17px]">admin_panel_settings</span>
+          <span>Admin Login</span>
+        </button>
+      </div>
+
+      <!-- Unified Login Form -->
+      <form class="space-y-4" id="authForm" onsubmit="event.preventDefault(); handleFormSubmit();">
+        
+        <!-- Institutional Email Field -->
+        <div>
+          <label class="block text-xs font-bold text-on-surface mb-1.5 tracking-wide" for="emailInput" id="emailFieldLabel">
+            Registered Email / Faculty ID
+          </label>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3.5 text-secondary text-lg pointer-events-none" id="emailFieldIcon">
+              school
+            </span>
+            <input 
+              class="w-full bg-[#faf7f0] text-on-surface placeholder:text-[#9ea399] text-sm rounded-xl pl-10 pr-4 py-2.5 border border-[#e5dfd5] focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary transition-all font-medium input-3d" 
+              id="emailInput" 
+              name="email" 
+              placeholder="faculty.name@pwmeded.edu.in" 
+              required 
+              type="text"
+              value="rajesh.jambhulkar@pwmeded.edu.in"
+            >
+          </div>
+        </div>
+
+        <!-- Password Field with Visibility Toggle & Forgot Password Link -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-on-surface tracking-wide" for="passwordInput">
+              Password
+            </label>
+            <a class="text-xs font-semibold text-primary hover:underline cursor-pointer" href="javascript:void(0)" onclick="handleForgotPassword()">
+              Forgot Password?
+            </a>
+          </div>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3.5 text-secondary text-lg pointer-events-none">
+              lock
+            </span>
+            <input 
+              class="w-full bg-[#faf7f0] text-on-surface placeholder:text-[#9ea399] text-sm rounded-xl pl-10 pr-11 py-2.5 border border-[#e5dfd5] focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary transition-all font-medium input-3d" 
+              id="passwordInput" 
+              name="password" 
+              placeholder="Enter your password" 
+              required 
+              type="password"
+              value="MedEd@2026"
+            >
+            <button 
+              aria-label="Toggle password visibility" 
+              class="absolute right-3 text-secondary hover:text-on-surface p-1 rounded-md transition-colors cursor-pointer" 
+              id="togglePasswordBtn" 
+              onclick="togglePasswordVisibility()" 
+              type="button"
+            >
+              <span class="material-symbols-outlined text-[18px]" id="pwVisibilityIcon">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me Checkbox & Guest Mode -->
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input checked class="w-4 h-4 rounded border-[#c4c8bc] text-primary focus:ring-primary/20 accent-[#4a7c59] cursor-pointer" id="rememberMe" name="remember" type="checkbox">
+            <span class="text-xs text-on-surface-variant font-medium">Remember my credentials</span>
+          </label>
+          <a href="/admin.html" class="text-xs text-secondary hover:text-primary font-bold hover:underline">
+            Guest Access →
+          </a>
+        </div>
+
+        <!-- Primary Action Button -->
+        <div class="pt-2">
+          <button class="w-full py-2.5 px-4 rounded-xl btn-3d-primary text-white font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer" id="submitBtn" type="submit">
+            <span id="btnText">Sign In as Faculty</span>
+            <span class="material-symbols-outlined text-lg" id="btnIcon">arrow_forward</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Divider -->
+      <div class="relative my-5">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full bg-[#e8e2d8] h-px"></div>
+        </div>
+        <div class="relative flex justify-center text-xs">
+          <span class="bg-white px-3 text-[#74796e] font-medium">
+            Or quick sign in with
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick SSO Buttons -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <button id="googleSsoBtn" onclick="handleQuickSSO('Google')" class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#faf7f2] border border-[#ded5c6] text-[#2c332d] hover:bg-[#f0ece4] transition-all text-xs font-semibold cursor-pointer shadow-xs" type="button">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" fill="#EA4335"></path>
+            <path d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z" fill="#4285F4"></path>
+            <path d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12s.7 2.3 1.9 4.7l3.7-1.9z" fill="#FBBC05"></path>
+            <path d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z" fill="#34A853"></path>
+          </svg>
+          <span>Google Workspace</span>
+        </button>
+        <button id="bioPasskeyBtn" onclick="handleQuickSSO('Passkey')" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#faf7f2] border border-[#ded5c6] text-[#2c332d] hover:bg-[#f0ece4] transition-all text-xs font-semibold cursor-pointer shadow-xs" type="button">
+          <span class="material-symbols-outlined text-base text-[#4a7c59]">fingerprint</span>
+          <span>Bio-Passkey</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Clean Minimal Footer -->
+  <footer class="mt-4 mb-2 text-center text-xs text-secondary tracking-tight">
+    <p>
+      PW MedEd Academic Suite • Need assistance? 
+      <a class="font-bold text-primary hover:underline ml-0.5" href="javascript:void(0)" onclick="alert('For technical support, contact the IT Directorate at it-support@pwmeded.edu.in or Ext: 4401')">Contact IT Support</a>
+    </p>
+  </footer>
+
+  <script>
+    let activeRole = 'faculty';
+    let currentFacultyName = 'Dr. Rajesh Jambhulkar';
+    let currentFacultySubject = 'Biochemistry';
+
+    function switchRole(role) {
+      activeRole = role;
+      const facultyTab = document.getElementById('facultyTab');
+      const adminTab = document.getElementById('adminTab');
+      const btnText = document.getElementById('btnText');
+      const emailInput = document.getElementById('emailInput');
+      const emailFieldLabel = document.getElementById('emailFieldLabel');
+      const emailFieldIcon = document.getElementById('emailFieldIcon');
+      const portalSubtitle = document.getElementById('portalSubtitle');
+
+      if (role === 'faculty') {
+        facultyTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-[#ded5c6] cursor-pointer role-tab-active";
+        adminTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 text-secondary hover:text-on-surface transition-all cursor-pointer border border-transparent";
+        btnText.textContent = "Sign In as Faculty";
+        emailFieldLabel.textContent = "Institutional Email / Faculty ID";
+        emailFieldIcon.textContent = "school";
+        emailInput.placeholder = "faculty.name@pwmeded.edu.in";
+        emailInput.value = "rajesh.jambhulkar@pwmeded.edu.in";
+        portalSubtitle.textContent = "Sign in to access faculty schedules & attendance";
+      } else {
+        adminTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-[#ded5c6] cursor-pointer role-tab-active";
+        facultyTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 text-secondary hover:text-on-surface transition-all cursor-pointer border border-transparent";
+        btnText.textContent = "Sign In as Admin";
+        emailFieldLabel.textContent = "Institutional Admin Email";
+        emailFieldIcon.textContent = "admin_panel_settings";
+        emailInput.placeholder = "admin.office@pwmeded.edu.in";
+        emailInput.value = "admin.office@pw.live";
+        portalSubtitle.textContent = "Sign in for curriculum pacing, batch governance & schedules";
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const pwInput = document.getElementById('passwordInput');
+      const pwIcon = document.getElementById('pwVisibilityIcon');
+      if (pwInput.type === 'password') {
+        pwInput.type = 'text';
+        pwIcon.textContent = 'visibility_off';
+      } else {
+        pwInput.type = 'password';
+        pwIcon.textContent = 'visibility';
+      }
+    }
+
+    function handleForgotPassword() {
+      const email = document.getElementById('emailInput')?.value || '';
+      alert(`A secure password reset link has been dispatched to: ${email || 'your registered institutional email'}`);
+    }
+
+    function handleQuickSSO(provider) {
+      executeSignIn(`sso.${provider.toLowerCase()}@pwmeded.edu.in`, `${provider} SSO Verified`);
+    }
+
+    function handleFormSubmit() {
+      const email = document.getElementById('emailInput')?.value?.trim();
+      const pw = document.getElementById('passwordInput')?.value;
+      if (!email || !pw) {
+        alert('Please fill out both email and password.');
+        return;
+      }
+      executeSignIn(email, 'Institutional Password');
+    }
+
+    function executeSignIn(emailVal, authMethod = 'Institutional Password') {
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnIcon = document.getElementById('btnIcon');
+
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-90');
+      btnText.textContent = 'Authenticating...';
+      btnIcon.textContent = 'sync';
+      btnIcon.classList.add('animate-spin');
+
+      // Determine user name based on email
+      let displayName = activeRole === 'admin' ? 'Academic Dean Office' : currentFacultyName;
+      if (activeRole === 'faculty') {
+        if (emailVal.includes('pradeep')) displayName = 'Dr. Pradeep Pawar';
+        else if (emailVal.includes('vivek')) displayName = 'Dr. Vivek Nalgirkar';
+        else if (emailVal.includes('anusha')) displayName = 'Dr. Anusha Rathi';
+        else if (emailVal.includes('ranjith')) displayName = 'Dr. Ranjith AR';
+        else if (emailVal.includes('siraj')) displayName = 'Dr. Siraj Ahmad';
+      }
+
+      // Persist auth session
+      const session = {
+        role: activeRole,
+        email: emailVal,
+        name: displayName,
+        subject: currentFacultySubject,
+        authMethod: authMethod,
+        loggedInAt: new Date().toISOString()
+      };
+      localStorage.setItem('meded_active_user', JSON.stringify(session));
+
+      setTimeout(() => {
+        btnText.textContent = 'Access Granted!';
+        btnIcon.classList.remove('animate-spin');
+        btnIcon.textContent = 'check_circle';
+
+        setTimeout(() => {
+          if (activeRole === 'admin') {
+            window.location.href = '/admin.html';
+          } else {
+            // Dedicated Faculty Portal
+            window.location.href = '/faculty.html';
+          }
+        }, 500);
+      }, 700);
+    }
+
+    // Initialize with Faculty Tab selected by default
+    document.addEventListener('DOMContentLoaded', () => {
+      switchRole('faculty');
+    });
+  </script>
+</body>
+</html>

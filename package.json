@@ -1,0 +1,15 @@
+{
+  "name": "meded-faculty-calendar",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-10000}"
+  },
+  "dependencies": {
+    "vite": "^6.2.0"
+  }
+}
