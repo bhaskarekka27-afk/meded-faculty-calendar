@@ -92,51 +92,63 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
       <div class="panel-3d p-3 rounded-2xl bg-white flex flex-wrap items-center justify-between gap-2.5">
         <div class="flex items-center gap-2 flex-wrap text-xs">
           <!-- Month Filter -->
-          <div class="flex items-center gap-1.5 bg-[#f4efe6] px-3 py-1.5 rounded-xl border border-[#ded5c6]">
-            <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">calendar_month</span>
-            <span class="font-bold text-[#576058]">Month:</span>
-            <select id="wlFilterMonth" class="bg-transparent font-bold text-[#2c332d] outline-none cursor-pointer">
-              <option value="all" ${currentFilters.month === 'all' ? 'selected' : ''}>All Months</option>
-              ${availableMonths.map(m => `<option value="${m}" ${currentFilters.month.toLowerCase() === m.toLowerCase() ? 'selected' : ''}>${m}</option>`).join('')}
-            </select>
-          </div>
+          <label for="wlFilterMonth" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
+            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">calendar_month</span>
+            <span class="font-bold text-[#576058] shrink-0">Month:</span>
+            <div class="relative flex items-center">
+              <select id="wlFilterMonth" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer">
+                <option value="all" ${currentFilters.month === 'all' ? 'selected' : ''}>All Months</option>
+                ${availableMonths.map(m => `<option value="${m}" ${currentFilters.month.toLowerCase() === m.toLowerCase() ? 'selected' : ''}>${m}</option>`).join('')}
+              </select>
+              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+            </div>
+          </label>
 
           <!-- Platform Filter -->
-          <div class="flex items-center gap-1.5 bg-[#f4efe6] px-3 py-1.5 rounded-xl border border-[#ded5c6]">
-            <span class="material-symbols-outlined text-[15px] text-[#c26d3e]">devices</span>
-            <span class="font-bold text-[#576058]">Platform:</span>
-            <select id="wlFilterPlatform" class="bg-transparent font-bold text-[#2c332d] outline-none cursor-pointer">
-              <option value="all" ${currentFilters.platform === 'all' ? 'selected' : ''}>All Platforms</option>
-              <option value="app" ${currentFilters.platform === 'app' ? 'selected' : ''}>App Only</option>
-              <option value="youtube" ${currentFilters.platform === 'youtube' ? 'selected' : ''}>YouTube Only</option>
-            </select>
-          </div>
+          <label for="wlFilterPlatform" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
+            <span class="material-symbols-outlined text-[#c26d3e] text-[16px]">devices</span>
+            <span class="font-bold text-[#576058] shrink-0">Platform:</span>
+            <div class="relative flex items-center">
+              <select id="wlFilterPlatform" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer">
+                <option value="all" ${currentFilters.platform === 'all' ? 'selected' : ''}>All Platforms</option>
+                <option value="app" ${currentFilters.platform === 'app' ? 'selected' : ''}>App Only</option>
+                <option value="youtube" ${currentFilters.platform === 'youtube' ? 'selected' : ''}>YouTube Only</option>
+              </select>
+              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+            </div>
+          </label>
 
           <!-- Faculty Filter -->
-          <div class="flex items-center gap-1.5 bg-[#f4efe6] px-3 py-1.5 rounded-xl border border-[#ded5c6]">
-            <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">person</span>
-            <span class="font-bold text-[#576058]">Faculty:</span>
-            <select id="wlFilterFaculty" class="bg-transparent font-bold text-[#2c332d] outline-none cursor-pointer max-w-[130px] truncate">
-              <option value="all" ${currentFilters.faculty === 'all' ? 'selected' : ''}>All Faculty</option>
-              ${availableFaculty.map(f => `<option value="${f}" ${currentFilters.faculty.toLowerCase().includes(f.toLowerCase()) ? 'selected' : ''}>${f}</option>`).join('')}
-            </select>
-          </div>
+          <label for="wlFilterFaculty" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
+            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">person</span>
+            <span class="font-bold text-[#576058] shrink-0">Faculty:</span>
+            <div class="relative flex items-center">
+              <select id="wlFilterFaculty" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer max-w-[130px] truncate">
+                <option value="all" ${currentFilters.faculty === 'all' ? 'selected' : ''}>All Faculty</option>
+                ${availableFaculty.map(f => `<option value="${f}" ${currentFilters.faculty.toLowerCase().includes(f.toLowerCase()) ? 'selected' : ''}>${f}</option>`).join('')}
+              </select>
+              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+            </div>
+          </label>
 
           <!-- Batch Filter -->
-          <div class="flex items-center gap-1.5 bg-[#f4efe6] px-3 py-1.5 rounded-xl border border-[#ded5c6]">
-            <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">school</span>
-            <span class="font-bold text-[#576058]">Batch:</span>
-            <select id="wlFilterBatch" class="bg-transparent font-bold text-[#2c332d] outline-none cursor-pointer max-w-[130px] truncate">
-              <option value="all" ${currentFilters.batch === 'all' ? 'selected' : ''}>All Batches</option>
-              ${availableBatches.map(b => `<option value="${b}" ${currentFilters.batch.toLowerCase().includes(b.toLowerCase()) ? 'selected' : ''}>${b}</option>`).join('')}
-            </select>
-          </div>
+          <label for="wlFilterBatch" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
+            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">school</span>
+            <span class="font-bold text-[#576058] shrink-0">Batch:</span>
+            <div class="relative flex items-center">
+              <select id="wlFilterBatch" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer max-w-[130px] truncate">
+                <option value="all" ${currentFilters.batch === 'all' ? 'selected' : ''}>All Batches</option>
+                ${availableBatches.map(b => `<option value="${b}" ${currentFilters.batch.toLowerCase().includes(b.toLowerCase()) ? 'selected' : ''}>${b}</option>`).join('')}
+              </select>
+              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+            </div>
+          </label>
         </div>
 
         <!-- Search Input -->
         <div class="relative min-w-[180px] flex-1 sm:flex-none">
-          <span class="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-[#68736a]">search</span>
-          <input type="text" id="wlSearchInput" value="${currentFilters.search}" placeholder="Search workload..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#ded5c6] rounded-xl outline-none focus:border-[#4a7c59] transition-all" />
+          <span class="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-[#68736a] pointer-events-none">search</span>
+          <input type="text" id="wlSearchInput" value="${currentFilters.search}" placeholder="Search workload..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#f7f4ed] hover:bg-white focus:bg-white text-[#2c332d] font-semibold border border-[#ded5c6] rounded-xl outline-none focus:border-[#4a7c59] transition-all input-3d" />
         </div>
       </div>
 
