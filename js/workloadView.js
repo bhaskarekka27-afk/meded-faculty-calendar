@@ -1,7 +1,7 @@
 /**
  * PW MedEd - Minimal Unified Faculty Workload Dashboard Renderer
- * Displays unified minimal header, metrics, filters, and faculty workload breakdown.
- * Details log view removed for clean minimal design.
+ * Displays unified minimal header, metrics, custom 3D dropdown filters, and faculty workload breakdown.
+ * Uses custom 3D pill dropdown popups matching header Batch selector aesthetic.
  */
 
 import { renderPlatformBadges } from './platformBadge.js';
@@ -25,6 +25,36 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
   const availableFaculty = workloadManager.getAvailableFaculty();
 
   const maxHours = summaries.length > 0 ? summaries[0].totalHours : 1;
+
+  // Option helper for custom dropdown items
+  const renderOptions = (type, items, selectedVal) => {
+    return items.map(item => {
+      const val = typeof item === 'object' ? item.val : item;
+      const label = typeof item === 'object' ? item.label : item;
+      const isSelected = selectedVal.toString().toLowerCase() === val.toString().toLowerCase();
+
+      return `
+        <div class="wl-dropdown-opt px-3 py-1.5 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-filter-type="${type}" data-val="${val}">
+          <span class="truncate">${label}</span>
+          ${isSelected ? '<span class="material-symbols-outlined text-[15px] text-[#4a7c59] shrink-0 ml-1.5">check</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  };
+
+  const monthLabel = currentFilters.month === 'all' ? 'All Months' : currentFilters.month;
+  const platformLabel = currentFilters.platform === 'all' ? 'All Platforms' : (currentFilters.platform === 'app' ? 'App Only' : 'YouTube Only');
+  const facultyLabel = currentFilters.faculty === 'all' ? 'All Faculty' : currentFilters.faculty;
+  const batchLabel = currentFilters.batch === 'all' ? 'All Batches' : currentFilters.batch;
+
+  const monthOptions = [{ val: 'all', label: 'All Months' }, ...availableMonths.map(m => ({ val: m, label: m }))];
+  const platformOptions = [
+    { val: 'all', label: 'All Platforms (App & YT)' },
+    { val: 'app', label: '📱 Mobile App Only' },
+    { val: 'youtube', label: '🔴 YouTube Channel Only' }
+  ];
+  const facultyOptions = [{ val: 'all', label: 'All Faculty' }, ...availableFaculty.map(f => ({ val: f, label: f }))];
+  const batchOptions = [{ val: 'all', label: 'All Batches' }, ...availableBatches.map(b => ({ val: b, label: b }))];
 
   let html = `
     <div class="space-y-4">
@@ -88,67 +118,68 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
         </div>
       </div>
 
-      <!-- 2. MINIMAL FILTER BAR -->
+      <!-- 2. MINIMAL CUSTOM 3D DROPDOWN FILTER BAR (Matching Header Batch Selector) -->
       <div class="panel-3d p-3 rounded-2xl bg-white flex flex-wrap items-center justify-between gap-2.5">
-        <div class="flex items-center gap-2 flex-wrap text-xs">
-          <!-- Month Filter -->
-          <label for="wlFilterMonth" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
-            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">calendar_month</span>
-            <span class="font-bold text-[#576058] shrink-0">Month:</span>
-            <div class="relative flex items-center">
-              <select id="wlFilterMonth" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer">
-                <option value="all" ${currentFilters.month === 'all' ? 'selected' : ''}>All Months</option>
-                ${availableMonths.map(m => `<option value="${m}" ${currentFilters.month.toLowerCase() === m.toLowerCase() ? 'selected' : ''}>${m}</option>`).join('')}
-              </select>
-              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+        <div class="flex items-center gap-2.5 flex-wrap text-xs">
+          
+          <!-- Month Custom Pill Dropdown -->
+          <div class="relative">
+            <div id="wlMonthPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">calendar_month</span>
+              <span class="font-bold text-[#576058]">Month:</span>
+              <span class="font-bold text-[#2c332d]">${monthLabel}</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
             </div>
-          </label>
+            <div id="wlMonthDropdown" class="hidden absolute left-0 top-full mt-1.5 w-52 bg-white border border-[#ded5c6] rounded-xl modal-3d p-1.5 z-50 shadow-xl space-y-0.5">
+              ${renderOptions('month', monthOptions, currentFilters.month)}
+            </div>
+          </div>
 
-          <!-- Platform Filter -->
-          <label for="wlFilterPlatform" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
-            <span class="material-symbols-outlined text-[#c26d3e] text-[16px]">devices</span>
-            <span class="font-bold text-[#576058] shrink-0">Platform:</span>
-            <div class="relative flex items-center">
-              <select id="wlFilterPlatform" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer">
-                <option value="all" ${currentFilters.platform === 'all' ? 'selected' : ''}>All Platforms</option>
-                <option value="app" ${currentFilters.platform === 'app' ? 'selected' : ''}>App Only</option>
-                <option value="youtube" ${currentFilters.platform === 'youtube' ? 'selected' : ''}>YouTube Only</option>
-              </select>
-              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+          <!-- Platform Custom Pill Dropdown -->
+          <div class="relative">
+            <div id="wlPlatformPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+              <span class="material-symbols-outlined text-[#c26d3e] text-[16px]">devices</span>
+              <span class="font-bold text-[#576058]">Platform:</span>
+              <span class="font-bold text-[#2c332d]">${platformLabel}</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
             </div>
-          </label>
+            <div id="wlPlatformDropdown" class="hidden absolute left-0 top-full mt-1.5 w-56 bg-white border border-[#ded5c6] rounded-xl modal-3d p-1.5 z-50 shadow-xl space-y-0.5">
+              ${renderOptions('platform', platformOptions, currentFilters.platform)}
+            </div>
+          </div>
 
-          <!-- Faculty Filter -->
-          <label for="wlFilterFaculty" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
-            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">person</span>
-            <span class="font-bold text-[#576058] shrink-0">Faculty:</span>
-            <div class="relative flex items-center">
-              <select id="wlFilterFaculty" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer max-w-[130px] truncate">
-                <option value="all" ${currentFilters.faculty === 'all' ? 'selected' : ''}>All Faculty</option>
-                ${availableFaculty.map(f => `<option value="${f}" ${currentFilters.faculty.toLowerCase().includes(f.toLowerCase()) ? 'selected' : ''}>${f}</option>`).join('')}
-              </select>
-              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+          <!-- Faculty Custom Pill Dropdown -->
+          <div class="relative">
+            <div id="wlFacultyPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">person</span>
+              <span class="font-bold text-[#576058]">Faculty:</span>
+              <span class="font-bold text-[#2c332d] truncate max-w-[130px]">${facultyLabel}</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
             </div>
-          </label>
+            <div id="wlFacultyDropdown" class="hidden absolute left-0 top-full mt-1.5 w-60 bg-white border border-[#ded5c6] rounded-xl modal-3d p-1.5 z-50 shadow-xl space-y-0.5 max-h-64 overflow-y-auto">
+              ${renderOptions('faculty', facultyOptions, currentFilters.faculty)}
+            </div>
+          </div>
 
-          <!-- Batch Filter -->
-          <label for="wlFilterBatch" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#3b433c] select-none">
-            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">school</span>
-            <span class="font-bold text-[#576058] shrink-0">Batch:</span>
-            <div class="relative flex items-center">
-              <select id="wlFilterBatch" class="bg-transparent text-xs font-bold text-[#2c332d] appearance-none outline-none border-none pr-4 cursor-pointer max-w-[130px] truncate">
-                <option value="all" ${currentFilters.batch === 'all' ? 'selected' : ''}>All Batches</option>
-                ${availableBatches.map(b => `<option value="${b}" ${currentFilters.batch.toLowerCase().includes(b.toLowerCase()) ? 'selected' : ''}>${b}</option>`).join('')}
-              </select>
-              <span class="material-symbols-outlined text-[#788279] text-[15px] pointer-events-none absolute right-0">expand_more</span>
+          <!-- Batch Custom Pill Dropdown -->
+          <div class="relative">
+            <div id="wlBatchPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">school</span>
+              <span class="font-bold text-[#576058]">Batch:</span>
+              <span class="font-bold text-[#2c332d] truncate max-w-[130px]">${batchLabel}</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
             </div>
-          </label>
+            <div id="wlBatchDropdown" class="hidden absolute left-0 top-full mt-1.5 w-64 bg-white border border-[#ded5c6] rounded-xl modal-3d p-1.5 z-50 shadow-xl space-y-0.5 max-h-64 overflow-y-auto">
+              ${renderOptions('batch', batchOptions, currentFilters.batch)}
+            </div>
+          </div>
+
         </div>
 
         <!-- Search Input -->
-        <div class="relative min-w-[180px] flex-1 sm:flex-none">
-          <span class="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-[#68736a] pointer-events-none">search</span>
-          <input type="text" id="wlSearchInput" value="${currentFilters.search}" placeholder="Search workload..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#f7f4ed] hover:bg-white focus:bg-white text-[#2c332d] font-semibold border border-[#ded5c6] rounded-xl outline-none focus:border-[#4a7c59] transition-all input-3d" />
+        <div class="relative min-w-[200px] flex-1 sm:flex-none">
+          <span class="material-symbols-outlined absolute left-3 top-2 text-[16px] text-[#68736a] pointer-events-none">search</span>
+          <input type="text" id="wlSearchInput" value="${currentFilters.search}" placeholder="Search workload..." class="w-full pl-9 pr-3 py-1.5 text-xs bg-[#f7f4ed] hover:bg-white focus:bg-white text-[#2c332d] font-semibold border border-[#ded5c6] rounded-xl outline-none focus:border-[#4a7c59] transition-all input-3d" />
         </div>
       </div>
 
@@ -232,32 +263,71 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
 
   container.innerHTML = html;
 
-  // Bind filter change handlers
-  document.getElementById('wlFilterMonth')?.addEventListener('change', (e) => {
-    state.month = e.target.value;
-    renderWorkloadView(container, workloadManager, state);
+  // Custom Dropdown Pill toggle handling
+  const toggleDropdown = (dropdownEl) => {
+    const allDropdowns = [
+      document.getElementById('wlMonthDropdown'),
+      document.getElementById('wlPlatformDropdown'),
+      document.getElementById('wlFacultyDropdown'),
+      document.getElementById('wlBatchDropdown')
+    ];
+    allDropdowns.forEach(d => {
+      if (d && d !== dropdownEl) d.classList.add('hidden');
+    });
+    if (dropdownEl) dropdownEl.classList.toggle('hidden');
+  };
+
+  document.getElementById('wlMonthPill')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown(document.getElementById('wlMonthDropdown'));
   });
 
-  document.getElementById('wlFilterPlatform')?.addEventListener('change', (e) => {
-    state.platform = e.target.value;
-    renderWorkloadView(container, workloadManager, state);
+  document.getElementById('wlPlatformPill')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown(document.getElementById('wlPlatformDropdown'));
   });
 
-  document.getElementById('wlFilterFaculty')?.addEventListener('change', (e) => {
-    state.faculty = e.target.value;
-    renderWorkloadView(container, workloadManager, state);
+  document.getElementById('wlFacultyPill')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown(document.getElementById('wlFacultyDropdown'));
   });
 
-  document.getElementById('wlFilterBatch')?.addEventListener('change', (e) => {
-    state.batch = e.target.value;
-    renderWorkloadView(container, workloadManager, state);
+  document.getElementById('wlBatchPill')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown(document.getElementById('wlBatchDropdown'));
   });
 
+  // Click outside to close dropdowns
+  document.addEventListener('click', (e) => {
+    const isPill = e.target.closest('.pill-3d');
+    const isDropdown = e.target.closest('.modal-3d');
+    if (!isPill && !isDropdown) {
+      ['wlMonthDropdown', 'wlPlatformDropdown', 'wlFacultyDropdown', 'wlBatchDropdown'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+    }
+  });
+
+  // Option select handler
+  container.querySelectorAll('.wl-dropdown-opt').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const type = opt.getAttribute('data-filter-type');
+      const val = opt.getAttribute('data-val');
+      if (type && val !== null) {
+        state[type] = val;
+        renderWorkloadView(container, workloadManager, state);
+      }
+    });
+  });
+
+  // Search input handler
   document.getElementById('wlSearchInput')?.addEventListener('input', (e) => {
     state.search = e.target.value;
     renderWorkloadView(container, workloadManager, state);
   });
 
+  // Refresh handler
   document.getElementById('wlRefreshBtn')?.addEventListener('click', () => {
     workloadManager.loadFromStorage();
     renderWorkloadView(container, workloadManager, state);
