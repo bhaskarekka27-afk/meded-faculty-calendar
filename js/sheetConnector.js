@@ -295,9 +295,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       startHour: parsedTiming.startHour,
       eventType,
       displayTitle,
-      platform: isYoutube ? 'youtube_app' : 'app',
+      platform: isYoutube ? 'youtube' : 'app',
       isYoutube: Boolean(isYoutube),
-      isApp: true
+      isApp: !isYoutube
     });
   }
 
@@ -311,9 +311,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     subtitle,
     sourceUrl,
     sheetTabName: tabName,
-    platform: isYoutube ? 'youtube_app' : 'app',
+    platform: isYoutube ? 'youtube' : 'app',
     isYoutube: Boolean(isYoutube),
-    isApp: true,
+    isApp: !isYoutube,
     lastSynced: new Date().toISOString(),
     eventCount: events.length,
     events

@@ -299,9 +299,9 @@ function processYTBatchCSV(content, id, name, subtitle, defaultUrl, defaultGid, 
       startHour: parsedTiming.startHour,
       eventType,
       displayTitle,
-      platform: 'youtube_app',
+      platform: 'youtube',
       isYoutube: true,
-      isApp: true
+      isApp: false
     });
   }
 
@@ -312,9 +312,9 @@ function processYTBatchCSV(content, id, name, subtitle, defaultUrl, defaultGid, 
     sourceUrl: defaultUrl,
     gid: defaultGid,
     sheetTabName: tabName,
-    platform: 'youtube_app',
+    platform: 'youtube',
     isYoutube: true,
-    isApp: true,
+    isApp: false,
     lastSynced: new Date().toISOString(),
     eventCount: events.length,
     events
@@ -366,7 +366,7 @@ async function buildAll() {
     sheet3Content,
     'batch-inicet-essentials-2026',
     'INI-CET Essentials Series',
-    'Live On YT Channel & MedEd App',
+    'Live On YouTube Channel',
     'https://docs.google.com/spreadsheets/d/1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU/edit?gid=0#gid=0',
     '0',
     'INICET Planner'
@@ -376,7 +376,7 @@ async function buildAll() {
     sheet4Content,
     'batch-fmge-express-2026',
     'FMGE Express Revision Series',
-    'Live On YT Channel & MedEd App',
+    'Live On YouTube Channel',
     'https://docs.google.com/spreadsheets/d/1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE/edit?gid=202319046#gid=202319046',
     '202319046',
     'FMGE Express Revision Planner'

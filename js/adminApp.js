@@ -336,8 +336,8 @@ class AdminDashboardController {
       const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
 
       const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
-      const appBatches = batches.filter(b => b.platform !== 'youtube_app');
-      const ytBatches = batches.filter(b => b.platform === 'youtube_app');
+      const appBatches = batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
+      const ytBatches = batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
 
       const renderBatchItem = (b) => {
         const isSelected = b.id === this.currentBatchId;
@@ -380,11 +380,11 @@ class AdminDashboardController {
           </div>
         </div>
 
-        <!-- YouTube & App Planners -->
+        <!-- YouTube Planners -->
         ${ytBatches.length > 0 ? `
           <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#e02828] flex items-center gap-1">
             <svg class="w-3 h-3 fill-[#e02828]" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            <span>YouTube &amp; App Series Planners</span>
+            <span>YouTube Series Planners</span>
           </div>
           ${ytBatches.map(renderBatchItem).join('')}
         ` : ''}

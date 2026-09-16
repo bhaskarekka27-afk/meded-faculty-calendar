@@ -10,7 +10,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-09-16T10:13:05.114Z",
+    "lastSynced": "2026-09-16T12:24:40.269Z",
     "eventCount": 46,
     "events": [
       {
@@ -1313,7 +1313,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-09-16T10:13:05.118Z",
+    "lastSynced": "2026-09-16T12:24:40.277Z",
     "eventCount": 46,
     "events": [
       {
@@ -2609,14 +2609,14 @@ export const DEFAULT_BATCHES = [
   {
     "id": "batch-inicet-essentials-2026",
     "name": "INI-CET Essentials Series",
-    "subtitle": "Live On YT Channel & MedEd App",
+    "subtitle": "Live On YouTube Channel",
     "sourceUrl": "https://docs.google.com/spreadsheets/d/1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU/edit?gid=0#gid=0",
     "gid": "0",
     "sheetTabName": "INICET Planner",
-    "platform": "youtube_app",
+    "platform": "youtube",
     "isYoutube": true,
-    "isApp": true,
-    "lastSynced": "2026-09-16T10:13:06.247Z",
+    "isApp": false,
+    "lastSynced": "2026-09-16T12:24:42.168Z",
     "eventCount": 19,
     "events": [
       {
@@ -2643,9 +2643,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Pathology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_2",
@@ -2671,9 +2671,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Forensic Medicine • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_3",
@@ -2699,9 +2699,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 19,
         "eventType": "class",
         "displayTitle": "Anaesthesia • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_4",
@@ -2727,9 +2727,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Biochemistry • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_5",
@@ -2755,9 +2755,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Community Medicine • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_6",
@@ -2783,9 +2783,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 19,
         "eventType": "class",
         "displayTitle": "Ophthalmology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_7",
@@ -2811,9 +2811,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "ENT • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_8",
@@ -2839,9 +2839,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Medicine • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_9",
@@ -2867,9 +2867,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Psychiatry • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_10",
@@ -2895,9 +2895,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Pharmacology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_11",
@@ -2923,9 +2923,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Physiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_12",
@@ -2951,9 +2951,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 11,
         "eventType": "class",
         "displayTitle": "OBG • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_13",
@@ -2979,9 +2979,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Orthopedics • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_14",
@@ -3007,9 +3007,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Surgery • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_15",
@@ -3035,9 +3035,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Radiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_16",
@@ -3063,9 +3063,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Dermatology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_17",
@@ -3091,9 +3091,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Microbiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_18",
@@ -3119,9 +3119,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Pediatrics • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-inicet-essentials-2026_ev_19",
@@ -3147,23 +3147,23 @@ export const DEFAULT_BATCHES = [
         "startHour": 17,
         "eventType": "class",
         "displayTitle": "Anatomy • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       }
     ]
   },
   {
     "id": "batch-fmge-express-2026",
     "name": "FMGE Express Revision Series",
-    "subtitle": "Live On YT Channel & MedEd App",
+    "subtitle": "Live On YouTube Channel",
     "sourceUrl": "https://docs.google.com/spreadsheets/d/1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE/edit?gid=202319046#gid=202319046",
     "gid": "202319046",
     "sheetTabName": "FMGE Express Revision Planner",
-    "platform": "youtube_app",
+    "platform": "youtube",
     "isYoutube": true,
-    "isApp": true,
-    "lastSynced": "2026-09-16T10:13:06.248Z",
+    "isApp": false,
+    "lastSynced": "2026-09-16T12:24:42.168Z",
     "eventCount": 24,
     "events": [
       {
@@ -3190,9 +3190,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Pathology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_2",
@@ -3218,9 +3218,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Anaesthesia • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_3",
@@ -3246,9 +3246,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Ophthalmology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_4",
@@ -3274,9 +3274,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Pharmacology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_5",
@@ -3302,9 +3302,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "PSM Session Part - 1 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_6",
@@ -3330,9 +3330,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 13,
         "eventType": "class",
         "displayTitle": "PSM Session Part - 2 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_7",
@@ -3358,9 +3358,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Radiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_8",
@@ -3386,9 +3386,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Orthopedics • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_9",
@@ -3414,9 +3414,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 13,
         "eventType": "class",
         "displayTitle": "Dermatology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_10",
@@ -3442,9 +3442,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Microbiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_11",
@@ -3470,9 +3470,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "OBG Session Part - 1 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_12",
@@ -3498,9 +3498,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Psychiatry • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_13",
@@ -3526,9 +3526,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Forensic Medicine • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_14",
@@ -3554,9 +3554,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Medicine Session Part - 1 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_15",
@@ -3582,9 +3582,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 19,
         "eventType": "holiday",
         "displayTitle": "Gandhi Jayanti",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_16",
@@ -3610,9 +3610,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Biochemistry • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_17",
@@ -3638,9 +3638,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Medicine  Session Part - 2 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_18",
@@ -3666,9 +3666,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "ENT • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_19",
@@ -3694,9 +3694,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Pediatrics • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_20",
@@ -3722,9 +3722,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "OBG Session Part - 2 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_21",
@@ -3750,9 +3750,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Physiology • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_22",
@@ -3778,9 +3778,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Surgery  Session Part -1 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_23",
@@ -3806,9 +3806,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Anatomy • High Yield 50 Questions Discussion",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       },
       {
         "id": "batch-fmge-express-2026_ev_24",
@@ -3834,9 +3834,9 @@ export const DEFAULT_BATCHES = [
         "startHour": 15,
         "eventType": "class",
         "displayTitle": "Surgery Session Part - 2 • High Yield Rapid Revision",
-        "platform": "youtube_app",
+        "platform": "youtube",
         "isYoutube": true,
-        "isApp": true
+        "isApp": false
       }
     ]
   }

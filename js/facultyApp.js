@@ -202,8 +202,8 @@ export class FacultyDashboardController {
     const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
     const isAllSelected = this.activeBatchId === 'all';
 
-    const appBatches = this.batches.filter(b => b.platform !== 'youtube_app');
-    const ytBatches = this.batches.filter(b => b.platform === 'youtube_app');
+    const appBatches = this.batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
+    const ytBatches = this.batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
 
     const renderBatchButton = (batch) => {
       const isSelected = batch.id === this.activeBatchId;
@@ -253,13 +253,13 @@ export class FacultyDashboardController {
     });
     this.batchDropdownList.appendChild(allItem);
 
-    // 2. YouTube & App Series Planners
+    // 2. YouTube Series Planners
     if (ytBatches.length > 0) {
       const header = document.createElement('div');
       header.className = 'px-3.5 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#e02828] flex items-center gap-1';
       header.innerHTML = `
         <svg class="w-3 h-3 fill-[#e02828]" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-        <span>YouTube &amp; App Series Planners</span>
+        <span>YouTube Series Planners</span>
       `;
       this.batchDropdownList.appendChild(header);
       ytBatches.forEach(b => this.batchDropdownList.appendChild(renderBatchButton(b)));
