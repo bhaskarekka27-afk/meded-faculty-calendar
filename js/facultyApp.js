@@ -16,6 +16,7 @@
 import { BatchManager } from './sheetConnector.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
 
 export class FacultyDashboardController {
   constructor() {
@@ -196,11 +197,41 @@ export class FacultyDashboardController {
     if (!this.batchDropdownList) return;
     this.batchDropdownList.innerHTML = '';
 
+    this.batches = this.batchManager.getBatches();
     const allEvents = this.batchManager.getAllEvents('all');
     const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
     const isAllSelected = this.activeBatchId === 'all';
 
-    // 1. "All Batches (Select All)" option at top
+    const appBatches = this.batches.filter(b => b.platform !== 'youtube_app');
+    const ytBatches = this.batches.filter(b => b.platform === 'youtube_app');
+
+    const renderBatchButton = (batch) => {
+      const isSelected = batch.id === this.activeBatchId;
+      const platformBadge = renderPlatformBadges(batch, { compact: true });
+
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-[#f4efe6] transition-colors ${
+        isSelected ? 'bg-[#eef4f0] font-bold text-[#3b6347]' : 'text-[#2c332d]'
+      }`;
+      item.innerHTML = `
+        <div class="truncate mr-2 min-w-0">
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="block font-semibold truncate text-xs">${batch.name}</span>
+            ${platformBadge}
+          </div>
+          <span class="text-[10px] text-[#788279] block truncate">${batch.sheetTabName || 'Lecture Planner'} • ${batch.events ? batch.events.length : 0} classes</span>
+        </div>
+        ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59] shrink-0">check</span>' : ''}
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.switchBatch(batch.id);
+      });
+      return item;
+    };
+
+    // 1. All Batches (Select All)
     const allItem = document.createElement('button');
     allItem.type = 'button';
     allItem.className = `w-full text-left px-3.5 py-2.5 flex items-center justify-between hover:bg-[#f4efe6] transition-colors border-b border-[#f0ece4] ${
@@ -222,27 +253,29 @@ export class FacultyDashboardController {
     });
     this.batchDropdownList.appendChild(allItem);
 
-    // 2. Individual batches
-    this.batches.forEach(batch => {
-      const isSelected = batch.id === this.activeBatchId;
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = `w-full text-left px-3.5 py-2.5 flex items-center justify-between hover:bg-[#f4efe6] transition-colors ${
-        isSelected ? 'bg-[#eef4f0] font-bold text-[#3b6347]' : 'text-[#2c332d]'
-      }`;
-      item.innerHTML = `
-        <div class="truncate mr-2">
-          <span class="block font-semibold truncate text-xs">${batch.name}</span>
-          <span class="text-[10px] text-[#788279] block">${batch.sheetTabName || 'Lecture Planner'} • ${batch.events ? batch.events.length : 0} classes</span>
-        </div>
-        ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
+    // 2. YouTube & App Series Planners
+    if (ytBatches.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'px-3.5 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#e02828] flex items-center gap-1';
+      header.innerHTML = `
+        <svg class="w-3 h-3 fill-[#e02828]" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        <span>YouTube &amp; App Series Planners</span>
       `;
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.switchBatch(batch.id);
-      });
-      this.batchDropdownList.appendChild(item);
-    });
+      this.batchDropdownList.appendChild(header);
+      ytBatches.forEach(b => this.batchDropdownList.appendChild(renderBatchButton(b)));
+    }
+
+    // 3. Mobile App Batches
+    if (appBatches.length > 0) {
+      const header = document.createElement('div');
+      header.className = `px-3.5 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#4a7c59] flex items-center gap-1 ${ytBatches.length > 0 ? 'border-t border-[#f0ece4] mt-1' : ''}`;
+      header.innerHTML = `
+        <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">smartphone</span>
+        <span>Mobile App Batches</span>
+      `;
+      this.batchDropdownList.appendChild(header);
+      appBatches.forEach(b => this.batchDropdownList.appendChild(renderBatchButton(b)));
+    }
 
     if (isAllSelected && this.batchLabel) {
       this.batchLabel.textContent = 'All Batches • Combined Schedule';
@@ -860,14 +893,17 @@ export class FacultyDashboardController {
           html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5">`;
           classEvents.forEach(ev => {
             const initial = this.getFacultyInitials(ev.faculty);
-            const batchTag = ev.batchName?.includes('Prarambh') ? "Prarambh '26" : ev.batchName?.includes('Sushruta') ? "Sushruta '26" : (ev.batchName || '');
-            const batchBadge = batchTag ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${ev.batchName?.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'}">${batchTag}</span>` : '';
+            const batchBadge = renderBatchBadge(ev.batchName);
+            const platformBadges = renderPlatformBadges(ev, { compact: true });
 
             html += `
               <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-2.5 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
                 <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
-                  <span class="uppercase tracking-wide truncate">${ev.subject || 'Biochemistry'}</span>
-                  ${batchBadge}
+                  <span class="uppercase tracking-wide truncate">${ev.subject || 'Medical Lecture'}</span>
+                  <div class="flex items-center gap-1 shrink-0">
+                    ${batchBadge}
+                    ${platformBadges}
+                  </div>
                 </div>
                 <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
@@ -1013,15 +1049,18 @@ export class FacultyDashboardController {
         `;
       } else {
         dayClasses.forEach(c => {
-          const batchTag = c.batchName?.includes('Prarambh') ? "Prarambh '26" : c.batchName?.includes('Sushruta') ? "Sushruta '26" : (c.batchName || '');
-          const batchBadge = batchTag ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${c.batchName?.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'}">${batchTag}</span>` : '';
+          const batchBadge = renderBatchBadge(c.batchName);
+          const platformBadges = renderPlatformBadges(c, { compact: true });
           const initial = this.getFacultyInitials(c.faculty);
 
           html += `
             <div class="card-3d p-3 rounded-xl border border-[#ded5c6] hover:border-[#4a7c59] transition-all cursor-pointer class-card-clickable" data-event-id="${c.id}">
               <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
-                <span class="uppercase tracking-wide truncate">${c.subject || 'Biochemistry'}</span>
-                ${batchBadge}
+                <span class="uppercase tracking-wide truncate">${c.subject || 'Medical Lecture'}</span>
+                <div class="flex items-center gap-1 shrink-0">
+                  ${batchBadge}
+                  ${platformBadges}
+                </div>
               </div>
               <h4 class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-2 mb-1.5">
                 ${c.topic || c.chapter}
@@ -1134,7 +1173,8 @@ export class FacultyDashboardController {
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">
                   ${ev.subject || 'Biochemistry'}
                 </span>
-                ${ev.batchName ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${ev.batchName.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'} badge-3d">${ev.batchName.includes('Prarambh') ? "Prarambh '26" : ev.batchName.includes('Sushruta') ? "Sushruta '26" : "Batch"}</span>` : ''}
+                ${renderBatchBadge(ev.batchName)}
+                ${renderPlatformBadges(ev, { compact: true })}
                 <span class="text-xs font-mono font-bold text-[#4a7c59] flex items-center gap-1">
                   <span class="material-symbols-outlined text-[13px]">schedule</span>
                   ${(ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}
@@ -1194,11 +1234,31 @@ export class FacultyDashboardController {
 
     if (modalSubjectBadge) modalSubjectBadge.textContent = ev.subject || 'Clinical Lecture';
     if (modalDetailTitle) modalDetailTitle.textContent = ev.topic || ev.chapter || 'Lecture Session';
-    if (modalDetailBatch) modalDetailBatch.textContent = `${ev.batchName || 'PW MedEd Batch'} • ${ev.chapter || ''}`;
+    if (modalDetailBatch) {
+      modalDetailBatch.innerHTML = `${renderBatchBadge(ev.batchName || 'PW MedEd Batch')} ${renderPlatformBadges(ev, { size: 'sm' })} ${ev.chapter ? `• ${ev.chapter}` : ''}`;
+      modalDetailBatch.className = 'inline-flex items-center gap-1.5 flex-wrap';
+    }
     if (modalDetailDate) modalDetailDate.textContent = ev.dateRaw || ev.isoDate || 'Scheduled Date';
     if (modalDetailTimings) modalDetailTimings.textContent = (ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ');
     if (modalDetailDuration) modalDetailDuration.textContent = `• ${ev.duration || '2 Hours'}`;
     if (modalDetailFaculty) modalDetailFaculty.textContent = ev.faculty || this.currentFaculty;
+    if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
+
+    // Delivery Platform info
+    let platformEl = document.getElementById('facultyModalPlatformText');
+    if (!platformEl) {
+      const container = this.detailModal.querySelector('.space-y-3');
+      if (container) {
+        const row = document.createElement('div');
+        row.className = 'text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between';
+        row.innerHTML = `<span class="font-semibold text-[#68736a]">Delivery Platform:</span><span id="facultyModalPlatformText" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>`;
+        container.insertBefore(row, container.firstChild);
+        platformEl = document.getElementById('facultyModalPlatformText');
+      }
+    }
+    if (platformEl) {
+      platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
     if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
 
     if (this.modalGCalBtn) {

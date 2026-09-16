@@ -166,19 +166,31 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     throw new Error(`The sheet tab "${tabName}" returned a progress/summary sheet ("Completion %") rather than lecture rows. Please ensure the tab name is set to "Lecture Planner".`);
   }
 
+  const isFourColLayout = header.length <= 6 || (header[1] && header[1].toLowerCase().includes('faculty') && header[3] && header[3].toLowerCase().includes('time'));
+  const isYoutube = rawBatchHeader.toLowerCase().includes('yt channel') || 
+                    rawBatchHeader.toLowerCase().includes('youtube') || 
+                    (sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE')));
+
   let detectedName = overrideName || rawBatchHeader;
-  let subtitle = 'Live on PW MedEd APP';
+  let subtitle = isYoutube ? 'Live On YT Channel & MedEd App' : 'Live on PW MedEd APP';
 
   if (!overrideName && rawBatchHeader) {
-    if (rawBatchHeader.includes('Live on PW')) {
-      const split = rawBatchHeader.split(/Live on PW/i);
+    if (rawBatchHeader.includes('Live On PW') || rawBatchHeader.includes('Live on PW')) {
+      const split = rawBatchHeader.split(/Live [Oo]n PW/i);
       detectedName = split[0].trim();
     } else {
-      const match = rawBatchHeader.match(/^(.*?)(?:Lecture Planner|Date & Days)/i);
+      const match = rawBatchHeader.match(/^(.*?)(?:Lecture Planner|Date & Days|Live On|Time :)/i);
       if (match && match[1].trim()) {
         detectedName = match[1].trim();
       }
     }
+  }
+
+  // Handle specific series names cleanly
+  if (detectedName.includes('INI-CET Essentials Series')) {
+    detectedName = 'INI-CET Essentials Series';
+  } else if (detectedName.includes('FMGE Express Revision Series')) {
+    detectedName = 'FMGE Express Revision Series';
   }
 
   if (!detectedName || detectedName.toLowerCase().startsWith('date') || detectedName.toLowerCase().includes('completion %')) {
@@ -190,32 +202,74 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     const r = rows[i];
     if (!r || r.every(cell => !cell.trim())) continue;
 
-    const dateStr = (r[0] || '').trim();
-    const facultyStr = (r[1] || '').trim();
-    const subjectStr = (r[2] || '').trim();
-    const chapterStr = (r[3] || '').trim();
-    const topicStr = (r[4] || '').trim();
-    const noLectures = (r[5] || '').trim();
-    const durationStr = (r[6] || '').trim();
-    const timingsStr = (r[7] || '').trim();
+    let dateStr = '';
+    let facultyStr = '';
+    let subjectStr = '';
+    let chapterStr = '';
+    let topicStr = '';
+    let noLectures = '1';
+    let durationStr = '';
+    let timingsStr = '';
 
-    if (!dateStr && !facultyStr && !subjectStr) continue;
+    if (isFourColLayout) {
+      dateStr = (r[0] || '').trim();
+      facultyStr = (r[1] || '').trim();
+      const subjectOrTopic = (r[2] || '').trim();
+      timingsStr = (r[3] || '').trim();
+
+      if (!dateStr && !facultyStr && !subjectOrTopic) continue;
+
+      if (subjectOrTopic.toLowerCase().includes('session part') || subjectOrTopic.toLowerCase().includes('session')) {
+        const subMatch = subjectOrTopic.match(/^(.*?)\s+session/i);
+        subjectStr = (subMatch && subMatch[1]) ? subMatch[1].trim() : subjectOrTopic;
+        if (subjectStr.toUpperCase() === 'PSM') subjectStr = 'Community Medicine';
+        chapterStr = subjectOrTopic;
+        topicStr = `${subjectOrTopic} • High Yield Rapid Revision`;
+      } else {
+        subjectStr = subjectOrTopic;
+        chapterStr = `${subjectOrTopic} Essentials`;
+        topicStr = `${subjectOrTopic} • High Yield 50 Questions Discussion`;
+      }
+    } else {
+      dateStr = (r[0] || '').trim();
+      facultyStr = (r[1] || '').trim();
+      subjectStr = (r[2] || '').trim();
+      chapterStr = (r[3] || '').trim();
+      topicStr = (r[4] || '').trim();
+      noLectures = (r[5] || '').trim() || '1';
+      durationStr = (r[6] || '').trim();
+      timingsStr = (r[7] || '').trim();
+
+      if (!dateStr && !facultyStr && !subjectStr) continue;
+    }
 
     const parsedDate = parseDateString(dateStr);
     const parsedTiming = parseTimingsString(timingsStr);
 
     const isCoolOff = facultyStr.toUpperCase().includes('COOL OFF') || dateStr.toUpperCase().includes('COOL OFF');
-    const isHoliday = facultyStr.toLowerCase().includes('holiday') || (dateStr && !facultyStr && !subjectStr);
+    const isHoliday = facultyStr.toLowerCase().includes('holiday') || 
+                      facultyStr.toLowerCase().includes('jayanti') || 
+                      (dateStr && !facultyStr && !subjectStr);
 
     let eventType = 'class';
     let displayTitle = topicStr || chapterStr;
     if (isCoolOff) {
       eventType = 'cool_off';
       displayTitle = 'COOL OFF';
+      subjectStr = '';
+      chapterStr = '';
+      topicStr = '';
     } else if (isHoliday) {
       eventType = 'holiday';
-      displayTitle = facultyStr || 'Holiday';
+      displayTitle = facultyStr || 'Official Holiday';
+      subjectStr = '';
+      chapterStr = '';
+      topicStr = '';
     }
+
+    const durText = durationStr || (parsedTiming.durationMinutes 
+      ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? 'Hours' : 'Mins'}` 
+      : '2 Hours');
 
     events.push({
       id: `${id}_ev_${i}`,
@@ -228,19 +282,22 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       monthName: parsedDate.monthName,
       dayNumber: parsedDate.dayNumber,
       year: parsedDate.year,
-      faculty: facultyStr,
+      faculty: isHoliday ? '' : facultyStr,
       subject: subjectStr,
       chapter: chapterStr,
       topic: topicStr,
       noLectures: noLectures || '1',
-      duration: durationStr || (parsedTiming.durationMinutes ? `${parsedTiming.durationMinutes / 60} Hours` : '2 Hours'),
+      duration: durText,
       durationMinutes: parsedTiming.durationMinutes,
-      timings: timingsStr,
+      timings: timingsStr || (parsedTiming.start ? `${parsedTiming.start} to ${parsedTiming.end}` : '5:00 PM Onwards'),
       startTime: parsedTiming.start,
       endTime: parsedTiming.end,
       startHour: parsedTiming.startHour,
       eventType,
-      displayTitle
+      displayTitle,
+      platform: isYoutube ? 'youtube_app' : 'app',
+      isYoutube: Boolean(isYoutube),
+      isApp: true
     });
   }
 
@@ -254,6 +311,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     subtitle,
     sourceUrl,
     sheetTabName: tabName,
+    platform: isYoutube ? 'youtube_app' : 'app',
+    isYoutube: Boolean(isYoutube),
+    isApp: true,
     lastSynced: new Date().toISOString(),
     eventCount: events.length,
     events
@@ -486,6 +546,20 @@ export class BatchManager {
           // Filter out corrupt batches (e.g. named "Completion %" or having 0 events)
           parsed = parsed.filter(b => b && b.name && !b.name.toLowerCase().includes('completion %') && Array.isArray(b.events) && b.events.length > 0);
           if (parsed.length > 0) {
+            // Ensure newly introduced default batches (e.g. INI-CET & FMGE) are merged in
+            for (const defBatch of DEFAULT_BATCHES) {
+              const existingIdx = parsed.findIndex(b => b.id === defBatch.id);
+              if (existingIdx === -1) {
+                parsed.push(JSON.parse(JSON.stringify(defBatch)));
+              } else {
+                // Ensure platform flags are up to date
+                if (!parsed[existingIdx].platform && defBatch.platform) {
+                  parsed[existingIdx].platform = defBatch.platform;
+                  parsed[existingIdx].isYoutube = defBatch.isYoutube;
+                  parsed[existingIdx].isApp = defBatch.isApp;
+                }
+              }
+            }
             this.batches = parsed;
             this.saveToStorage();
             return;

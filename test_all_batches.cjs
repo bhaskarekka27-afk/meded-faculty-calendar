@@ -20,19 +20,24 @@ console.log('================================================================\n'
 const bm = new BatchManager();
 const batches = bm.getBatches();
 console.log(`Found ${batches.length} default batches:`, batches.map(b => b.name));
-assert.strictEqual(batches.length >= 2, true, 'Should have at least 2 default batches');
+assert.strictEqual(batches.length >= 4, true, 'Should have at least 4 default batches');
 
 const allEvents = bm.getAllEvents('all');
 console.log(`Total events across all batches: ${allEvents.length}`);
-assert.strictEqual(allEvents.length, 92, 'Should have exactly 92 events (46 + 46)');
+assert.strictEqual(allEvents.length, 135, 'Should have exactly 135 events (46 + 46 + 19 + 24)');
 
 // Verify batchId and batchName attached to each event
 const prarambhEvents = allEvents.filter(e => e.batchName && e.batchName.includes('Prarambh'));
 const sushrutaEvents = allEvents.filter(e => e.batchName && e.batchName.includes('Sushruta'));
-console.log(`Prarambh events: ${prarambhEvents.length}, Sushruta events: ${sushrutaEvents.length}`);
+const inicetEvents = allEvents.filter(e => e.batchName && e.batchName.includes('INI-CET'));
+const fmgeEvents = allEvents.filter(e => e.batchName && e.batchName.includes('FMGE'));
+
+console.log(`Prarambh: ${prarambhEvents.length}, Sushruta: ${sushrutaEvents.length}, INI-CET: ${inicetEvents.length}, FMGE: ${fmgeEvents.length}`);
 assert.strictEqual(prarambhEvents.length, 46, 'Prarambh events count should be 46');
 assert.strictEqual(sushrutaEvents.length, 46, 'Sushruta events count should be 46');
-console.log('✅ BatchManager.getAllEvents("all") correctly merges and annotates all batch events.\n');
+assert.strictEqual(inicetEvents.length, 19, 'INI-CET events count should be 19');
+assert.strictEqual(fmgeEvents.length, 24, 'FMGE events count should be 24');
+console.log('✅ BatchManager.getAllEvents("all") correctly merges and annotates all 4 batch events.\n');
 
 // 2. Test FacultyDashboardController
 // Mock DOM elements
@@ -123,17 +128,17 @@ async function runControllerTests() {
 
   const facEventsAll = facCtrl.getFacultyEvents();
   console.log(' - Events returned by getFacultyEvents() when activeBatchId="all" and currentFaculty="All Faculty":', facEventsAll.length);
-  assert.strictEqual(facEventsAll.length, 92, 'Should return all 92 events from all batches');
+  assert.strictEqual(facEventsAll.length, 135, 'Should return all 135 events from all batches');
 
   // Test filtering to specific faculty while activeBatchId='all'
   facCtrl.switchFaculty('Dr. Rajesh Jambhulkar', 'Biochemistry');
   const facEventsRajesh = facCtrl.getFacultyEvents();
   console.log(' - Events when switched to Dr. Rajesh Jambhulkar in All Batches:', facEventsRajesh.filter(e => e.eventType === 'class').length);
-  assert.strictEqual(facEventsRajesh.filter(e => e.eventType === 'class').length, 12, 'Dr. Rajesh should have 12 classes');
+  assert.strictEqual(facEventsRajesh.filter(e => e.eventType === 'class').length, 14, 'Dr. Rajesh should have 14 classes across all batches');
 
   // Switch back to All Faculty
   facCtrl.switchFaculty('All Faculty', 'Combined Curriculum');
-  assert.strictEqual(facCtrl.getFacultyEvents().length, 92);
+  assert.strictEqual(facCtrl.getFacultyEvents().length, 135);
   console.log('✅ Faculty Dashboard correctly supports All Batches and All Faculty.\n');
 
   // 3. Test Admin Dashboard
@@ -173,7 +178,7 @@ async function runControllerTests() {
 
   const adminActiveEvents = adminCtrl.getAllActiveEvents();
   console.log('Admin getAllActiveEvents() count:', adminActiveEvents.length);
-  assert.strictEqual(adminActiveEvents.length, 92, 'Admin should have all 92 events');
+  assert.strictEqual(adminActiveEvents.length, 135, 'Admin should have all 135 events');
 
   // Verify Summary Cards update
   adminCtrl.updateSummaryCards();

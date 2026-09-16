@@ -1,4 +1,18 @@
-const fs = require('fs');
+import fs from 'fs';
+import https from 'https';
+
+function get(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return resolve(get(res.headers.location));
+      }
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
+}
 
 function parseCSV(text) {
   const lines = [];
@@ -40,8 +54,7 @@ function parseCSV(text) {
 }
 
 function parseDate(dateStr) {
-  if (!dateStr) return { isoDate: null, dayName: '', monthName: '', year: null };
-  // e.g. "Thursday, October 15, 2026"
+  if (!dateStr) return { isoDate: null, dayName: '', monthName: '', dayNumber: null, year: 2026 };
   const clean = dateStr.trim();
   const parts = clean.split(',');
   let dayName = '';
@@ -78,15 +91,14 @@ function parseDate(dateStr) {
       year
     };
   }
-  return { isoDate: null, dayName, monthName: '', year };
+  return { isoDate: null, dayName, monthName: '', dayNumber: null, year };
 }
 
 function parseTimings(timingsStr) {
   if (!timingsStr) return { start: '', end: '', startHour: 19, durationMinutes: 120 };
-  // e.g. "7:00pm to 9:00pm", "6:30pm to 9:00pm", "7:00pm to 8:30pm"
   const parts = timingsStr.split(/to|-/i).map(s => s.trim());
-  const start = parts[0] || '';
-  const end = parts[1] || '';
+  let start = parts[0] || '';
+  let end = parts[1] || '';
   
   function toMinutes(tStr) {
     const m = tStr.match(/(\d+)(?::(\d+))?\s*(am|pm)?/i);
@@ -112,7 +124,7 @@ function parseTimings(timingsStr) {
   };
 }
 
-function processBatchFile(filename, id, defaultUrl, defaultGid) {
+function processAppBatchFile(filename, id, defaultUrl, defaultGid) {
   const content = fs.readFileSync(filename, 'utf-8');
   const rows = parseCSV(content);
   const header = rows[0] || [];
@@ -166,7 +178,7 @@ function processBatchFile(filename, id, defaultUrl, defaultGid) {
       monthName: parsedDate.monthName,
       dayNumber: parsedDate.dayNumber,
       year: parsedDate.year,
-      faculty: facultyStr,
+      faculty: isHoliday ? '' : facultyStr,
       subject: subjectStr,
       chapter: chapterStr,
       topic: topicStr,
@@ -178,7 +190,10 @@ function processBatchFile(filename, id, defaultUrl, defaultGid) {
       endTime: parsedTiming.end,
       startHour: parsedTiming.startHour,
       eventType,
-      displayTitle
+      displayTitle,
+      platform: 'app',
+      isYoutube: false,
+      isApp: true
     });
   }
   
@@ -189,31 +204,195 @@ function processBatchFile(filename, id, defaultUrl, defaultGid) {
     sourceUrl: defaultUrl,
     gid: defaultGid,
     sheetTabName: 'Lecture Planner',
+    platform: 'app',
+    isYoutube: false,
+    isApp: true,
     lastSynced: new Date().toISOString(),
     eventCount: events.length,
     events
   };
 }
 
-const batch1 = processBatchFile(
-  'sheet1_planner.csv',
-  'batch-prarambh-2026',
-  'https://docs.google.com/spreadsheets/d/1o2lcDhROx_alTy2zm2he5b7xSPsnk6UdzxzmTWA5_40/edit?gid=883157297#gid=883157297',
-  '883157297'
-);
+function processYTBatchCSV(content, id, name, subtitle, defaultUrl, defaultGid, tabName) {
+  const rows = parseCSV(content);
+  const events = [];
 
-const batch2 = processBatchFile(
-  'sheet2_planner.csv',
-  'batch-sushruta-2026',
-  'https://docs.google.com/spreadsheets/d/1ccYTSQgcGdEEq0Jlaxw3Kt-ScB4O-XLJg4LNQCmJvUU/edit?gid=1107483760#gid=1107483760',
-  '1107483760'
-);
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => !c.trim())) continue;
 
-const output = `// Auto-generated pre-bundled batch data for offline & instant loading
-export const DEFAULT_BATCHES = ${JSON.stringify([batch1, batch2], null, 2)};
+    const dateStr = (r[0] || '').trim();
+    const facultyStr = (r[1] || '').trim();
+    const subjectOrTopicStr = (r[2] || '').trim();
+    const timingsStr = (r[3] || '').trim();
+
+    if (!dateStr && !facultyStr && !subjectOrTopicStr) continue;
+
+    const parsedDate = parseDate(dateStr);
+    const parsedTiming = parseTimings(timingsStr);
+
+    const isCoolOff = facultyStr.toUpperCase().includes('COOL OFF') || dateStr.toUpperCase().includes('COOL OFF');
+    const isHoliday = facultyStr.toLowerCase().includes('holiday') || 
+                      facultyStr.toLowerCase().includes('jayanti') || 
+                      (dateStr && !facultyStr && !subjectOrTopicStr) ||
+                      (!subjectOrTopicStr && !timingsStr && facultyStr);
+
+    let eventType = 'class';
+    let displayTitle = '';
+    let cleanSubject = subjectOrTopicStr;
+    let cleanChapter = subjectOrTopicStr;
+    let cleanTopic = subjectOrTopicStr;
+
+    if (isCoolOff) {
+      eventType = 'cool_off';
+      displayTitle = 'COOL OFF';
+      cleanSubject = '';
+      cleanChapter = '';
+      cleanTopic = '';
+    } else if (isHoliday) {
+      eventType = 'holiday';
+      displayTitle = facultyStr || 'Official Holiday';
+      cleanSubject = '';
+      cleanChapter = '';
+      cleanTopic = '';
+    } else {
+      if (subjectOrTopicStr.toLowerCase().includes('session part') || subjectOrTopicStr.toLowerCase().includes('session')) {
+        const subMatch = subjectOrTopicStr.match(/^(.*?)\s+session/i);
+        if (subMatch && subMatch[1]) {
+          cleanSubject = subMatch[1].trim();
+          if (cleanSubject.toUpperCase() === 'PSM') cleanSubject = 'Community Medicine';
+        }
+        cleanChapter = subjectOrTopicStr;
+        cleanTopic = `${subjectOrTopicStr} • High Yield Rapid Revision`;
+      } else {
+        cleanChapter = `${subjectOrTopicStr} Essentials`;
+        cleanTopic = `${subjectOrTopicStr} • High Yield 50 Questions Discussion`;
+      }
+      displayTitle = cleanTopic;
+    }
+
+    const durationText = parsedTiming.durationMinutes 
+      ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? 'Hours' : 'Mins'}` 
+      : '2 Hours';
+
+    events.push({
+      id: `${id}_ev_${i}`,
+      batchId: id,
+      batchName: name,
+      rowIndex: i + 1,
+      dateRaw: dateStr,
+      isoDate: parsedDate.isoDate,
+      dayName: parsedDate.dayName,
+      monthName: parsedDate.monthName,
+      dayNumber: parsedDate.dayNumber,
+      year: parsedDate.year,
+      faculty: isHoliday ? '' : facultyStr,
+      subject: cleanSubject,
+      chapter: cleanChapter,
+      topic: cleanTopic,
+      noLectures: '1',
+      duration: durationText,
+      durationMinutes: parsedTiming.durationMinutes,
+      timings: timingsStr || (parsedTiming.start ? `${parsedTiming.start} to ${parsedTiming.end}` : '5:00 PM Onwards'),
+      startTime: parsedTiming.start,
+      endTime: parsedTiming.end,
+      startHour: parsedTiming.startHour,
+      eventType,
+      displayTitle,
+      platform: 'youtube_app',
+      isYoutube: true,
+      isApp: true
+    });
+  }
+
+  return {
+    id,
+    name,
+    subtitle,
+    sourceUrl: defaultUrl,
+    gid: defaultGid,
+    sheetTabName: tabName,
+    platform: 'youtube_app',
+    isYoutube: true,
+    isApp: true,
+    lastSynced: new Date().toISOString(),
+    eventCount: events.length,
+    events
+  };
+}
+
+async function buildAll() {
+  console.log('Building default batches data...');
+
+  const batch1 = processAppBatchFile(
+    'sheet1_planner.csv',
+    'batch-prarambh-2026',
+    'https://docs.google.com/spreadsheets/d/1o2lcDhROx_alTy2zm2he5b7xSPsnk6UdzxzmTWA5_40/edit?gid=883157297#gid=883157297',
+    '883157297'
+  );
+
+  const batch2 = processAppBatchFile(
+    'sheet2_planner.csv',
+    'batch-sushruta-2026',
+    'https://docs.google.com/spreadsheets/d/1ccYTSQgcGdEEq0Jlaxw3Kt-ScB4O-XLJg4LNQCmJvUU/edit?gid=1107483760#gid=1107483760',
+    '1107483760'
+  );
+
+  // Fetch or read sheet 3 (INICET)
+  let sheet3Content = '';
+  try {
+    sheet3Content = await get('https://docs.google.com/spreadsheets/d/1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU/gviz/tq?tqx=out:csv&gid=0');
+    fs.writeFileSync('sheet3_inicet.csv', sheet3Content, 'utf-8');
+  } catch (err) {
+    console.warn('Network fetch failed for INICET, reading fallback local:', err);
+    if (fs.existsSync('sheet3_inicet.csv')) {
+      sheet3Content = fs.readFileSync('sheet3_inicet.csv', 'utf-8');
+    }
+  }
+
+  // Fetch or read sheet 4 (FMGE)
+  let sheet4Content = '';
+  try {
+    sheet4Content = await get('https://docs.google.com/spreadsheets/d/1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE/gviz/tq?tqx=out:csv&gid=202319046');
+    fs.writeFileSync('sheet4_fmge.csv', sheet4Content, 'utf-8');
+  } catch (err) {
+    console.warn('Network fetch failed for FMGE, reading fallback local:', err);
+    if (fs.existsSync('sheet4_fmge.csv')) {
+      sheet4Content = fs.readFileSync('sheet4_fmge.csv', 'utf-8');
+    }
+  }
+
+  const batch3 = processYTBatchCSV(
+    sheet3Content,
+    'batch-inicet-essentials-2026',
+    'INI-CET Essentials Series',
+    'Live On YT Channel & MedEd App',
+    'https://docs.google.com/spreadsheets/d/1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU/edit?gid=0#gid=0',
+    '0',
+    'INICET Planner'
+  );
+
+  const batch4 = processYTBatchCSV(
+    sheet4Content,
+    'batch-fmge-express-2026',
+    'FMGE Express Revision Series',
+    'Live On YT Channel & MedEd App',
+    'https://docs.google.com/spreadsheets/d/1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE/edit?gid=202319046#gid=202319046',
+    '202319046',
+    'FMGE Express Revision Planner'
+  );
+
+  const batches = [batch1, batch2, batch3, batch4];
+
+  const output = `// Auto-generated pre-bundled batch data for offline & instant loading
+export const DEFAULT_BATCHES = ${JSON.stringify(batches, null, 2)};
 `;
 
-fs.writeFileSync('js/defaultData.js', output, 'utf-8');
-console.log('Successfully generated js/defaultData.js with 2 batches!');
-console.log('Batch 1 events:', batch1.events.length, batch1.name);
-console.log('Batch 2 events:', batch2.events.length, batch2.name);
+  fs.writeFileSync('js/defaultData.js', output, 'utf-8');
+  console.log(`Successfully generated js/defaultData.js with ${batches.length} batches!`);
+  batches.forEach((b, idx) => {
+    console.log(`Batch ${idx + 1}: [${b.id}] "${b.name}" -> ${b.events.length} events (Platform: ${b.platform})`);
+  });
+}
+
+buildAll().catch(console.error);

@@ -3,6 +3,7 @@
  */
 
 import { getSubjectColor } from './calendarView.js';
+import { renderPlatformBadges, renderBatchBadge } from './platformBadge.js';
 
 export function renderTimetableView(container, events, currentWeekStart, onSelectEvent) {
   // Ensure we have a valid Date for week start (Monday)
@@ -140,6 +141,8 @@ function renderTimetableColumnEvents(events) {
 
     const col = getSubjectColor(ev.subject);
     const facultyInitial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').trim().charAt(0) : 'F';
+    const batchBadgeHtml = renderBatchBadge(ev.batchName);
+    const platformBadgesHtml = renderPlatformBadges(ev, { compact: true });
 
     return `
       <div class="tt-event-card tt-card-class" data-event-id="${ev.id}" style="border-top-color: ${col.border};">
@@ -148,8 +151,12 @@ function renderTimetableColumnEvents(events) {
           <span>${ev.timings || '7:00pm to 9:00pm'}</span>
         </div>
 
-        <div class="tt-card-subject-pill" style="color: ${col.text}; background: ${col.bg}; border: 1px solid ${col.border};">
-          ${escapeHtml(ev.subject)}
+        <div class="flex items-center gap-1.5 flex-wrap my-1">
+          <div class="tt-card-subject-pill" style="color: ${col.text}; background: ${col.bg}; border: 1px solid ${col.border};">
+            ${escapeHtml(ev.subject)}
+          </div>
+          ${batchBadgeHtml}
+          ${platformBadgesHtml}
         </div>
 
         <h4 class="tt-card-chapter">${escapeHtml(ev.chapter || 'Chapter')}</h4>

@@ -6,6 +6,7 @@
 import { BatchManager, detectGoogleSheetTabs } from './sheetConnector.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
 
 class AdminDashboardController {
   constructor() {
@@ -334,7 +335,38 @@ class AdminDashboardController {
       const allEvents = this.batchManager.getAllEvents('all');
       const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
 
+      const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
+      const appBatches = batches.filter(b => b.platform !== 'youtube_app');
+      const ytBatches = batches.filter(b => b.platform === 'youtube_app');
+
+      const renderBatchItem = (b) => {
+        const isSelected = b.id === this.currentBatchId;
+        const platformBadge = renderPlatformBadges(b, { compact: true });
+        const canDelete = !defaultBatchIds.includes(b.id);
+
+        return `
+          <div class="px-3 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-batch-id="${b.id}">
+            <div class="truncate pr-2 min-w-0">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="truncate font-semibold">${b.name}</span>
+                ${platformBadge}
+              </div>
+              <span class="text-[10px] text-[#788279] block truncate">${b.sheetTabName || 'Lecture Planner'} • ${b.events ? b.events.length : 0} classes</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
+              ${canDelete ? `
+                <button class="text-[#8b958c] hover:text-[#c26d3e] p-0.5 rounded hover:bg-[#faeae1] cursor-pointer btn-delete-batch" data-delete-id="${b.id}" title="Remove this batch">
+                  <span class="material-symbols-outlined text-[15px]">delete</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      };
+
       dropdownList.innerHTML = `
+        <!-- Combined View Option -->
         <div class="px-3 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors border-b border-[#f0ece4] ${isAllSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-batch-id="all">
           <div class="truncate pr-2">
             <span class="block font-bold truncate text-xs flex items-center gap-1.5">
@@ -347,22 +379,25 @@ class AdminDashboardController {
             ${isAllSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
           </div>
         </div>
-      ` + batches.map(b => `
-        <div class="px-3 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors ${b.id === this.currentBatchId ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-batch-id="${b.id}">
-          <div class="truncate pr-2">
-            <span class="block truncate font-semibold">${b.name}</span>
-            <span class="text-[10px] text-[#788279] block">${b.sheetTabName || 'Lecture Planner'} • ${b.events ? b.events.length : 0} classes</span>
+
+        <!-- YouTube & App Planners -->
+        ${ytBatches.length > 0 ? `
+          <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#e02828] flex items-center gap-1">
+            <svg class="w-3 h-3 fill-[#e02828]" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            <span>YouTube &amp; App Series Planners</span>
           </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            ${b.id === this.currentBatchId ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
-            ${!['batch-prarambh-2026', 'batch-sushruta-2026'].includes(b.id) ? `
-              <button class="text-[#8b958c] hover:text-[#c26d3e] p-0.5 rounded hover:bg-[#faeae1] cursor-pointer btn-delete-batch" data-delete-id="${b.id}" title="Remove this batch">
-                <span class="material-symbols-outlined text-[15px]">delete</span>
-              </button>
-            ` : ''}
+          ${ytBatches.map(renderBatchItem).join('')}
+        ` : ''}
+
+        <!-- Mobile App Batches -->
+        ${appBatches.length > 0 ? `
+          <div class="px-3 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#4a7c59] flex items-center gap-1 ${ytBatches.length > 0 ? 'border-t border-[#f0ece4] mt-1' : ''}">
+            <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">smartphone</span>
+            <span>Mobile App Batches</span>
           </div>
-        </div>
-      `).join('') + `
+          ${appBatches.map(renderBatchItem).join('')}
+        ` : ''}
+
         <div class="px-3 py-2 text-xs font-bold rounded-lg hover:bg-[#eef4f0] text-[#4a7c59] cursor-pointer flex items-center gap-1.5 border-t border-[#ded5c6] mt-1 pt-2" id="adminAddNewSheetLink">
           <span class="material-symbols-outlined text-[16px]">add_circle</span>
           <span>Connect New Google Sheet</span>
@@ -940,9 +975,11 @@ class AdminDashboardController {
       const classItems = f.classes.map(c => `
         <div class="p-2 rounded-lg bg-white border border-[#e8e2d8] text-xs flex items-center justify-between gap-2 hover:bg-[#faf7f2] transition-colors">
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-bold text-[#2c332d] truncate">${c.topic || c.chapter || 'Lecture Session'}</span>
               <span class="text-[10px] font-semibold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3] shrink-0">${c.subject || f.subject}</span>
+              ${renderBatchBadge(c.batchName)}
+              ${renderPlatformBadges(c, { compact: true })}
             </div>
             <div class="flex items-center gap-2 mt-0.5 text-[10.5px] text-[#68736a]">
               <span>📅 ${c.dateRaw || c.isoDate}</span>
@@ -1238,14 +1275,17 @@ class AdminDashboardController {
           html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5">`;
           classEvents.forEach(ev => {
             const initial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').split(' ').map(w => w[0]).join('').slice(0, 2) : 'DR';
-            const batchTag = ev.batchName?.includes('Prarambh') ? "Prarambh '26" : ev.batchName?.includes('Sushruta') ? "Sushruta '26" : (ev.batchName || '');
-            const batchBadge = batchTag ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${ev.batchName?.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'}">${batchTag}</span>` : '';
+            const batchBadge = renderBatchBadge(ev.batchName);
+            const platformBadge = renderPlatformBadges(ev, { compact: true });
 
             html += `
               <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-2.5 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
                 <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
                   <span class="uppercase tracking-wide truncate">${ev.subject || 'Lecture'}</span>
-                  ${batchBadge}
+                  <div class="flex items-center gap-1 shrink-0">
+                    ${batchBadge}
+                    ${platformBadge}
+                  </div>
                 </div>
                 <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
@@ -1573,12 +1613,14 @@ class AdminDashboardController {
           html += `
             <div class="bg-white border border-[#d8e5dc] hover:border-[#4a7c59] rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group" data-event-id="${ev.id}">
               <!-- Top Subject & Venue Row -->
-              <div>
-                <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1">
+                <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1 flex-wrap">
                   <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d">
                     ${ev.subject || 'Lecture'}
                   </span>
-                  ${ev.batchName ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${ev.batchName.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'} badge-3d">${ev.batchName.includes('Prarambh') ? "Prarambh '26" : ev.batchName.includes('Sushruta') ? "Sushruta '26" : "Batch"}</span>` : ''}
+                  <div class="flex items-center gap-1 shrink-0">
+                    ${renderBatchBadge(ev.batchName)}
+                    ${renderPlatformBadges(ev, { compact: false })}
+                  </div>
                 </div>
                 <h4 class="text-xs font-bold text-[#2c332d] leading-snug font-headline group-hover:text-[#4a7c59] transition-colors line-clamp-2" title="${ev.chapter || 'Chapter'}">
                   ${ev.chapter || 'Chapter'}
@@ -1677,9 +1719,13 @@ class AdminDashboardController {
               </div>
             </td>
             <td class="py-3 px-3">
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border}">
-                ${ev.subject}
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border}">
+                  ${ev.subject}
+                </span>
+                ${renderBatchBadge(ev.batchName)}
+                ${renderPlatformBadges(ev, { compact: true })}
+              </div>
             </td>
             <td class="py-3 px-3 font-bold text-[#2c332d]">${ev.chapter}</td>
             <td class="py-3 px-3 text-[#576058] max-w-xs truncate" title="${ev.topic}">${ev.topic}</td>
@@ -1956,12 +2002,12 @@ class AdminDashboardController {
 
             <!-- Main Milestone Card -->
             <div class="w-full bg-white border border-[#ded5c6] hover:border-[#4a7c59] rounded-2xl p-4 sm:p-5 timeline-card-3d cursor-pointer" data-event-id="${ev.id}">
-              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#f0ece4]">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} badge-3d">
                     ${ev.subject || 'Lecture'}
                   </span>
-                  ${ev.batchName ? `<span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${ev.batchName.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'} badge-3d">${ev.batchName.includes('Prarambh') ? "Prarambh '26" : ev.batchName.includes('Sushruta') ? "Sushruta '26" : "Batch"}</span>` : ''}
+                  ${renderBatchBadge(ev.batchName)}
+                  ${renderPlatformBadges(ev, { compact: false })}
                   <span class="text-xs font-bold text-[#2c332d]">${ev.dateRaw || ev.isoDate}</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -2080,7 +2126,8 @@ class AdminDashboardController {
                   <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border}">
                     ${ev.subject}
                   </span>
-                  ${ev.batchName ? `<span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${ev.batchName.includes('Prarambh') ? 'bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'}">${ev.batchName.includes('Prarambh') ? "Prarambh '26" : ev.batchName.includes('Sushruta') ? "Sushruta '26" : "Batch"}</span>` : ''}
+                  ${renderBatchBadge(ev.batchName)}
+                  ${renderPlatformBadges(ev, { compact: true })}
                 </div>
               </td>
               <td class="py-3 px-4 font-bold text-[#2c332d]">${ev.chapter}</td>
@@ -3802,13 +3849,36 @@ class AdminDashboardController {
     if (!modal) return;
 
     document.getElementById('modalDetailTitle').textContent = ev.chapter || ev.topic;
-    document.getElementById('modalDetailBatch').textContent = ev.batchName || 'PW MedEd Batch';
+    
+    const batchEl = document.getElementById('modalDetailBatch');
+    if (batchEl) {
+      batchEl.innerHTML = `${renderBatchBadge(ev.batchName || 'PW MedEd')} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+      batchEl.className = 'inline-flex items-center gap-1.5';
+    }
+
     document.getElementById('modalDetailSubject').textContent = ev.subject || 'Medical Lecture';
     document.getElementById('modalDetailFaculty').textContent = ev.faculty || 'Faculty';
     document.getElementById('modalDetailDate').textContent = ev.dateRaw || ev.isoDate;
     document.getElementById('modalDetailTimings').textContent = ev.timings || '7:00 PM - 9:00 PM';
     document.getElementById('modalDetailDuration').textContent = ev.duration || '2 Hours';
     document.getElementById('modalDetailTopic').textContent = ev.topic || ev.chapter;
+
+    // Delivery Platform row
+    let platformRow = document.getElementById('modalDetailPlatformRow');
+    if (!platformRow) {
+      const container = modal.querySelector('.space-y-2');
+      if (container) {
+        platformRow = document.createElement('div');
+        platformRow.id = 'modalDetailPlatformRow';
+        platformRow.className = 'flex justify-between items-center';
+        platformRow.innerHTML = `<span class="text-[#68736a] font-semibold">Delivery Platform:</span><span id="modalDetailPlatform" class="font-bold text-[#2c332d] flex items-center gap-1"></span>`;
+        container.appendChild(platformRow);
+      }
+    }
+    const platformEl = document.getElementById('modalDetailPlatform');
+    if (platformEl) {
+      platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
 
     const gcalBtn = document.getElementById('modalDetailGCalBtn');
     if (gcalBtn) gcalBtn.href = generateGoogleCalendarUrl(ev);
