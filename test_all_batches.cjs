@@ -191,6 +191,7 @@ async function runControllerTests() {
   console.log('================================================================');
   console.log('🎉 ALL "SELECT ALL BATCHES" TESTS PASSED 100%!');
   console.log('================================================================');
+  process.exit(0);
 }
 
 runControllerTests().catch(err => {

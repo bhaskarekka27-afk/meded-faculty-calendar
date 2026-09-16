@@ -243,22 +243,50 @@
           </div>
         </div>
 
-        <!-- Card 3: Curriculum Pace -->
-        <div id="cardCurriculumPaceBtn" class="card-3d flex items-center gap-3 p-3.5 rounded-xl cursor-pointer" title="Click to view Curriculum Dashboard">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
-            <span class="material-symbols-outlined text-[22px]">trending_up</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Curriculum Pace</span>
-              <span id="cardCurriculumPaceBadge" class="text-[10px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">NMC Aligned</span>
+        <!-- Card 3: Faculty-Wise Class Highlights (Single Tab for Day, Week, Month) -->
+        <div id="cardFacultyHighlightsCard" class="card-3d flex flex-col justify-between p-3.5 rounded-xl cursor-pointer transition-all" title="Click to view detailed Faculty Class Distribution">
+          <!-- Top Row: Title + Scope Pill Switcher (Day / Week / Month) -->
+          <div class="flex items-center justify-between gap-1.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
+                <span class="material-symbols-outlined text-[17px]">co_present</span>
+              </div>
+              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Faculty Highlights</span>
             </div>
-            <div class="flex items-baseline gap-1.5 mt-0.5">
-              <span id="cardCurriculumPacePercent" class="font-headline text-[20px] font-bold text-[#3b6347] leading-tight">68%</span>
-              <span id="cardCurriculumPaceStatus" class="text-xs font-semibold text-[#68736a]">On-Track</span>
+            <!-- Mini Scope Switcher -->
+            <div class="track-3d flex items-center p-0.5 rounded-lg text-[10px] font-bold shrink-0" onclick="event.stopPropagation()">
+              <button id="cardFacultyScopeDay" type="button" class="px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent" title="Faculty classes for selected day">Day</button>
+              <button id="cardFacultyScopeWeek" type="button" class="px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent" title="Faculty classes for active week">Week</button>
+              <button id="cardFacultyScopeMonth" type="button" class="px-2 py-0.5 rounded btn-3d-primary font-bold text-white cursor-pointer border-none" title="Faculty classes for active month">Month</button>
             </div>
-            <p id="cardCurriculumPaceSubtitle" class="text-[10px] font-medium text-[#788279] mt-1 truncate">CBME Syllabus Year 1</p>
           </div>
+
+          <!-- Middle Row: Metrics & Scope Badge -->
+          <div class="flex items-baseline justify-between gap-2 mt-2">
+            <div class="flex items-baseline gap-1.5 min-w-0">
+              <span class="font-headline text-[19px] font-bold text-[#2c332d] leading-tight" id="cardFacultyHighlightsClassesCount">12</span>
+              <span class="text-xs font-semibold text-[#68736a]">Classes</span>
+              <span class="text-[#a0a8a1] text-xs">•</span>
+              <span class="text-xs font-bold text-[#4a7c59]" id="cardFacultyHighlightsFacultyCount">4 Faculty</span>
+            </div>
+            <span id="cardFacultyHighlightsScopeBadge" class="text-[9.5px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d truncate max-w-[130px]">October 2026</span>
+          </div>
+
+          <!-- Proportional Segment Bar -->
+          <div id="cardFacultyHighlightsProgressBar" class="w-full bg-[#e8e2d8] rounded-full h-1.5 mt-2 flex overflow-hidden shadow-inner">
+            <div class="bg-[#4a7c59] h-full rounded-full transition-all" style="width: 100%"></div>
+          </div>
+
+          <!-- Bottom Row: Faculty Wise Class Chip Strip -->
+          <div id="cardFacultyHighlightsChips" class="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none py-0.5">
+            <span class="text-[10px] text-[#788279] italic">Loading faculty highlights...</span>
+          </div>
+
+          <!-- Hidden compatibility elements for existing tests and getters -->
+          <span id="cardCurriculumPaceSubtitle" class="hidden">CBME Syllabus</span>
+          <span id="cardCurriculumPacePercent" class="hidden">68%</span>
+          <span id="cardCurriculumPaceStatus" class="hidden">On-Track</span>
+          <span id="cardCurriculumPaceBadge" class="hidden">NMC Aligned</span>
         </div>
 
       </div>
@@ -1019,6 +1047,70 @@
         </span>
         <button id="closeEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
           Close Preview
+        </button>
+      </div>
+
+    </div>
+  <!-- MODAL 6: FACULTY-WISE CLASS DISTRIBUTION MODAL -->
+  <div id="facultyHighlightsModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden shadow-2xl">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 bg-[#ede7da] border-b border-[#ded5c6] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#eef4f0] text-[#3b6347] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+            <span class="material-symbols-outlined text-[18px]">co_present</span>
+          </div>
+          <div>
+            <h3 class="font-headline text-base font-bold text-[#2c332d]">Faculty-Wise Class Distribution</h3>
+            <p class="text-[11px] text-[#68736a] font-medium" id="modalFacultySubtitle">Highlights across all teaching faculty</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Modal Scope Switcher -->
+          <div class="track-3d flex items-center p-0.5 rounded-lg text-[10px] font-bold">
+            <button id="modalScopeDayBtn" type="button" class="px-2.5 py-1 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent">Day</button>
+            <button id="modalScopeWeekBtn" type="button" class="px-2.5 py-1 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent">Week</button>
+            <button id="modalScopeMonthBtn" type="button" class="px-2.5 py-1 rounded btn-3d-primary font-bold text-white cursor-pointer border-none">Month</button>
+          </div>
+          <button id="closeFacultyHighlightsModalBtn" class="text-[#68736a] hover:text-[#2c332d] p-1.5 rounded-xl hover:bg-[#ded5c6] cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick KPI summary inside Modal -->
+      <div class="px-5 py-2.5 bg-white border-b border-[#e5dfd5] flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div class="flex items-center gap-4">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Classes</span>
+            <strong class="font-headline text-sm text-[#2c332d]" id="modalTotalClasses">12</strong>
+          </div>
+          <div class="h-5 w-px bg-[#e5dfd5]"></div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Active Faculty</span>
+            <strong class="font-headline text-sm text-[#4a7c59]" id="modalActiveFaculty">4</strong>
+          </div>
+          <div class="h-5 w-px bg-[#e5dfd5]"></div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block">Total Hours</span>
+            <strong class="font-headline text-sm text-[#c26d3e]" id="modalTotalHours">24 hrs</strong>
+          </div>
+        </div>
+        <span id="modalActivePeriodBadge" class="px-2.5 py-0.5 rounded-md bg-[#eef4f0] border border-[#cde0d3] text-[10px] font-bold text-[#3b6347]">October 2026</span>
+      </div>
+
+      <!-- Faculty Cards Breakdown Container -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#fbf9f5]" id="modalFacultyDistributionList">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-2.5 bg-white border-t border-[#e5dfd5] flex items-center justify-between">
+        <span class="text-[10.5px] text-[#68736a]">Faculty-wise scheduled curriculum lectures</span>
+        <button id="closeFacultyHighlightsBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+          Close
         </button>
       </div>
 

@@ -38,6 +38,10 @@ class AdminDashboardController {
       this.mainTab = 'onboarding';
     }
 
+    // Faculty Highlights Card State (Day | Week | Month)
+    this.facultyHighlightScope = 'month'; // 'day' | 'week' | 'month'
+    this.selectedDayIso = '2026-10-15'; // Default simulated today date
+
     // Faculty Onboarding State - loaded dynamically from Reminder Email Service
     this.onboardingPage = 1;
     this.onboardingPageSize = 5;
@@ -60,6 +64,8 @@ class AdminDashboardController {
     this.setupAdminSettingsModal();
     this.setupEmailPreviewModal();
     this.setupEventDetailModal();
+    this.setupFacultyHighlightsCard();
+    this.setupFacultyHighlightsModal();
     this.initOnboardingHandlers();
     this.renderOnboardingList();
     this.renderAdminNotifications();
@@ -247,10 +253,12 @@ class AdminDashboardController {
       this.renderMainContent();
     });
 
+    document.getElementById('cardFacultyHighlightsCard')?.addEventListener('click', () => {
+      this.openFacultyHighlightsModal();
+    });
+    // Fallback for legacy ID
     document.getElementById('cardCurriculumPaceBtn')?.addEventListener('click', () => {
-      this.mainTab = 'dashboard';
-      this.updateDockState('dashboard');
-      this.renderMainContent();
+      this.openFacultyHighlightsModal();
     });
 
     // Month & Week Date Navigation
@@ -268,6 +276,7 @@ class AdminDashboardController {
         this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 1);
       }
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
     });
 
@@ -285,6 +294,7 @@ class AdminDashboardController {
         this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 1);
       }
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
     });
 
@@ -293,7 +303,9 @@ class AdminDashboardController {
       this.currentYear = now.getFullYear();
       this.currentMonth = now.getMonth();
       this.currentWeekStart = new Date(now);
+      this.selectedDayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
 
       setTimeout(() => {
@@ -454,27 +466,33 @@ class AdminDashboardController {
     btnMonth?.addEventListener('click', () => {
       this.calendarSubView = 'month';
       this.mainTab = 'calendar';
+      this.facultyHighlightScope = 'month';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
     });
 
     btnWeek?.addEventListener('click', () => {
       this.calendarSubView = 'week';
       this.mainTab = 'calendar';
+      this.facultyHighlightScope = 'week';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
     });
 
     btnTimeline?.addEventListener('click', () => {
       this.calendarSubView = 'timeline';
       this.mainTab = 'calendar';
+      this.facultyHighlightScope = 'month';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
     });
   }
@@ -535,7 +553,9 @@ class AdminDashboardController {
       facCoverageBadge.textContent = facultySet.size > 0 ? `${facultySet.size} Assigned` : 'Unassigned';
     }
 
-    // Card 3: Curriculum Pace
+    // Card 3: Faculty-Wise Class Highlights (Single Tab for Day, Week, Month)
+    this.renderFacultyHighlightsCard();
+
     const pacePercentEl = document.getElementById('cardCurriculumPacePercent');
     const paceStatusEl = document.getElementById('cardCurriculumPaceStatus');
     const paceSubtitleEl = document.getElementById('cardCurriculumPaceSubtitle');
@@ -562,6 +582,404 @@ class AdminDashboardController {
     if (pacePercentEl) pacePercentEl.textContent = `${pacePct}%`;
     if (paceStatusEl) paceStatusEl.textContent = pacePct >= 70 ? 'On-Track' : (pacePct >= 40 ? 'In-Progress' : 'Planning');
     if (paceBadgeEl) paceBadgeEl.textContent = 'NMC Aligned';
+  }
+
+  // --- Faculty Highlights Single Card Controller ---
+  setupFacultyHighlightsCard() {
+    const card = document.getElementById('cardFacultyHighlightsCard') || document.getElementById('cardCurriculumPaceBtn');
+    const btnDay = document.getElementById('cardFacultyScopeDay');
+    const btnWeek = document.getElementById('cardFacultyScopeWeek');
+    const btnMonth = document.getElementById('cardFacultyScopeMonth');
+
+    const updateScopeButtons = () => {
+      [btnDay, btnWeek, btnMonth].forEach(b => {
+        if (!b) return;
+        b.className = 'px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent';
+      });
+      let activeBtn = btnMonth;
+      if (this.facultyHighlightScope === 'day') activeBtn = btnDay;
+      if (this.facultyHighlightScope === 'week') activeBtn = btnWeek;
+      if (activeBtn) {
+        activeBtn.className = 'px-2 py-0.5 rounded btn-3d-primary font-bold text-white cursor-pointer border-none';
+      }
+    };
+
+    btnDay?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.facultyHighlightScope = 'day';
+      updateScopeButtons();
+      this.renderFacultyHighlightsCard();
+    });
+
+    btnWeek?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.facultyHighlightScope = 'week';
+      updateScopeButtons();
+      this.renderFacultyHighlightsCard();
+    });
+
+    btnMonth?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.facultyHighlightScope = 'month';
+      updateScopeButtons();
+      this.renderFacultyHighlightsCard();
+    });
+
+    card?.addEventListener('click', () => {
+      this.openFacultyHighlightsModal();
+    });
+
+    this.updateFacultyCardScopeButtons = updateScopeButtons;
+  }
+
+  renderFacultyHighlightsCard() {
+    this.updateFacultyCardScopeButtons?.();
+
+    const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allEvents.filter(e => e.eventType === 'class');
+
+    let filtered = [];
+    let scopeBadgeText = '';
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    if (this.facultyHighlightScope === 'day') {
+      const targetIso = this.selectedDayIso || '2026-10-15';
+      filtered = classes.filter(e => e.isoDate === targetIso);
+      const d = new Date(targetIso + 'T00:00:00');
+      const isToday = targetIso === '2026-10-15' || targetIso === new Date().toISOString().slice(0, 10);
+      scopeBadgeText = `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}${isToday ? ' (Today)' : ''}`;
+    } else if (this.facultyHighlightScope === 'week') {
+      const sunday = new Date(this.currentWeekStart.getTime());
+      const day = sunday.getDay();
+      sunday.setDate(sunday.getDate() - day);
+      sunday.setHours(0, 0, 0, 0);
+
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      saturday.setHours(23, 59, 59, 999);
+
+      const sundayIso = sunday.toISOString().slice(0, 10);
+      const saturdayIso = saturday.toISOString().slice(0, 10);
+
+      filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
+
+      const d = new Date(Date.UTC(sunday.getFullYear(), sunday.getMonth(), sunday.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+
+      scopeBadgeText = `Week ${weekNo} • ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()}-${saturday.getDate()}`;
+    } else {
+      filtered = classes.filter(e => {
+        if (!e.isoDate) return false;
+        const [y, m] = e.isoDate.split('-').map(Number);
+        return y === this.currentYear && m === (this.currentMonth + 1);
+      });
+      scopeBadgeText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+    }
+
+    // Group by faculty
+    const facultyMap = new Map();
+    filtered.forEach(ev => {
+      const fac = (ev.faculty || 'Unassigned Faculty').trim();
+      if (!facultyMap.has(fac)) {
+        facultyMap.set(fac, {
+          name: fac,
+          subject: ev.subject || 'General',
+          classes: [],
+          count: 0
+        });
+      }
+      const entry = facultyMap.get(fac);
+      entry.classes.push(ev);
+      entry.count++;
+    });
+
+    const facultyList = Array.from(facultyMap.values()).sort((a, b) => b.count - a.count);
+
+    // Update Card DOM Elements
+    const classesCountEl = document.getElementById('cardFacultyHighlightsClassesCount');
+    const facultyCountEl = document.getElementById('cardFacultyHighlightsFacultyCount');
+    const scopeBadgeEl = document.getElementById('cardFacultyHighlightsScopeBadge');
+    const progressBarEl = document.getElementById('cardFacultyHighlightsProgressBar');
+    const chipsContainer = document.getElementById('cardFacultyHighlightsChips');
+
+    if (classesCountEl) classesCountEl.textContent = filtered.length;
+    if (facultyCountEl) facultyCountEl.textContent = `${facultyList.length} Faculty`;
+    if (scopeBadgeEl) scopeBadgeEl.textContent = scopeBadgeText;
+
+    // Proportional Segment Bar
+    if (progressBarEl) {
+      if (filtered.length === 0) {
+        progressBarEl.innerHTML = `<div class="bg-[#d5cdc0] h-full w-full rounded-full"></div>`;
+      } else {
+        const palette = ['#4a7c59', '#c26d3e', '#705c30', '#0096cc', '#7c52aa', '#8b4361', '#10b981'];
+        progressBarEl.innerHTML = facultyList.map((f, i) => {
+          const pct = ((f.count / filtered.length) * 100).toFixed(1);
+          const color = palette[i % palette.length];
+          return `<div class="h-full transition-all" style="width: ${pct}%; background-color: ${color};" title="${f.name}: ${f.count} classes (${pct}%)"></div>`;
+        }).join('');
+      }
+    }
+
+    // Chips container
+    if (chipsContainer) {
+      if (facultyList.length === 0) {
+        chipsContainer.innerHTML = `
+          <span class="text-[11px] text-[#788279] italic py-0.5">
+            No classes scheduled for this ${this.facultyHighlightScope}
+          </span>
+        `;
+      } else {
+        const avatarPalettes = [
+          { bg: 'bg-[#eef4f0]', text: 'text-[#3b6347]', border: 'border-[#cde0d3]', badgeBg: 'bg-[#eef4f0]', badgeText: 'text-[#2d4d37]' },
+          { bg: 'bg-[#fbf3ec]', text: 'text-[#c26d3e]', border: 'border-[#eed9cc]', badgeBg: 'bg-[#fbf3ec]', badgeText: 'text-[#9c4c23]' },
+          { bg: 'bg-[#fdf8f0]', text: 'text-[#705c30]', border: 'border-[#ebe0ca]', badgeBg: 'bg-[#fdf8f0]', badgeText: 'text-[#5a4820]' },
+          { bg: 'bg-[#e0f4fc]', text: 'text-[#0077a3]', border: 'border-[#b8e6f8]', badgeBg: 'bg-[#e0f4fc]', badgeText: 'text-[#005a7d]' },
+          { bg: 'bg-[#eedcff]', text: 'text-[#6a3fa0]', border: 'border-[#dcc8e0]', badgeBg: 'bg-[#eedcff]', badgeText: 'text-[#542d82]' },
+          { bg: 'bg-[#fdf2f5]', text: 'text-[#8b4361]', border: 'border-[#f7d8e2]', badgeBg: 'bg-[#fdf2f5]', badgeText: 'text-[#702e48]' }
+        ];
+
+        chipsContainer.innerHTML = facultyList.map((f, idx) => {
+          const pal = avatarPalettes[idx % avatarPalettes.length];
+          const initials = f.name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ').map(n => n[0]).join('').slice(0, 2) || 'FC';
+          const shortName = f.name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ')[0];
+          const titleName = f.name.startsWith('Dr.') ? `Dr. ${shortName}` : shortName;
+
+          let extraDetail = '';
+          if (this.facultyHighlightScope === 'day' && f.classes[0]) {
+            const firstEv = f.classes[0];
+            const cleanTime = (firstEv.timings || '').split('-')[0].trim();
+            extraDetail = cleanTime ? `<span class="text-[9.5px] text-[#68736a]">• ${cleanTime}</span>` : '';
+          }
+
+          return `
+            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/95 border border-[#ded5c6] shadow-2xs shrink-0 hover:bg-[#ede7db] transition-colors cursor-pointer" title="${f.name} • ${f.count} ${f.subject} classes in selected ${this.facultyHighlightScope}">
+              <span class="w-4 h-4 rounded-full ${pal.bg} ${pal.text} ${pal.border} border flex items-center justify-center text-[8px] font-bold shrink-0">
+                ${initials}
+              </span>
+              <span class="font-semibold text-[#2c332d] text-[10.5px] whitespace-nowrap">
+                ${titleName}
+              </span>
+              ${extraDetail}
+              <span class="font-bold text-[9.5px] ${pal.badgeText} ${pal.badgeBg} px-1.5 py-0.2 rounded border ${pal.border}">
+                ${f.count}
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  setupFacultyHighlightsModal() {
+    const modal = document.getElementById('facultyHighlightsModal');
+    const closeBtn = document.getElementById('closeFacultyHighlightsModalBtn');
+    const closeBottomBtn = document.getElementById('closeFacultyHighlightsBottomBtn');
+    const btnDay = document.getElementById('modalScopeDayBtn');
+    const btnWeek = document.getElementById('modalScopeWeekBtn');
+    const btnMonth = document.getElementById('modalScopeMonthBtn');
+
+    const closeModal = () => modal?.classList.add('hidden');
+
+    closeBtn?.addEventListener('click', closeModal);
+    closeBottomBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+
+    const updateModalScopeButtons = () => {
+      [btnDay, btnWeek, btnMonth].forEach(b => {
+        if (!b) return;
+        b.className = 'px-2.5 py-1 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent';
+      });
+      let activeBtn = btnMonth;
+      if (this.facultyHighlightScope === 'day') activeBtn = btnDay;
+      if (this.facultyHighlightScope === 'week') activeBtn = btnWeek;
+      if (activeBtn) {
+        activeBtn.className = 'px-2.5 py-1 rounded btn-3d-primary font-bold text-white cursor-pointer border-none';
+      }
+    };
+
+    btnDay?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'day';
+      updateModalScopeButtons();
+      this.renderFacultyHighlightsCard();
+      this.renderFacultyHighlightsModal();
+    });
+
+    btnWeek?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'week';
+      updateModalScopeButtons();
+      this.renderFacultyHighlightsCard();
+      this.renderFacultyHighlightsModal();
+    });
+
+    btnMonth?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'month';
+      updateModalScopeButtons();
+      this.renderFacultyHighlightsCard();
+      this.renderFacultyHighlightsModal();
+    });
+
+    this.updateModalScopeButtons = updateModalScopeButtons;
+  }
+
+  openFacultyHighlightsModal() {
+    const modal = document.getElementById('facultyHighlightsModal');
+    if (!modal) return;
+    this.updateModalScopeButtons?.();
+    this.renderFacultyHighlightsModal();
+    modal.classList.remove('hidden');
+  }
+
+  renderFacultyHighlightsModal() {
+    const subtitleEl = document.getElementById('modalFacultySubtitle');
+    const totalClassesEl = document.getElementById('modalTotalClasses');
+    const activeFacultyEl = document.getElementById('modalActiveFaculty');
+    const totalHoursEl = document.getElementById('modalTotalHours');
+    const activePeriodBadge = document.getElementById('modalActivePeriodBadge');
+    const listContainer = document.getElementById('modalFacultyDistributionList');
+
+    const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allEvents.filter(e => e.eventType === 'class');
+
+    let filtered = [];
+    let periodText = '';
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    if (this.facultyHighlightScope === 'day') {
+      const targetIso = this.selectedDayIso || '2026-10-15';
+      filtered = classes.filter(e => e.isoDate === targetIso);
+      const d = new Date(targetIso + 'T00:00:00');
+      periodText = `Selected Day: ${d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    } else if (this.facultyHighlightScope === 'week') {
+      const sunday = new Date(this.currentWeekStart.getTime());
+      const day = sunday.getDay();
+      sunday.setDate(sunday.getDate() - day);
+      sunday.setHours(0, 0, 0, 0);
+
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      saturday.setHours(23, 59, 59, 999);
+
+      const sundayIso = sunday.toISOString().slice(0, 10);
+      const saturdayIso = saturday.toISOString().slice(0, 10);
+
+      filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
+      periodText = `Active Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
+    } else {
+      filtered = classes.filter(e => {
+        if (!e.isoDate) return false;
+        const [y, m] = e.isoDate.split('-').map(Number);
+        return y === this.currentYear && m === (this.currentMonth + 1);
+      });
+      periodText = `Active Month: ${monthNames[this.currentMonth]} ${this.currentYear}`;
+    }
+
+    if (subtitleEl) subtitleEl.textContent = `Detailed class load for ${periodText}`;
+    if (activePeriodBadge) activePeriodBadge.textContent = periodText;
+    if (totalClassesEl) totalClassesEl.textContent = filtered.length;
+
+    // Group by faculty
+    const facultyMap = new Map();
+    filtered.forEach(ev => {
+      const fac = (ev.faculty || 'Unassigned Faculty').trim();
+      if (!facultyMap.has(fac)) {
+        facultyMap.set(fac, {
+          name: fac,
+          subject: ev.subject || 'General',
+          classes: [],
+          count: 0
+        });
+      }
+      const entry = facultyMap.get(fac);
+      entry.classes.push(ev);
+      entry.count++;
+    });
+
+    const facultyList = Array.from(facultyMap.values()).sort((a, b) => b.count - a.count);
+
+    if (activeFacultyEl) activeFacultyEl.textContent = facultyList.length;
+    if (totalHoursEl) totalHoursEl.textContent = `${filtered.length * 2} hrs`;
+
+    if (!listContainer) return;
+
+    if (facultyList.length === 0) {
+      listContainer.innerHTML = `
+        <div class="py-12 px-4 text-center text-[#68736a] space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-[#ede7da] border border-[#ded5c6] flex items-center justify-center text-[#8b958c]">
+            <span class="material-symbols-outlined text-[26px]">event_busy</span>
+          </div>
+          <p class="text-xs font-bold text-[#2c332d]">No classes scheduled for this ${this.facultyHighlightScope}</p>
+          <p class="text-[11px] text-[#788279]">Try selecting a different day, week, or month from the scope switcher above.</p>
+        </div>
+      `;
+      return;
+    }
+
+    listContainer.innerHTML = facultyList.map(f => {
+      const initials = f.name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ').map(n => n[0]).join('').slice(0, 2) || 'FC';
+      const pct = Math.round((f.count / filtered.length) * 100);
+
+      const classItems = f.classes.map(c => `
+        <div class="p-2 rounded-lg bg-white border border-[#e8e2d8] text-xs flex items-center justify-between gap-2 hover:bg-[#faf7f2] transition-colors">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[#2c332d] truncate">${c.topic || c.chapter || 'Lecture Session'}</span>
+              <span class="text-[10px] font-semibold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3] shrink-0">${c.subject || f.subject}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5 text-[10.5px] text-[#68736a]">
+              <span>📅 ${c.dateRaw || c.isoDate}</span>
+              <span>•</span>
+              <span>⏰ ${(c.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}</span>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold text-[#68736a] px-2 py-1 rounded bg-[#f4efe6] border border-[#ded5c6] shrink-0">${c.duration || '2 hrs'}</span>
+        </div>
+      `).join('');
+
+      return `
+        <div class="p-3.5 rounded-xl bg-white border border-[#ded5c6] card-3d space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center text-xs font-bold shrink-0">
+                ${initials}
+              </div>
+              <div class="min-w-0">
+                <h4 class="font-bold text-xs text-[#2c332d] truncate">${f.name}</h4>
+                <p class="text-[10.5px] text-[#68736a] font-medium">${f.subject} • ${f.count} ${f.count === 1 ? 'Class' : 'Classes'} (${f.count * 2} hrs)</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="text-xs font-bold text-[#4a7c59] bg-[#eef4f0] px-2.5 py-1 rounded-lg border border-[#cde0d3] badge-3d">
+                ${f.count} Classes • ${pct}% Load
+              </span>
+            </div>
+          </div>
+
+          <!-- Class List inside Faculty Card -->
+          <div class="space-y-1.5 pt-1 border-t border-[#f0eae1]">
+            ${classItems}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // --- 4. Subject Filter Buttons ---
@@ -807,7 +1225,7 @@ class AdminDashboardController {
         }
 
         html += `
-          <div ${cell.isToday ? 'id="calendarTodayCell"' : ''} class="${cellClasses}">
+          <div ${cell.isToday ? 'id="calendarTodayCell"' : ''} class="${cellClasses} calendar-day-box cursor-pointer" data-cell-iso="${cell.isoDate}" title="Click to view faculty classes for this day">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-xs ${cell.isToday ? 'font-extrabold text-[#2d4d37] flex items-center gap-1.5 font-headline' : 'font-bold text-[#2c332d]'}">
                 ${cell.dayNum}
@@ -860,6 +1278,21 @@ class AdminDashboardController {
     }
 
     gridContainer.innerHTML = html;
+
+    // Attach click listeners to day cells
+    gridContainer.querySelectorAll('.calendar-day-box').forEach(box => {
+      box.addEventListener('click', (e) => {
+        if (e.target.closest('.class-card-clickable')) return;
+        const iso = box.getAttribute('data-cell-iso');
+        if (iso) {
+          this.selectedDayIso = iso;
+          this.facultyHighlightScope = 'day';
+          this.renderFacultyHighlightsCard();
+          const d = new Date(iso + 'T00:00:00');
+          this.showToast(`Selected ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} highlights`);
+        }
+      });
+    });
 
     // Attach click listeners to cards
     gridContainer.querySelectorAll('.class-card-clickable').forEach(card => {
