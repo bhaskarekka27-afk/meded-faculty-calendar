@@ -2228,93 +2228,226 @@ class AdminDashboardController {
     });
   }
 
-  // --- 9. Dashboard Overview Tab (In-Dashboard) ---
+  // --- 9. Dashboard Overview Tab (Faculty-Wise Highlights View) ---
   renderDashboardView() {
     const container = document.getElementById('viewSectionDashboard');
     if (!container) return;
 
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
-    const coolOffDays = allEvents.filter(e => e.eventType === 'cool_off' || e.eventType === 'holiday');
 
-    // Subject breakdown
-    const subjectMap = {};
-    classes.forEach(e => {
-      const sub = e.subject || 'General';
-      if (!subjectMap[sub]) subjectMap[sub] = { count: 0, hours: 0, chapters: new Set() };
-      subjectMap[sub].count++;
-      subjectMap[sub].hours += 2;
-      if (e.chapter) subjectMap[sub].chapters.add(e.chapter);
+    let filtered = [];
+    let periodText = '';
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    if (this.facultyHighlightScope === 'day') {
+      const targetIso = this.selectedDayIso || '2026-10-15';
+      filtered = classes.filter(e => e.isoDate === targetIso);
+      const d = new Date(targetIso + 'T00:00:00');
+      const isToday = targetIso === '2026-10-15' || targetIso === new Date().toISOString().slice(0, 10);
+      periodText = `Today (${d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
+    } else if (this.facultyHighlightScope === 'week') {
+      const sunday = new Date(this.currentWeekStart.getTime());
+      const day = sunday.getDay();
+      sunday.setDate(sunday.getDate() - day);
+      sunday.setHours(0, 0, 0, 0);
+
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      saturday.setHours(23, 59, 59, 999);
+
+      const sundayIso = sunday.toISOString().slice(0, 10);
+      const saturdayIso = saturday.toISOString().slice(0, 10);
+
+      filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
+      periodText = `Active Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
+    } else {
+      filtered = classes.filter(e => {
+        if (!e.isoDate) return false;
+        const [y, m] = e.isoDate.split('-').map(Number);
+        return y === this.currentYear && m === (this.currentMonth + 1);
+      });
+      periodText = `Active Month: ${monthNames[this.currentMonth]} ${this.currentYear}`;
+    }
+
+    // Group by faculty
+    const facultyMap = new Map();
+    filtered.forEach(ev => {
+      const fac = (ev.faculty || 'Unassigned Faculty').trim();
+      if (!facultyMap.has(fac)) {
+        facultyMap.set(fac, {
+          name: fac,
+          subject: ev.subject || 'General',
+          classes: [],
+          count: 0
+        });
+      }
+      const entry = facultyMap.get(fac);
+      entry.classes.push(ev);
+      entry.count++;
     });
 
-    let html = `
-      <div class="space-y-6">
-        <!-- Dashboard Header -->
-        <div class="flex items-center justify-between pb-2 border-b border-[#e5dfd5]">
-          <div>
-            <h2 class="font-headline font-bold text-2xl text-[#2c332d]">Academic Directorate Overview</h2>
-            <p class="text-xs text-[#68736a] mt-0.5">Syllabus pacing, teaching workload & batch telemetry • ${this.getActiveBatch()?.name}</p>
-          </div>
-          <button id="dashboardReturnToCalBtn" class="btn-3d-primary px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">calendar_today</span> Return to Calendar
-          </button>
-        </div>
+    const facultyList = Array.from(facultyMap.values()).sort((a, b) => b.count - a.count);
 
-        <!-- Subject Progress Breakdown Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    `;
-
-    Object.entries(subjectMap).forEach(([sub, data]) => {
-      html += `
-        <div class="card-3d rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-headline font-bold text-base text-[#2c332d]">${sub}</h3>
-            <span class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">NMC CBME</span>
+    let listHtml = '';
+    if (facultyList.length === 0) {
+      listHtml = `
+        <div class="py-12 px-4 text-center text-[#68736a] space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-[#ede7da] border border-[#ded5c6] flex items-center justify-center text-[#8b958c]">
+            <span class="material-symbols-outlined text-[26px]">event_busy</span>
           </div>
-          <div class="flex items-baseline gap-2">
-            <span class="font-headline text-2xl font-bold text-[#2c332d]">${data.count}</span>
-            <span class="text-xs text-[#68736a] font-semibold">Total Lectures (${data.hours} Hours)</span>
-          </div>
-          <div class="w-full bg-[#e8e2d8] rounded-full h-2 overflow-hidden shadow-inner">
-            <div class="bg-[#4a7c59] h-2 rounded-full" style="width: ${Math.min(100, (data.count / 20) * 100)}%"></div>
-          </div>
-          <div class="text-[11px] text-[#576058] pt-2 border-t border-[#f0ece4]">
-            <strong>${data.chapters.size} Chapters covered</strong> across Term 1
-          </div>
+          <p class="text-xs font-bold text-[#2c332d]">No classes scheduled for this ${this.facultyHighlightScope === 'day' ? 'day' : this.facultyHighlightScope}</p>
+          <p class="text-[11px] text-[#788279]">Try selecting a different filter scope above.</p>
         </div>
       `;
-    });
+    } else {
+      listHtml = facultyList.map(f => {
+        const initials = f.name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ').map(n => n[0]).join('').slice(0, 2) || 'FC';
+        const pct = Math.round((f.count / (filtered.length || 1)) * 100);
 
-    html += `
+        const classItems = f.classes.map(c => `
+          <div class="p-2.5 rounded-lg bg-white border border-[#e8e2d8] text-xs flex items-center justify-between gap-2 hover:bg-[#faf7f2] transition-colors">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-[#2c332d] truncate">${c.topic || c.chapter || 'Lecture Session'}</span>
+                <span class="text-[10px] font-semibold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3] shrink-0">${c.subject || f.subject}</span>
+                ${renderBatchBadge(c.batchName)}
+                ${renderPlatformBadges(c, { compact: true })}
+              </div>
+              <div class="flex items-center gap-2 mt-0.5 text-[10.5px] text-[#68736a]">
+                <span>📅 ${c.dateRaw || c.isoDate}</span>
+                <span>•</span>
+                <span>⏰ ${(c.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}</span>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold text-[#68736a] px-2 py-1 rounded bg-[#f4efe6] border border-[#ded5c6] shrink-0">${c.duration || '2 hrs'}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="p-4 rounded-xl bg-white border border-[#ded5c6] card-3d space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center text-xs font-bold shrink-0">
+                  ${initials}
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-bold text-sm text-[#2c332d] truncate">${f.name}</h4>
+                  <p class="text-[11px] text-[#68736a] font-medium">${f.subject} • ${f.count} ${f.count === 1 ? 'Class' : 'Classes'} (${f.count * 2} hrs)</p>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-bold text-[#4a7c59] bg-[#eef4f0] px-2.5 py-1 rounded-lg border border-[#cde0d3] badge-3d">
+                  ${f.count} Classes • ${pct}% Load
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-2 border-t border-[#f0eae1]">
+              ${classItems}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    let html = `
+      <div class="space-y-5">
+        <!-- Dashboard Header & Scope Switcher -->
+        <div class="panel-3d rounded-2xl p-5 bg-white space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center font-bold shrink-0">
+                <span class="material-symbols-outlined text-[24px]">co_present</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h2 class="font-headline font-bold text-xl text-[#2c332d]">Faculty-Wise Class Highlights</h2>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">
+                    ${this.getActiveBatch()?.name || 'All Batches'}
+                  </span>
+                </div>
+                <p class="text-xs text-[#68736a] mt-0.5">
+                  Detailed class workload breakdown across teaching faculty members
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <!-- Scope Switcher Track (Today, Week, Month) -->
+              <div class="track-3d flex items-center p-1 rounded-xl text-xs font-bold">
+                <button id="dashScopeDayBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'day' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Today</button>
+                <button id="dashScopeWeekBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'week' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Week</button>
+                <button id="dashScopeMonthBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'month' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Month</button>
+              </div>
+
+              <button id="dashboardReturnToCalBtn" class="btn-3d-primary px-3.5 py-1.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">calendar_today</span> Return to Calendar
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Summary Strip -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 border-t border-[#f0ece4] text-xs">
+            <div class="p-2.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6]">
+              <span class="text-[10px] uppercase font-bold text-[#68736a] block">Classes</span>
+              <strong class="font-headline text-lg text-[#2c332d]">${filtered.length}</strong>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#eef4f0] border border-[#cde0d3]">
+              <span class="text-[10px] uppercase font-bold text-[#3b6347] block">Active Faculty</span>
+              <strong class="font-headline text-lg text-[#2d4d37]">${facultyList.length}</strong>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#fbf3ec] border border-[#eed9cc]">
+              <span class="text-[10px] uppercase font-bold text-[#c26d3e] block">Total Hours</span>
+              <strong class="font-headline text-lg text-[#9c4c23]">${filtered.length * 2} hrs</strong>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6]">
+              <span class="text-[10px] uppercase font-bold text-[#68736a] block">Filter Scope</span>
+              <strong class="font-headline text-xs text-[#2c332d] truncate block">${periodText}</strong>
+            </div>
+          </div>
         </div>
 
-        <!-- Batch Metrics & Sync Health -->
-        <div class="panel-3d rounded-xl p-5 space-y-4">
-          <h3 class="font-headline font-bold text-lg text-[#2c332d]">Google Sheets Batch Governance</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div class="p-3 bg-[#fbf9f5] rounded-xl border border-[#e8e2d8] card-3d-static">
-              <span class="text-[10px] uppercase font-bold text-[#68736a]">Connected Sheet</span>
-              <p class="font-bold text-[#2c332d] mt-1">${this.getActiveBatch()?.name}</p>
-              <span class="text-[10px] text-[#4a7c59] font-medium">Tab: ${(this.getActiveBatch()?.sheetTabName || 'Lecture Planner').trim()}</span>
-            </div>
-            <div class="p-3 bg-[#fbf9f5] rounded-xl border border-[#e8e2d8] card-3d-static">
-              <span class="text-[10px] uppercase font-bold text-[#68736a]">Break Telemetry</span>
-              <p class="font-bold text-[#c26d3e] mt-1">${coolOffDays.length} Cool-Off & Holiday Days</p>
-              <span class="text-[10px] text-[#68736a] font-medium">Full student recovery schedule</span>
-            </div>
-            <div class="p-3 bg-[#fbf9f5] rounded-xl border border-[#e8e2d8] card-3d-static">
-              <span class="text-[10px] uppercase font-bold text-[#68736a]">Live Sync Engine</span>
-              <p class="font-bold text-[#3b6347] mt-1 flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full bg-[#4a7c59]"></span> Operational (Google GViz)
-              </p>
-              <span class="text-[10px] text-[#68736a] font-medium">Auto-updates on change</span>
-            </div>
+        <!-- Faculty Class Distribution Breakdown -->
+        <div class="panel-3d rounded-2xl p-4 bg-white space-y-3">
+          <div class="flex items-center justify-between pb-3 border-b border-[#e5dfd5]">
+            <h3 class="font-headline font-bold text-base text-[#2c332d]">Faculty Distribution &amp; Schedule Highlights</h3>
+            <span class="text-xs font-bold text-[#3b6347] bg-[#eef4f0] px-2.5 py-0.5 rounded-lg border border-[#cde0d3]">
+              ${facultyList.length} Active Faculty
+            </span>
+          </div>
+
+          <div class="space-y-3.5">
+            ${listHtml}
           </div>
         </div>
       </div>
     `;
 
     container.innerHTML = html;
+
+    // Attach Scope Filter Click Listeners
+    container.querySelector('#dashScopeDayBtn')?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'day';
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
+    });
+
+    container.querySelector('#dashScopeWeekBtn')?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'week';
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
+    });
+
+    container.querySelector('#dashScopeMonthBtn')?.addEventListener('click', () => {
+      this.facultyHighlightScope = 'month';
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
+    });
 
     container.querySelector('#dashboardReturnToCalBtn')?.addEventListener('click', () => {
       this.mainTab = 'calendar';
