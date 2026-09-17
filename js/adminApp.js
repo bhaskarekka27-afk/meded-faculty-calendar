@@ -55,6 +55,20 @@ class AdminDashboardController {
     this.facultyHighlightScope = 'month'; // 'day' | 'week' | 'month'
     this.selectedDayIso = '2026-10-15'; // Default simulated today date
 
+    // Dashboard Individual Period & Navigation State (Independent of Calendar)
+    this.dashboardScope = 'month'; // 'month' | 'week' | 'day'
+    this.dashboardYear = 2026;
+    this.dashboardMonth = 9; // October (0-indexed: 9 = October)
+    this.dashboardWeekStart = new Date(2026, 9, 11); // Sunday Oct 11, 2026
+    this.dashboardDayIso = '2026-10-15';
+    this.dashboardInitialized = false;
+
+    // Batch-Level Lecture View Graph State (Day | Week | Month)
+    this.batchGraphGranularity = 'month'; // 'day' | 'week' | 'month'
+    this.batchGraphCohort = 'all'; // 'all' | batchId
+    this.batchGraphDayMonth = 'all'; // 'all' | '2026-09' | '2026-10' | '2026-11'
+    this.batchGraphSelectedKey = null; // Key of inspected item
+
     // Faculty Onboarding State - loaded dynamically from Reminder Email Service
     this.onboardingPage = 1;
     this.onboardingPageSize = 5;
@@ -96,6 +110,13 @@ class AdminDashboardController {
         this.currentYear = y;
         this.currentMonth = m - 1;
         this.currentWeekStart = new Date(y, m - 1, d || 1);
+        if (!this.dashboardInitialized) {
+          this.dashboardYear = y;
+          this.dashboardMonth = m - 1;
+          this.dashboardWeekStart = new Date(y, m - 1, d || 1);
+          this.dashboardDayIso = firstClass.isoDate;
+          this.dashboardInitialized = true;
+        }
       }
     }
   }
@@ -521,7 +542,6 @@ class AdminDashboardController {
     btnMonth?.addEventListener('click', () => {
       this.calendarSubView = 'month';
       this.mainTab = 'calendar';
-      this.facultyHighlightScope = 'month';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
@@ -532,7 +552,6 @@ class AdminDashboardController {
     btnWeek?.addEventListener('click', () => {
       this.calendarSubView = 'week';
       this.mainTab = 'calendar';
-      this.facultyHighlightScope = 'week';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
@@ -543,7 +562,6 @@ class AdminDashboardController {
     btnTimeline?.addEventListener('click', () => {
       this.calendarSubView = 'timeline';
       this.mainTab = 'calendar';
-      this.facultyHighlightScope = 'month';
       this.updateDockState('calendar');
       this.updateViewButtons();
       this.updateMonthTitle();
@@ -891,12 +909,23 @@ class AdminDashboardController {
     this.updateModalScopeButtons = updateModalScopeButtons;
   }
 
-  openFacultyHighlightsModal() {
+  openFacultyHighlightsModal(targetFaculty = null) {
     const modal = document.getElementById('facultyHighlightsModal');
     if (!modal) return;
     this.updateModalScopeButtons?.();
     this.renderFacultyHighlightsModal();
     modal.classList.remove('hidden');
+
+    if (targetFaculty) {
+      setTimeout(() => {
+        const targetEl = modal.querySelector(`[data-faculty-card="${CSS.escape(targetFaculty)}"]`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          targetEl.classList.add('ring-2', 'ring-[#4a7c59]');
+          setTimeout(() => targetEl.classList.remove('ring-2', 'ring-[#4a7c59]'), 2200);
+        }
+      }, 80);
+    }
   }
 
   renderFacultyHighlightsModal() {
@@ -1012,7 +1041,7 @@ class AdminDashboardController {
       `).join('');
 
       return `
-        <div class="p-3.5 rounded-xl bg-white border border-[#ded5c6] card-3d space-y-2.5">
+        <div class="p-3.5 rounded-xl bg-white border border-[#ded5c6] card-3d space-y-2.5 transition-all" data-faculty-card="${f.name}">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5 min-w-0">
               <div class="w-8 h-8 rounded-full bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center text-xs font-bold shrink-0">
@@ -1044,6 +1073,10 @@ class AdminDashboardController {
     const container = document.getElementById('adminSubjectFilters');
     if (!container) return;
 
+    // Ensure single-line flex-nowrap
+    container.classList.remove('flex-wrap');
+    container.classList.add('flex-nowrap', 'whitespace-nowrap', 'min-w-max');
+
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const subjectCounts = {};
     allEvents.filter(e => e.eventType === 'class').forEach(e => {
@@ -1053,7 +1086,7 @@ class AdminDashboardController {
     });
 
     let html = `
-      <button class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${this.selectedSubject === 'all' ? 'btn-3d-primary pill-3d-active text-white' : 'pill-3d text-[#3b6347] bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#cde0d3]'}" data-subject="all">
+      <button class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap ${this.selectedSubject === 'all' ? 'btn-3d-primary pill-3d-active text-white' : 'pill-3d text-[#3b6347] bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#cde0d3]'}" data-subject="all">
         All Subjects
       </button>
     `;
@@ -1065,7 +1098,20 @@ class AdminDashboardController {
       ENT: { text: '#7c52aa', bg: '#eedcff', border: '#dcc8e0', dot: '#7c52aa' },
       'Community Medicine': { text: '#0096cc', bg: '#e0f4fc', border: '#b8e6f8', dot: '#0096cc' },
       Ophthalmology: { text: '#8b4361', bg: '#fdf2f5', border: '#f7d8e2', dot: '#8b4361' },
-      FMT: { text: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', dot: '#10b981' }
+      FMT: { text: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', dot: '#10b981' },
+      Pathology: { text: '#8b4361', bg: '#fdf2f5', border: '#f7d8e2', dot: '#8b4361' },
+      Pharmacology: { text: '#2b6e56', bg: '#ecf7f2', border: '#c7ebd9', dot: '#2b6e56' },
+      Microbiology: { text: '#0284c7', bg: '#e0f2fe', border: '#bae6fd', dot: '#0284c7' },
+      Medicine: { text: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', dot: '#2563eb' },
+      Surgery: { text: '#059669', bg: '#ecfdf5', border: '#a7f3d0', dot: '#059669' },
+      Pediatrics: { text: '#ea580c', bg: '#fff7ed', border: '#ffedd5', dot: '#ea580c' },
+      OBG: { text: '#be185d', bg: '#fdf2f8', border: '#fbcfe8', dot: '#be185d' },
+      Radiology: { text: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe', dot: '#4f46e5' },
+      Orthopedics: { text: '#d97706', bg: '#fffbeb', border: '#fde68a', dot: '#d97706' },
+      Dermatology: { text: '#0891b2', bg: '#ecfeff', border: '#a5f3fc', dot: '#0891b2' },
+      Anaesthesia: { text: '#0d9488', bg: '#f0fdfa', border: '#99f6e4', dot: '#0d9488' },
+      Psychiatry: { text: '#9333ea', bg: '#faf5ff', border: '#e9d5ff', dot: '#9333ea' },
+      'Forensic Medicine': { text: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', dot: '#10b981' }
     };
 
     Object.entries(subjectCounts).forEach(([sub, count]) => {
@@ -1073,8 +1119,16 @@ class AdminDashboardController {
       const isSelected = this.selectedSubject.toLowerCase() === sub.toLowerCase();
 
       html += `
-        <button class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border cursor-pointer ${isSelected ? 'btn-3d-primary pill-3d-active text-white border-[#4a7c59]' : `pill-3d text-[${cfg.text}] bg-[${cfg.bg}] border-[${cfg.border}] hover:brightness-95`}" data-subject="${sub}">
-          <span class="w-2 h-2 rounded-full shadow-xs" style="background-color: ${cfg.dot};"></span>
+        <button
+          class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border cursor-pointer shrink-0 whitespace-nowrap ${
+            isSelected
+              ? 'btn-3d-primary pill-3d-active text-white border-[#4a7c59]'
+              : 'pill-3d hover:brightness-95'
+          }"
+          style="${!isSelected ? `color: ${cfg.text}; background-color: ${cfg.bg}; border-color: ${cfg.border};` : ''}"
+          data-subject="${sub}"
+        >
+          <span class="w-2 h-2 rounded-full shadow-xs shrink-0" style="background-color: ${cfg.dot};"></span>
           ${sub} (${count})
         </button>
       `;
@@ -1087,8 +1141,115 @@ class AdminDashboardController {
         this.selectedSubject = btn.getAttribute('data-subject');
         this.updateSubjectFilterButtons();
         this.renderMainContent();
+        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       });
     });
+
+    this.setupSubjectFilterScroll();
+  }
+
+  setupSubjectFilterScroll() {
+    const container = document.getElementById('adminSubjectFilters');
+    if (!container) return;
+
+    let scrollWrapper = document.getElementById('adminSubjectFiltersScroll');
+    let leftBtn = document.getElementById('btnSubjectScrollLeft');
+    let rightBtn = document.getElementById('btnSubjectScrollRight');
+
+    // Dynamic Fallback: Wrap container if not already enclosed by scroll wrapper and arrow buttons
+    if (!scrollWrapper || !leftBtn || !rightBtn) {
+      const parent = container.parentElement;
+      if (parent && !parent.classList.contains('subject-nav-wrapped')) {
+        parent.classList.add('subject-nav-wrapped', 'relative', 'flex', 'items-center', 'gap-1.5', 'py-0.5', 'w-full');
+        
+        if (!leftBtn) {
+          leftBtn = document.createElement('button');
+          leftBtn.id = 'btnSubjectScrollLeft';
+          leftBtn.type = 'button';
+          leftBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed';
+          leftBtn.setAttribute('aria-label', 'Scroll left');
+          leftBtn.title = 'Scroll subjects left';
+          leftBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">chevron_left</span>';
+          parent.insertBefore(leftBtn, container);
+        }
+
+        if (!scrollWrapper) {
+          scrollWrapper = document.createElement('div');
+          scrollWrapper.id = 'adminSubjectFiltersScroll';
+          scrollWrapper.className = 'flex-1 overflow-x-auto scroll-smooth no-scrollbar py-1';
+          scrollWrapper.style.cssText = 'scrollbar-width: none; -ms-overflow-style: none;';
+          parent.insertBefore(scrollWrapper, container);
+          scrollWrapper.appendChild(container);
+        }
+
+        if (!rightBtn) {
+          rightBtn = document.createElement('button');
+          rightBtn.id = 'btnSubjectScrollRight';
+          rightBtn.type = 'button';
+          rightBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed';
+          rightBtn.setAttribute('aria-label', 'Scroll right');
+          rightBtn.title = 'Scroll subjects right';
+          rightBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">chevron_right</span>';
+          parent.appendChild(rightBtn);
+        }
+      }
+    }
+
+    if (!scrollWrapper) {
+      scrollWrapper = container.parentElement;
+    }
+
+    const updateArrows = () => {
+      if (!scrollWrapper) return;
+      const scrollLeft = scrollWrapper.scrollLeft;
+      const maxScroll = Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+
+      if (leftBtn) {
+        const canLeft = scrollLeft > 3;
+        leftBtn.disabled = !canLeft;
+        leftBtn.style.opacity = canLeft ? '1' : '0.25';
+        leftBtn.style.pointerEvents = canLeft ? 'auto' : 'none';
+      }
+      if (rightBtn) {
+        const canRight = scrollLeft < maxScroll - 3;
+        rightBtn.disabled = !canRight;
+        rightBtn.style.opacity = canRight ? '1' : '0.25';
+        rightBtn.style.pointerEvents = canRight ? 'auto' : 'none';
+      }
+    };
+
+    if (leftBtn && !leftBtn._scrollBound) {
+      leftBtn._scrollBound = true;
+      leftBtn.addEventListener('click', () => {
+        if (scrollWrapper && typeof scrollWrapper.scrollBy === 'function') {
+          scrollWrapper.scrollBy({ left: -220, behavior: 'smooth' });
+          setTimeout(updateArrows, 250);
+        }
+      });
+    }
+
+    if (rightBtn && !rightBtn._scrollBound) {
+      rightBtn._scrollBound = true;
+      rightBtn.addEventListener('click', () => {
+        if (scrollWrapper && typeof scrollWrapper.scrollBy === 'function') {
+          scrollWrapper.scrollBy({ left: 220, behavior: 'smooth' });
+          setTimeout(updateArrows, 250);
+        }
+      });
+    }
+
+    if (scrollWrapper && !scrollWrapper._scrollBound) {
+      scrollWrapper._scrollBound = true;
+      if (typeof scrollWrapper.addEventListener === 'function') {
+        scrollWrapper.addEventListener('scroll', updateArrows, { passive: true });
+      }
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', updateArrows);
+      }
+    }
+
+    // Run arrow state check
+    setTimeout(updateArrows, 60);
   }
 
   // --- 5. Main Content Dispatcher ---
@@ -1299,7 +1460,7 @@ class AdminDashboardController {
         `;
 
         if (classEvents.length > 0) {
-          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5">`;
+          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5 no-scrollbar">`;
           classEvents.forEach(ev => {
             const initial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').split(' ').map(w => w[0]).join('').slice(0, 2) : 'DR';
             const batchBadge = renderBatchBadge(ev.batchName);
@@ -2233,6 +2394,13 @@ class AdminDashboardController {
     const container = document.getElementById('viewSectionDashboard');
     if (!container) return;
 
+    // Ensure independent dashboard period properties exist
+    if (!this.dashboardScope) this.dashboardScope = this.facultyHighlightScope || 'month';
+    if (this.dashboardYear === undefined) this.dashboardYear = this.currentYear || 2026;
+    if (this.dashboardMonth === undefined) this.dashboardMonth = this.currentMonth !== undefined ? this.currentMonth : 9;
+    if (!this.dashboardWeekStart) this.dashboardWeekStart = new Date(this.currentWeekStart || new Date(2026, 9, 11));
+    if (!this.dashboardDayIso) this.dashboardDayIso = this.selectedDayIso || '2026-10-15';
+
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
 
@@ -2244,14 +2412,14 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    if (this.facultyHighlightScope === 'day') {
-      const targetIso = this.selectedDayIso || '2026-10-15';
+    if (this.dashboardScope === 'day') {
+      const targetIso = this.dashboardDayIso || '2026-10-15';
       filtered = classes.filter(e => e.isoDate === targetIso);
       const d = new Date(targetIso + 'T00:00:00');
       const isToday = targetIso === '2026-10-15' || targetIso === new Date().toISOString().slice(0, 10);
-      periodText = `Today (${d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
-    } else if (this.facultyHighlightScope === 'week') {
-      const sunday = new Date(this.currentWeekStart.getTime());
+      periodText = `${d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}${isToday ? ' (Today)' : ''}`;
+    } else if (this.dashboardScope === 'week') {
+      const sunday = new Date(this.dashboardWeekStart.getTime());
       const day = sunday.getDay();
       sunday.setDate(sunday.getDate() - day);
       sunday.setHours(0, 0, 0, 0);
@@ -2264,95 +2432,352 @@ class AdminDashboardController {
       const saturdayIso = saturday.toISOString().slice(0, 10);
 
       filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
-      periodText = `Active Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
+
+      // ISO week calculation
+      const dWeek = new Date(Date.UTC(sunday.getFullYear(), sunday.getMonth(), sunday.getDate()));
+      const dayNum = dWeek.getUTCDay() || 7;
+      dWeek.setUTCDate(dWeek.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(dWeek.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((dWeek - yearStart) / 86400000) + 1) / 7);
+
+      periodText = `Week ${weekNo}: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
     } else {
+      // Month mode
       filtered = classes.filter(e => {
         if (!e.isoDate) return false;
         const [y, m] = e.isoDate.split('-').map(Number);
-        return y === this.currentYear && m === (this.currentMonth + 1);
+        return y === this.dashboardYear && m === (this.dashboardMonth + 1);
       });
-      periodText = `Active Month: ${monthNames[this.currentMonth]} ${this.currentYear}`;
+      periodText = `${monthNames[this.dashboardMonth]} ${this.dashboardYear}`;
     }
 
-    // Group by faculty
+    // Group by faculty and calculate total hours
     const facultyMap = new Map();
+    let totalComputedHours = 0;
+    const subjectStats = {};
+    const dayStats = {
+      Mon: { name: 'Mon', count: 0, hours: 0 },
+      Tue: { name: 'Tue', count: 0, hours: 0 },
+      Wed: { name: 'Wed', count: 0, hours: 0 },
+      Thu: { name: 'Thu', count: 0, hours: 0 },
+      Fri: { name: 'Fri', count: 0, hours: 0 },
+      Sat: { name: 'Sat', count: 0, hours: 0 },
+      Sun: { name: 'Sun', count: 0, hours: 0 }
+    };
+    const dayNameMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    let appClassesCount = 0;
+    let appHours = 0;
+    let ytClassesCount = 0;
+    let ytHours = 0;
+
     filtered.forEach(ev => {
       const fac = (ev.faculty || 'Unassigned Faculty').trim();
+      const durMatch = (ev.duration || '').match(/(\d+(?:\.\d+)?)/);
+      const evHours = durMatch ? parseFloat(durMatch[1]) : 2;
+      totalComputedHours += evHours;
+
+      // Faculty map
       if (!facultyMap.has(fac)) {
         facultyMap.set(fac, {
           name: fac,
           subject: ev.subject || 'General',
           classes: [],
-          count: 0
+          count: 0,
+          totalHours: 0
         });
       }
       const entry = facultyMap.get(fac);
       entry.classes.push(ev);
       entry.count++;
+      entry.totalHours += evHours;
+
+      // Subject stats
+      const sub = (ev.subject || 'General').trim();
+      if (!subjectStats[sub]) {
+        subjectStats[sub] = { subject: sub, count: 0, hours: 0 };
+      }
+      subjectStats[sub].count++;
+      subjectStats[sub].hours += evHours;
+
+      // Day stats
+      if (ev.isoDate) {
+        const d = new Date(ev.isoDate + 'T00:00:00');
+        const shortDay = dayNameMap[d.getDay()];
+        if (dayStats[shortDay]) {
+          dayStats[shortDay].count++;
+          dayStats[shortDay].hours += evHours;
+        }
+      }
+
+      // Platform stats
+      const isYt = ev.isYoutube || ev.platform === 'youtube' || (ev.batchName && /youtube|yt/i.test(ev.batchName));
+      if (isYt) {
+        ytClassesCount++;
+        ytHours += evHours;
+      } else {
+        appClassesCount++;
+        appHours += evHours;
+      }
     });
 
     const facultyList = Array.from(facultyMap.values()).sort((a, b) => b.count - a.count);
 
-    let listHtml = '';
+    // Subject Color Mapping
+    const subjectColorMap = {
+      'Biochemistry': '#4a7c59',
+      'Anatomy': '#c26d3e',
+      'Physiology': '#705c30',
+      'Pathology': '#dc2626',
+      'Community Medicine': '#0096cc',
+      'ENT': '#7c52aa',
+      'Ophthalmology': '#8b4361',
+      'FMT': '#10b981',
+      'Pharmacology': '#d97706',
+      'Microbiology': '#0284c7',
+      'Medicine': '#2563eb',
+      'Surgery': '#059669',
+      'Pediatrics': '#ea580c',
+      'OBGY': '#be185d',
+      'General': '#68736a'
+    };
+    const paletteFallback = ['#4a7c59', '#c26d3e', '#705c30', '#0096cc', '#7c52aa', '#8b4361', '#10b981', '#dc2626', '#d97706', '#0284c7', '#3b82f6', '#f59e0b'];
+
+    const subjectList = Object.values(subjectStats).sort((a, b) => b.hours - a.hours);
+
+    // 1. Generate Subject Donut SVG
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius; // ~ 339.292
+    let cumulativeOffset = 0;
+
+    const donutSlicesHtml = subjectList.map((s, idx) => {
+      const color = subjectColorMap[s.subject] || paletteFallback[idx % paletteFallback.length];
+      const fraction = s.hours / (totalComputedHours || 1);
+      const dash = fraction * circumference;
+      const pct = Math.round(fraction * 100);
+      const offset = cumulativeOffset;
+      cumulativeOffset += dash;
+
+      return `
+        <circle
+          cx="70" cy="70" r="${radius}"
+          fill="transparent"
+          stroke="${color}"
+          stroke-width="16"
+          stroke-dasharray="${dash.toFixed(2)} ${(circumference - dash).toFixed(2)}"
+          stroke-dashoffset="${(-offset).toFixed(2)}"
+          transform="rotate(-90 70 70)"
+          class="donut-slice transition-all duration-200 cursor-pointer"
+          data-subject="${s.subject}"
+          data-hours="${s.hours}"
+          data-count="${s.count}"
+          data-pct="${pct}"
+        />
+      `;
+    }).join('');
+
+    const donutLegendHtml = subjectList.map((s, idx) => {
+      const color = subjectColorMap[s.subject] || paletteFallback[idx % paletteFallback.length];
+      const pct = Math.round((s.hours / (totalComputedHours || 1)) * 100);
+      return `
+        <div class="donut-legend-item flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-[#f7f4ed] transition-colors cursor-pointer text-xs" data-subject="${s.subject}" data-hours="${s.hours}" data-count="${s.count}" data-pct="${pct}">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${color};"></span>
+            <span class="font-bold text-[#2c332d] truncate text-[11px]">${s.subject}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0 text-[10.5px]">
+            <span class="text-[#68736a] font-medium">${s.hours}h (${s.count})</span>
+            <span class="font-bold px-1.5 py-0.2 rounded bg-[#f4efe6] text-[#2c332d] border border-[#ded5c6]">${pct}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 2. Generate Weekly Day-of-Week Bar Chart
+    const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const maxDayCount = Math.max(1, ...dayOrder.map(d => dayStats[d].count));
+    const peakDay = dayOrder.find(d => dayStats[d].count === maxDayCount && dayStats[d].count > 0);
+
+    const barChartHtml = dayOrder.map(d => {
+      const stat = dayStats[d];
+      const isPeak = d === peakDay && stat.count > 0;
+      const heightPct = stat.count > 0 ? Math.max(16, Math.round((stat.count / maxDayCount) * 100)) : 8;
+
+      return `
+        <div class="flex-1 flex flex-col items-center gap-1 group">
+          <span class="text-[10px] font-bold ${isPeak ? 'text-[#3b6347]' : 'text-[#68736a]'} ${stat.count === 0 ? 'opacity-40' : ''}">
+            ${stat.count > 0 ? stat.count : '–'}
+          </span>
+          <div class="w-full flex-1 flex items-end justify-center">
+            <div
+              class="w-full max-w-[28px] rounded-t-lg transition-all duration-300 group-hover:brightness-95 ${
+                stat.count === 0
+                  ? 'bg-[#ede7da] border border-dashed border-[#ded5c6]'
+                  : isPeak
+                  ? 'bg-gradient-to-t from-[#3b6347] to-[#4a7c59] shadow-xs'
+                  : 'bg-gradient-to-t from-[#cde0d3] to-[#7fa38a]'
+              }"
+              style="height: ${heightPct}%;"
+              title="${stat.name}: ${stat.count} sessions • ${stat.hours} teaching hours"
+            ></div>
+          </div>
+          <div class="text-center pt-1">
+            <span class="block text-[10.5px] font-bold ${isPeak ? 'text-[#2c332d]' : 'text-[#576058]'}">${d}</span>
+            <span class="block text-[9px] text-[#8b958c]">${stat.hours > 0 ? `${stat.hours}h` : 'Off'}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 3. Generate Platform Modality Donut
+    const appPct = Math.round((appHours / (totalComputedHours || 1)) * 100);
+    const ytPct = 100 - appPct;
+    const platformRadius = 42;
+    const platformCircumference = 2 * Math.PI * platformRadius; // ~ 263.89
+    const appDash = (appHours / (totalComputedHours || 1)) * platformCircumference;
+    const ytDash = platformCircumference - appDash;
+
+    const avgSessionHours = filtered.length > 0 ? (totalComputedHours / filtered.length).toFixed(1) : '2.0';
+
+    const avatarPalettes = [
+      { bg: 'bg-[#eef4f0]', text: 'text-[#3b6347]', border: 'border-[#cde0d3]', barColor: '#4a7c59' },
+      { bg: 'bg-[#fbf3ec]', text: 'text-[#c26d3e]', border: 'border-[#eed9cc]', barColor: '#c26d3e' },
+      { bg: 'bg-[#fdf8f0]', text: 'text-[#705c30]', border: 'border-[#ebe0ca]', barColor: '#705c30' },
+      { bg: 'bg-[#e0f4fc]', text: 'text-[#0077a3]', border: 'border-[#b8e6f8]', barColor: '#0096cc' },
+      { bg: 'bg-[#eedcff]', text: 'text-[#6a3fa0]', border: 'border-[#dcc8e0]', barColor: '#7c52aa' },
+      { bg: 'bg-[#fdf2f5]', text: 'text-[#8b4361]', border: 'border-[#f7d8e2]', barColor: '#8b4361' }
+    ];
+    const paletteColors = ['#4a7c59', '#c26d3e', '#705c30', '#0096cc', '#7c52aa', '#8b4361', '#10b981', '#3b82f6', '#f59e0b', '#ec4899'];
+
+    let overviewContentHtml = '';
     if (facultyList.length === 0) {
-      listHtml = `
+      overviewContentHtml = `
         <div class="py-12 px-4 text-center text-[#68736a] space-y-2">
           <div class="w-12 h-12 mx-auto rounded-2xl bg-[#ede7da] border border-[#ded5c6] flex items-center justify-center text-[#8b958c]">
             <span class="material-symbols-outlined text-[26px]">event_busy</span>
           </div>
-          <p class="text-xs font-bold text-[#2c332d]">No classes scheduled for this ${this.facultyHighlightScope === 'day' ? 'day' : this.facultyHighlightScope}</p>
-          <p class="text-[11px] text-[#788279]">Try selecting a different filter scope above.</p>
+          <p class="text-xs font-bold text-[#2c332d]">No classes scheduled for this ${this.dashboardScope === 'day' ? 'day' : this.dashboardScope}</p>
+          <p class="text-[11px] text-[#788279]">Try navigating to another period or selecting a different filter scope above.</p>
         </div>
       `;
     } else {
-      listHtml = facultyList.map(f => {
+      // Visual Proportional Bar
+      const proportionalBarHtml = `
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center justify-between text-[11px] font-semibold text-[#68736a]">
+            <span>Workload Distribution Across Active Faculty</span>
+            <span>${facultyList.length} Faculty • ${filtered.length} Sessions</span>
+          </div>
+          <div class="h-2 rounded-full overflow-hidden flex bg-[#e8e2d8] shadow-inner">
+            ${facultyList.map((f, i) => {
+              const pct = ((f.count / (filtered.length || 1)) * 100).toFixed(1);
+              const color = paletteColors[i % paletteColors.length];
+              return `<div class="h-full transition-all" style="width: ${pct}%; background-color: ${color};" title="${f.name}: ${f.count} classes (${pct}%)"></div>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      // Table Rows
+      const tableRowsHtml = facultyList.map((f, idx) => {
+        const pal = avatarPalettes[idx % avatarPalettes.length];
         const initials = f.name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ').map(n => n[0]).join('').slice(0, 2) || 'FC';
         const pct = Math.round((f.count / (filtered.length || 1)) * 100);
 
-        const classItems = f.classes.map(c => `
-          <div class="p-2.5 rounded-lg bg-white border border-[#e8e2d8] text-xs flex items-center justify-between gap-2 hover:bg-[#faf7f2] transition-colors">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-[#2c332d] truncate">${c.topic || c.chapter || 'Lecture Session'}</span>
-                <span class="text-[10px] font-semibold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3] shrink-0">${c.subject || f.subject}</span>
-                ${renderBatchBadge(c.batchName)}
-                ${renderPlatformBadges(c, { compact: true })}
-              </div>
-              <div class="flex items-center gap-2 mt-0.5 text-[10.5px] text-[#68736a]">
-                <span>📅 ${c.dateRaw || c.isoDate}</span>
-                <span>•</span>
-                <span>⏰ ${(c.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}</span>
-              </div>
-            </div>
-            <span class="text-[10px] font-bold text-[#68736a] px-2 py-1 rounded bg-[#f4efe6] border border-[#ded5c6] shrink-0">${c.duration || '2 hrs'}</span>
-          </div>
-        `).join('');
+        // Compute schedule window
+        const dates = f.classes.map(c => c.dateRaw || c.isoDate).filter(Boolean);
+        let scheduleWindow = '–';
+        if (dates.length === 1) {
+          scheduleWindow = dates[0];
+        } else if (dates.length > 1) {
+          const sortedIso = f.classes.map(c => c.isoDate).filter(Boolean).sort();
+          if (sortedIso.length > 0) {
+            const firstD = new Date(sortedIso[0] + 'T00:00:00');
+            const lastD = new Date(sortedIso[sortedIso.length - 1] + 'T00:00:00');
+            if (sortedIso[0] === sortedIso[sortedIso.length - 1]) {
+              scheduleWindow = firstD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+              scheduleWindow = `${firstD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${lastD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            }
+          } else {
+            scheduleWindow = `${dates.length} scheduled dates`;
+          }
+        }
 
         return `
-          <div class="p-4 rounded-xl bg-white border border-[#ded5c6] card-3d space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-9 h-9 rounded-full bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center text-xs font-bold shrink-0">
+          <tr class="hover:bg-[#fbf9f5] transition-colors cursor-pointer faculty-overview-row" data-faculty="${f.name}">
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full ${pal.bg} ${pal.text} border ${pal.border} flex items-center justify-center text-xs font-bold shrink-0">
                   ${initials}
                 </div>
-                <div class="min-w-0">
-                  <h4 class="font-bold text-sm text-[#2c332d] truncate">${f.name}</h4>
-                  <p class="text-[11px] text-[#68736a] font-medium">${f.subject} • ${f.count} ${f.count === 1 ? 'Class' : 'Classes'} (${f.count * 2} hrs)</p>
+                <div>
+                  <strong class="font-bold text-[#2c332d] text-xs block">${f.name}</strong>
+                  <span class="text-[10.5px] text-[#788279]">${f.count === 1 ? '1 Lecture Session' : `${f.count} Lecture Sessions`}</span>
                 </div>
               </div>
-              <div class="text-right shrink-0">
-                <span class="text-xs font-bold text-[#4a7c59] bg-[#eef4f0] px-2.5 py-1 rounded-lg border border-[#cde0d3] badge-3d">
-                  ${f.count} Classes • ${pct}% Load
-                </span>
+            </td>
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              <span class="px-2.5 py-0.5 rounded-md text-[11px] font-semibold text-[#3b6347] bg-[#eef4f0] border border-[#cde0d3]">
+                ${f.subject}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+              <span class="inline-flex items-center gap-1 font-bold text-xs text-[#2c332d] bg-[#f7f4ed] px-2.5 py-1 rounded-lg border border-[#ded5c6]">
+                <span class="material-symbols-outlined text-[14px] text-[#4a7c59]">school</span>
+                ${f.count}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-center whitespace-nowrap font-bold text-xs text-[#c26d3e]">
+              ${f.totalHours} hrs
+            </td>
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-[#ece5d8] h-2 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all" style="width: ${pct}%; background-color: ${pal.barColor || '#4a7c59'};"></div>
+                </div>
+                <span class="text-[11px] font-bold text-[#576058]">${pct}%</span>
               </div>
-            </div>
-
-            <div class="space-y-1.5 pt-2 border-t border-[#f0eae1]">
-              ${classItems}
-            </div>
-          </div>
+            </td>
+            <td class="py-3.5 px-4 whitespace-nowrap text-[11px] text-[#576058]">
+              <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[15px] text-[#8b958c]">calendar_month</span>
+                <span>${scheduleWindow}</span>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+              <button type="button" class="btn-faculty-overview-detail btn-3d-secondary px-3 py-1 rounded-lg text-xs font-bold text-[#2c332d] hover:text-[#3b6347] transition-all cursor-pointer" data-faculty="${f.name}">
+                View Schedule
+              </button>
+            </td>
+          </tr>
         `;
       }).join('');
+
+      overviewContentHtml = `
+        <div class="space-y-3.5">
+          ${proportionalBarHtml}
+
+          <div class="overflow-x-auto rounded-xl border border-[#ded5c6] bg-white">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-[#f7f4ed] border-b border-[#ded5c6] text-[10.5px] font-bold uppercase tracking-wider text-[#68736a]">
+                  <th class="py-3 px-4">Faculty Member</th>
+                  <th class="py-3 px-4">Department / Subject</th>
+                  <th class="py-3 px-4 text-center">Classes</th>
+                  <th class="py-3 px-4 text-center">Hours</th>
+                  <th class="py-3 px-4 min-w-[130px]">Workload Share</th>
+                  <th class="py-3 px-4">Schedule Window</th>
+                  <th class="py-3 px-4 text-right">Details</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#f0ece4]">
+                ${tableRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
     }
 
     let html = `
@@ -2372,22 +2797,36 @@ class AdminDashboardController {
                   </span>
                 </div>
                 <p class="text-xs text-[#68736a] mt-0.5">
-                  Detailed class workload breakdown across teaching faculty members
+                  Consolidated faculty workload &amp; schedule distribution overview
                 </p>
               </div>
             </div>
 
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <!-- Scope Switcher Track (Today, Week, Month) -->
-              <div class="track-3d flex items-center p-1 rounded-xl text-xs font-bold">
-                <button id="dashScopeDayBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'day' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Today</button>
-                <button id="dashScopeWeekBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'week' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Week</button>
-                <button id="dashScopeMonthBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.facultyHighlightScope === 'month' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Month</button>
+            <!-- Right Controls: Period Indicator, < Today > Navigation, and Week/Month Switcher -->
+            <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
+              <!-- Period Display Badge -->
+              <span class="text-xs font-bold text-[#2c332d] px-3 py-1.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] flex items-center gap-1.5 shadow-2xs select-none">
+                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">calendar_today</span>
+                <span id="dashPeriodTitleDisplay">${periodText}</span>
+              </span>
+
+              <!-- Date Navigation (< Today >) -->
+              <div class="track-3d flex items-center rounded-xl overflow-hidden shadow-2xs">
+                <button id="dashPrevPeriodBtn" type="button" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous ${this.dashboardScope === 'day' ? 'Day' : (this.dashboardScope === 'week' ? 'Week' : 'Month')}">
+                  <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+                <button id="dashTodayPeriodBtn" type="button" class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer" title="Jump to Current Academic Reference">Today</button>
+                <button id="dashNextPeriodBtn" type="button" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Next ${this.dashboardScope === 'day' ? 'Day' : (this.dashboardScope === 'week' ? 'Week' : 'Month')}">
+                  <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
               </div>
 
-              <button id="dashboardReturnToCalBtn" class="btn-3d-primary px-3.5 py-1.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer">
-                <span class="material-symbols-outlined text-[16px]">calendar_today</span> Return to Calendar
-              </button>
+              <!-- Scope Switcher Track (Month / Week / Day) -->
+              <div class="track-3d flex items-center p-1 rounded-xl text-xs font-bold shadow-2xs">
+                <button id="dashScopeMonthBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.dashboardScope === 'month' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}" title="Switch to Month View">Month</button>
+                <button id="dashScopeWeekBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.dashboardScope === 'week' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}" title="Switch to Week View">Week</button>
+                <button id="dashScopeDayBtn" type="button" class="px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${this.dashboardScope === 'day' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}" title="Switch to Day View">Day</button>
+              </div>
             </div>
           </div>
 
@@ -2403,7 +2842,7 @@ class AdminDashboardController {
             </div>
             <div class="p-2.5 rounded-xl bg-[#fbf3ec] border border-[#eed9cc]">
               <span class="text-[10px] uppercase font-bold text-[#c26d3e] block">Total Hours</span>
-              <strong class="font-headline text-lg text-[#9c4c23]">${filtered.length * 2} hrs</strong>
+              <strong class="font-headline text-lg text-[#9c4c23]">${totalComputedHours} hrs</strong>
             </div>
             <div class="p-2.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6]">
               <span class="text-[10px] uppercase font-bold text-[#68736a] block">Filter Scope</span>
@@ -2412,48 +2851,1077 @@ class AdminDashboardController {
           </div>
         </div>
 
-        <!-- Faculty Class Distribution Breakdown -->
-        <div class="panel-3d rounded-2xl p-4 bg-white space-y-3">
+        ${filtered.length > 0 ? `
+        <!-- Graphical & Donut Quick Glance Visualizations -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Card 1: Curriculum Subject Share Donut -->
+          <div class="panel-3d rounded-2xl p-4 sm:p-5 bg-white flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-[#f0ece4]">
+              <div>
+                <h3 class="font-headline font-bold text-sm text-[#2c332d] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">donut_large</span>
+                  Discipline Share
+                </h3>
+                <p class="text-[11px] text-[#68736a] mt-0.5">Teaching hours by specialty</p>
+              </div>
+              <span class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">
+                ${subjectList.length} Subjects
+              </span>
+            </div>
+
+            <!-- Donut Visual + Legend Container -->
+            <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-4 py-1">
+              <!-- SVG Donut Chart -->
+              <div class="relative flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 140 140" class="w-32 h-32 sm:w-34 sm:h-34 drop-shadow-xs">
+                  <circle cx="70" cy="70" r="${radius}" fill="transparent" stroke="#ede7da" stroke-width="16" />
+                  ${donutSlicesHtml}
+                  <text x="70" y="65" text-anchor="middle" class="font-headline font-bold text-xl fill-[#2c332d]" id="donutCenterVal">${totalComputedHours}h</text>
+                  <text x="70" y="80" text-anchor="middle" class="text-[9.5px] font-bold fill-[#68736a] uppercase tracking-wider" id="donutCenterLabel">Curriculum</text>
+                  <text x="70" y="93" text-anchor="middle" class="text-[8.5px] font-bold fill-[#4a7c59]" id="donutCenterSub">${filtered.length} Classes</text>
+                </svg>
+              </div>
+
+              <!-- Interactive Legend -->
+              <div class="flex-1 w-full max-h-36 overflow-y-auto space-y-0.5 pr-1">
+                ${donutLegendHtml}
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Day-of-Week Schedule Rhythm Bar Graph -->
+          <div class="panel-3d rounded-2xl p-4 sm:p-5 bg-white flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-[#f0ece4]">
+              <div>
+                <h3 class="font-headline font-bold text-sm text-[#2c332d] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#c26d3e]">equalizer</span>
+                  Schedule Rhythm
+                </h3>
+                <p class="text-[11px] text-[#68736a] mt-0.5">Session density across days</p>
+              </div>
+              ${peakDay ? `
+                <span class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded border border-[#eed9cc] flex items-center gap-1">
+                  <span>Peak: ${peakDay}</span>
+                </span>
+              ` : ''}
+            </div>
+
+            <!-- Vertical Bar Chart -->
+            <div class="pt-2 pb-1">
+              <div class="flex items-end justify-between gap-1.5 h-32 px-1">
+                ${barChartHtml}
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-[#f0ece4] flex items-center justify-between text-[10.5px] text-[#68736a]">
+              <span>Active Teaching Days: <strong>${dayOrder.filter(d => dayStats[d].count > 0).length} of 7</strong></span>
+              <span>Daily Avg: <strong>${(filtered.length / 7).toFixed(1)} sessions</strong></span>
+            </div>
+          </div>
+
+          <!-- Card 3: Platform Delivery & Cohort Balance -->
+          <div class="panel-3d rounded-2xl p-4 sm:p-5 bg-white flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-[#f0ece4]">
+              <div>
+                <h3 class="font-headline font-bold text-sm text-[#2c332d] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#7c52aa]">hub</span>
+                  Delivery Modality
+                </h3>
+                <p class="text-[11px] text-[#68736a] mt-0.5">Interactive App vs YouTube Series</p>
+              </div>
+              <span class="text-[10px] font-bold text-[#7c52aa] bg-[#eedcff] px-2 py-0.5 rounded border border-[#dcc8e0]">
+                ${avgSessionHours}h avg / cls
+              </span>
+            </div>
+
+            <!-- Modality Dual-Arc Donut & Stats -->
+            <div class="flex items-center gap-3.5 py-1">
+              <div class="relative shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 110 110" class="w-24 h-24 drop-shadow-xs">
+                  <circle cx="55" cy="55" r="${platformRadius}" fill="transparent" stroke="#ede7da" stroke-width="12" />
+                  <!-- App Arc -->
+                  <circle
+                    cx="55" cy="55" r="${platformRadius}"
+                    fill="transparent"
+                    stroke="#4a7c59"
+                    stroke-width="12"
+                    stroke-dasharray="${appDash.toFixed(2)} ${(platformCircumference - appDash).toFixed(2)}"
+                    stroke-dashoffset="0"
+                    transform="rotate(-90 55 55)"
+                    class="platform-slice transition-all duration-200 cursor-pointer"
+                    data-platform="PW MedEd App"
+                    data-hours="${appHours}"
+                    data-count="${appClassesCount}"
+                    data-pct="${appPct}"
+                  />
+                  <!-- YouTube Arc -->
+                  <circle
+                    cx="55" cy="55" r="${platformRadius}"
+                    fill="transparent"
+                    stroke="#e02828"
+                    stroke-width="12"
+                    stroke-dasharray="${ytDash.toFixed(2)} ${(platformCircumference - ytDash).toFixed(2)}"
+                    stroke-dashoffset="${(-appDash).toFixed(2)}"
+                    transform="rotate(-90 55 55)"
+                    class="platform-slice transition-all duration-200 cursor-pointer"
+                    data-platform="YouTube Series"
+                    data-hours="${ytHours}"
+                    data-count="${ytClassesCount}"
+                    data-pct="${ytPct}"
+                  />
+                  <text x="55" y="52" text-anchor="middle" class="font-headline font-bold text-base fill-[#2c332d]" id="platformCenterVal">${appPct}%</text>
+                  <text x="55" y="65" text-anchor="middle" class="text-[8px] font-bold fill-[#4a7c59] uppercase tracking-wider" id="platformCenterLabel">App Live</text>
+                </svg>
+              </div>
+
+              <!-- Modality Indicators -->
+              <div class="flex-1 space-y-2 text-xs">
+                <div class="p-2 rounded-xl bg-[#eef4f0] border border-[#cde0d3] flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">smartphone</span>
+                    <span class="font-bold text-[#2d4d37] text-[11px]">PW MedEd App</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-headline font-bold text-xs text-[#2d4d37]">${appClassesCount} cls</span>
+                    <span class="text-[9.5px] text-[#4a7c59] block">${appHours} hrs</span>
+                  </div>
+                </div>
+
+                <div class="p-2 rounded-xl bg-[#fdf2f2] border border-[#f8c8c8] flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 fill-[#e02828] shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    <span class="font-bold text-[#9e1c1c] text-[11px]">YouTube Live</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-headline font-bold text-xs text-[#9e1c1c]">${ytClassesCount} cls</span>
+                    <span class="text-[9.5px] text-[#e02828] block">${ytHours} hrs</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Batch-Level Lecture View (Day-Wise, Weekly, Monthly) -->
+        <div id="batchLectureGraphCard">
+          ${this.buildBatchLectureGraphHtml()}
+        </div>
+
+        <!-- Unified Faculty Overview Section -->
+        <div class="panel-3d rounded-2xl p-5 bg-white space-y-4">
           <div class="flex items-center justify-between pb-3 border-b border-[#e5dfd5]">
-            <h3 class="font-headline font-bold text-base text-[#2c332d]">Faculty Distribution &amp; Schedule Highlights</h3>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#2c332d]">Faculty Distribution &amp; Schedule Highlights</h3>
+              <p class="text-xs text-[#68736a] mt-0.5">Unified overview across all teaching departments</p>
+            </div>
             <span class="text-xs font-bold text-[#3b6347] bg-[#eef4f0] px-2.5 py-0.5 rounded-lg border border-[#cde0d3]">
               ${facultyList.length} Active Faculty
             </span>
           </div>
 
-          <div class="space-y-3.5">
-            ${listHtml}
-          </div>
+          ${overviewContentHtml}
         </div>
       </div>
     `;
 
     container.innerHTML = html;
 
-    // Attach Scope Filter Click Listeners
-    container.querySelector('#dashScopeDayBtn')?.addEventListener('click', () => {
-      this.facultyHighlightScope = 'day';
-      this.renderFacultyHighlightsCard();
-      this.renderDashboardView();
-    });
+    // Attach Batch Lecture Graph Listeners
+    this.attachBatchLectureGraphListeners(container);
 
-    container.querySelector('#dashScopeWeekBtn')?.addEventListener('click', () => {
-      this.facultyHighlightScope = 'week';
-      this.renderFacultyHighlightsCard();
-      this.renderDashboardView();
-    });
-
+    // Attach Scope Filter Click Listeners (Month / Week / Day)
     container.querySelector('#dashScopeMonthBtn')?.addEventListener('click', () => {
+      this.dashboardScope = 'month';
       this.facultyHighlightScope = 'month';
       this.renderFacultyHighlightsCard();
       this.renderDashboardView();
     });
 
-    container.querySelector('#dashboardReturnToCalBtn')?.addEventListener('click', () => {
-      this.mainTab = 'calendar';
-      this.updateDockState('calendar');
-      this.renderMainContent();
+    container.querySelector('#dashScopeWeekBtn')?.addEventListener('click', () => {
+      this.dashboardScope = 'week';
+      this.facultyHighlightScope = 'week';
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
+
+    container.querySelector('#dashScopeDayBtn')?.addEventListener('click', () => {
+      this.dashboardScope = 'day';
+      this.facultyHighlightScope = 'day';
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
+    });
+
+    // Attach Period Navigation (< Today >) Click Listeners
+    container.querySelector('#dashPrevPeriodBtn')?.addEventListener('click', () => {
+      if (this.dashboardScope === 'month') {
+        this.dashboardMonth--;
+        if (this.dashboardMonth < 0) {
+          this.dashboardMonth = 11;
+          this.dashboardYear--;
+        }
+      } else if (this.dashboardScope === 'week') {
+        this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() - (7 * 24 * 60 * 60 * 1000));
+      } else if (this.dashboardScope === 'day') {
+        const [y, m, day] = (this.dashboardDayIso || '2026-10-15').split('-').map(Number);
+        const d = new Date(Date.UTC(y, m - 1, day));
+        d.setUTCDate(d.getUTCDate() - 1);
+        this.dashboardDayIso = d.toISOString().slice(0, 10);
+      }
+      this.renderDashboardView();
+    });
+
+    container.querySelector('#dashNextPeriodBtn')?.addEventListener('click', () => {
+      if (this.dashboardScope === 'month') {
+        this.dashboardMonth++;
+        if (this.dashboardMonth > 11) {
+          this.dashboardMonth = 0;
+          this.dashboardYear++;
+        }
+      } else if (this.dashboardScope === 'week') {
+        this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() + (7 * 24 * 60 * 60 * 1000));
+      } else if (this.dashboardScope === 'day') {
+        const [y, m, day] = (this.dashboardDayIso || '2026-10-15').split('-').map(Number);
+        const d = new Date(Date.UTC(y, m - 1, day));
+        d.setUTCDate(d.getUTCDate() + 1);
+        this.dashboardDayIso = d.toISOString().slice(0, 10);
+      }
+      this.renderDashboardView();
+    });
+
+    container.querySelector('#dashTodayPeriodBtn')?.addEventListener('click', () => {
+      this.dashboardYear = 2026;
+      this.dashboardMonth = 9; // October 2026 academic term reference
+      this.dashboardWeekStart = new Date(2026, 9, 11);
+      this.dashboardDayIso = '2026-10-15';
+      this.renderDashboardView();
+      this.showToast('Dashboard reset to current academic period (October 2026)');
+    });
+
+    // Donut hover interaction
+    const centerValEl = container.querySelector('#donutCenterVal');
+    const centerLabelEl = container.querySelector('#donutCenterLabel');
+    const centerSubEl = container.querySelector('#donutCenterSub');
+    const allSlices = container.querySelectorAll('.donut-slice');
+
+    container.querySelectorAll('.donut-slice, .donut-legend-item').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        const subName = el.getAttribute('data-subject');
+        const subHours = el.getAttribute('data-hours');
+        const subCount = el.getAttribute('data-count');
+        const subPct = el.getAttribute('data-pct');
+
+        if (centerValEl) centerValEl.textContent = `${subHours}h`;
+        if (centerLabelEl) centerLabelEl.textContent = subName;
+        if (centerSubEl) centerSubEl.textContent = `${subCount} cls (${subPct}%)`;
+
+        allSlices.forEach(s => {
+          if (s.getAttribute('data-subject') === subName) {
+            s.style.opacity = '1';
+            s.style.strokeWidth = '19';
+          } else {
+            s.style.opacity = '0.35';
+            s.style.strokeWidth = '15';
+          }
+        });
+      });
+
+      el.addEventListener('mouseleave', () => {
+        if (centerValEl) centerValEl.textContent = `${totalComputedHours}h`;
+        if (centerLabelEl) centerLabelEl.textContent = 'Curriculum';
+        if (centerSubEl) centerSubEl.textContent = `${filtered.length} Classes`;
+
+        allSlices.forEach(s => {
+          s.style.opacity = '1';
+          s.style.strokeWidth = '16';
+        });
+      });
+    });
+
+    // Platform Donut hover interaction
+    const centerPlatformValEl = container.querySelector('#platformCenterVal');
+    const centerPlatformLabelEl = container.querySelector('#platformCenterLabel');
+    const allPlatformSlices = container.querySelectorAll('.platform-slice');
+
+    container.querySelectorAll('.platform-slice').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        const pName = el.getAttribute('data-platform');
+        const pPct = el.getAttribute('data-pct');
+
+        if (centerPlatformValEl) centerPlatformValEl.textContent = `${pPct}%`;
+        if (centerPlatformLabelEl) centerPlatformLabelEl.textContent = pName.includes('App') ? 'App Live' : 'YouTube';
+
+        allPlatformSlices.forEach(s => {
+          if (s.getAttribute('data-platform') === pName) {
+            s.style.opacity = '1';
+            s.style.strokeWidth = '14';
+          } else {
+            s.style.opacity = '0.35';
+            s.style.strokeWidth = '10';
+          }
+        });
+      });
+
+      el.addEventListener('mouseleave', () => {
+        if (centerPlatformValEl) centerPlatformValEl.textContent = `${appPct}%`;
+        if (centerPlatformLabelEl) centerPlatformLabelEl.textContent = 'App Live';
+
+        allPlatformSlices.forEach(s => {
+          s.style.opacity = '1';
+          s.style.strokeWidth = '12';
+        });
+      });
+    });
+
+    // Row & Detail Button Click Listeners -> open detailed schedule in modal
+    container.querySelectorAll('.btn-faculty-overview-detail, .faculty-overview-row').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const facName = el.getAttribute('data-faculty');
+        if (facName) {
+          this.openFacultyHighlightsModal(facName);
+        }
+      });
+    });
+  }
+
+  // --- 9b. Batch-Level Lecture Volume & Schedule Trajectory Graph ---
+  buildBatchLectureGraphHtml() {
+    const allEvents = this.batchManager.getAllEvents('all');
+    const classes = allEvents.filter(e => e.eventType === 'class' && e.isoDate);
+
+    const BATCH_CONFIG = {
+      'batch-prarambh-2026': {
+        id: 'batch-prarambh-2026',
+        shortName: "Prarambh '26",
+        fullName: 'Prarambh 2026 (MBBS 1st Year)',
+        hex: '#3b6347',
+        gradient: 'from-[#2d4d37] to-[#4a7c59]',
+        lightBg: 'bg-[#eef4f0]',
+        textColor: 'text-[#3b6347]',
+        borderColor: 'border-[#cde0d3]',
+        badgeBg: 'bg-[#eef4f0]',
+        badgeText: 'text-[#3b6347]',
+        badgeBorder: 'border-[#cde0d3]'
+      },
+      'batch-sushruta-2026': {
+        id: 'batch-sushruta-2026',
+        shortName: "Sushruta '26",
+        fullName: 'Sushruta 2026 (MBBS 3rd Year)',
+        hex: '#c26d3e',
+        gradient: 'from-[#a15124] to-[#c26d3e]',
+        lightBg: 'bg-[#fbf3ec]',
+        textColor: 'text-[#c26d3e]',
+        borderColor: 'border-[#eed9cc]',
+        badgeBg: 'bg-[#fbf3ec]',
+        badgeText: 'text-[#c26d3e]',
+        badgeBorder: 'border-[#eed9cc]'
+      },
+      'batch-inicet-essentials-2026': {
+        id: 'batch-inicet-essentials-2026',
+        shortName: "INI-CET '26",
+        fullName: 'INI-CET Essentials Series',
+        hex: '#6b3ba7',
+        gradient: 'from-[#542d87] to-[#7c52aa]',
+        lightBg: 'bg-[#f3eef8]',
+        textColor: 'text-[#6b3ba7]',
+        borderColor: 'border-[#dfd0f0]',
+        badgeBg: 'bg-[#f3eef8]',
+        badgeText: 'text-[#6b3ba7]',
+        badgeBorder: 'border-[#dfd0f0]'
+      },
+      'batch-fmge-express-2026': {
+        id: 'batch-fmge-express-2026',
+        shortName: "FMGE '26",
+        fullName: 'FMGE Express Revision Series',
+        hex: '#1c6e8c',
+        gradient: 'from-[#145269] to-[#0096cc]',
+        lightBg: 'bg-[#eaf4f8]',
+        textColor: 'text-[#1c6e8c]',
+        borderColor: 'border-[#c8e2ec]',
+        badgeBg: 'bg-[#eaf4f8]',
+        badgeText: 'text-[#1c6e8c]',
+        badgeBorder: 'border-[#c8e2ec]'
+      }
+    };
+
+    const BATCH_ORDER = [
+      'batch-prarambh-2026',
+      'batch-sushruta-2026',
+      'batch-inicet-essentials-2026',
+      'batch-fmge-express-2026'
+    ];
+
+    const resolveBatchKey = (c) => {
+      if (c.batchId && BATCH_CONFIG[c.batchId]) return c.batchId;
+      const name = (c.batchName || '').toLowerCase();
+      if (name.includes('prarambh')) return 'batch-prarambh-2026';
+      if (name.includes('sushruta')) return 'batch-sushruta-2026';
+      if (name.includes('ini-cet') || name.includes('inicet')) return 'batch-inicet-essentials-2026';
+      if (name.includes('fmge')) return 'batch-fmge-express-2026';
+      return 'batch-prarambh-2026';
+    };
+
+    const parseHours = (dur) => {
+      const m = (dur || '').match(/(\d+(?:\.\d+)?)/);
+      return m ? parseFloat(m[1]) : 2;
+    };
+
+    // Calculate totals per cohort across all curriculum classes
+    const cohortStats = {};
+    BATCH_ORDER.forEach(bId => {
+      cohortStats[bId] = { id: bId, count: 0, hours: 0 };
+    });
+    classes.forEach(c => {
+      const bKey = resolveBatchKey(c);
+      const hrs = parseHours(c.duration);
+      if (cohortStats[bKey]) {
+        cohortStats[bKey].count++;
+        cohortStats[bKey].hours += hrs;
+      }
+    });
+
+    const granularity = this.batchGraphGranularity || 'month'; // 'day' | 'week' | 'month'
+    const cohortFilter = this.batchGraphCohort || 'all';
+
+    const filteredClasses = classes.filter(c => {
+      if (cohortFilter !== 'all' && resolveBatchKey(c) !== cohortFilter) return false;
+      return true;
+    });
+
+    let totalFilteredHours = 0;
+    filteredClasses.forEach(c => {
+      totalFilteredHours += parseHours(c.duration);
+    });
+
+    const activeDayMonth = this.batchGraphDayMonth || 'all';
+
+    let chartHtml = '';
+    let inspectorHtml = '';
+    let peakBadgeText = '';
+
+    // ==========================================
+    // 1. MONTHLY VIEW
+    // ==========================================
+    if (granularity === 'month') {
+      const months = {
+        '2026-09': { key: '2026-09', name: 'September 2026', shortName: 'Sep 2026', phase: 'Foundation & Rapid Recall', total: 0, hours: 0, batches: {}, classes: [] },
+        '2026-10': { key: '2026-10', name: 'October 2026', shortName: 'Oct 2026', phase: 'Peak Multi-Cohort Synergy', total: 0, hours: 0, batches: {}, classes: [] },
+        '2026-11': { key: '2026-11', name: 'November 2026', shortName: 'Nov 2026', phase: 'Clinical Intensive & Prelims', total: 0, hours: 0, batches: {}, classes: [] }
+      };
+
+      filteredClasses.forEach(c => {
+        const ym = c.isoDate.slice(0, 7);
+        if (months[ym]) {
+          const bKey = resolveBatchKey(c);
+          const hrs = parseHours(c.duration);
+          months[ym].total++;
+          months[ym].hours += hrs;
+          if (!months[ym].batches[bKey]) months[ym].batches[bKey] = { count: 0, hours: 0, classes: [] };
+          months[ym].batches[bKey].count++;
+          months[ym].batches[bKey].hours += hrs;
+          months[ym].batches[bKey].classes.push(c);
+          months[ym].classes.push(c);
+        }
+      });
+
+      const maxMonthClasses = Math.max(1, ...Object.values(months).map(m => m.total));
+      const peakMonthKey = Object.keys(months).reduce((a, b) => months[a].total >= months[b].total ? a : b);
+      peakBadgeText = `Peak Month: ${months[peakMonthKey].shortName} (${months[peakMonthKey].total} cls)`;
+
+      const selectedMonthKey = this.batchGraphSelectedKey && months[this.batchGraphSelectedKey]
+        ? this.batchGraphSelectedKey
+        : peakMonthKey;
+
+      const monthCardsHtml = Object.values(months).map(m => {
+        const isSelected = m.key === selectedMonthKey;
+        const isPeak = m.key === peakMonthKey;
+        const barHeightPct = m.total > 0 ? Math.max(20, Math.round((m.total / maxMonthClasses) * 100)) : 10;
+
+        // Build stacked segments inside the bar
+        const segmentsHtml = BATCH_ORDER.map(bId => {
+          const bData = m.batches[bId];
+          if (!bData || bData.count === 0) return '';
+          const cfg = BATCH_CONFIG[bId];
+          const segPct = ((bData.count / (m.total || 1)) * 100).toFixed(1);
+          return `
+            <div
+              class="w-full transition-all duration-300 relative group cursor-pointer"
+              style="height: ${segPct}%; background-color: ${cfg.hex};"
+              title="${cfg.shortName}: ${bData.count} classes • ${bData.hours} hours (${segPct}%)"
+            ></div>
+          `;
+        }).join('');
+
+        // Breakdown chips for this month
+        const batchChipsHtml = BATCH_ORDER.map(bId => {
+          const bData = m.batches[bId];
+          if (!bData || bData.count === 0) return '';
+          const cfg = BATCH_CONFIG[bId];
+          return `
+            <div class="flex items-center justify-between gap-1.5 py-1 px-2 rounded-lg ${cfg.lightBg} border ${cfg.borderColor} text-[10.5px]">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${cfg.hex};"></span>
+                <span class="font-bold ${cfg.textColor} truncate">${cfg.shortName}</span>
+              </div>
+              <span class="font-bold text-[#2c332d] shrink-0">${bData.count} cls <span class="font-normal text-[#68736a]">(${bData.hours}h)</span></span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div
+            class="flex-1 rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-3 batch-graph-month-item ${
+              isSelected
+                ? 'bg-gradient-to-b from-[#fbf9f5] to-[#f4efe6] border-2 border-[#3b6347] shadow-sm ring-2 ring-[#3b6347]/10'
+                : 'bg-[#faf7f2] border border-[#ded5c6] hover:border-[#c5bcac] hover:bg-white'
+            }"
+            data-graph-item-key="${m.key}"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-headline font-bold text-sm text-[#2c332d]">${m.name}</h4>
+                  ${isPeak ? `
+                    <span class="px-1.5 py-0.2 rounded text-[9.5px] font-extrabold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">
+                      PEAK
+                    </span>
+                  ` : ''}
+                </div>
+                <p class="text-[10px] text-[#788279] mt-0.5">${m.phase}</p>
+              </div>
+              <div class="text-right">
+                <span class="font-headline font-bold text-base text-[#2c332d] block">${m.total}</span>
+                <span class="text-[9.5px] text-[#68736a] block">${m.hours} hrs</span>
+              </div>
+            </div>
+
+            <!-- Vertical Stacked Bar Chart for Month -->
+            <div class="h-28 flex items-end justify-center py-1 bg-white/70 rounded-xl border border-[#ece5d8] px-3">
+              <div class="w-14 rounded-t-xl overflow-hidden flex flex-col-reverse shadow-xs transition-all duration-300" style="height: ${barHeightPct}%;">
+                ${segmentsHtml || `<div class="w-full h-full bg-[#ede7da]"></div>`}
+              </div>
+            </div>
+
+            <!-- Cohort Breakdown List -->
+            <div class="space-y-1 pt-1">
+              ${batchChipsHtml || `<p class="text-[10px] text-center text-[#8b958c] py-2">No sessions for filtered batch</p>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      chartHtml = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          ${monthCardsHtml}
+        </div>
+      `;
+
+      // Inspector for selected month
+      const activeMonth = months[selectedMonthKey] || months[peakMonthKey];
+      const monthFaculties = [...new Set(activeMonth.classes.map(c => c.faculty).filter(Boolean))];
+
+      inspectorHtml = `
+        <div class="p-3.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#3b6347]">calendar_month</span>
+              <strong class="text-xs font-bold text-[#2c332d]">${activeMonth.name} Deep Dive</strong>
+              <span class="text-[10.5px] text-[#68736a]">• ${activeMonth.total} Lectures scheduled (${activeMonth.hours} Teaching Hours)</span>
+            </div>
+            <span class="text-[10.5px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">
+              ${monthFaculties.length} Distinct Faculty Members
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            ${BATCH_ORDER.map(bId => {
+              const cfg = BATCH_CONFIG[bId];
+              const bData = activeMonth.batches[bId] || { count: 0, hours: 0, classes: [] };
+              const pct = Math.round((bData.count / (activeMonth.total || 1)) * 100);
+              return `
+                <div class="p-2 rounded-lg bg-white border ${cfg.borderColor} flex items-center justify-between">
+                  <div>
+                    <span class="block font-bold text-[11px] ${cfg.textColor}">${cfg.shortName}</span>
+                    <span class="block text-[10px] text-[#788279]">${bData.hours} teaching hrs</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-headline font-bold text-xs text-[#2c332d]">${bData.count} cls</span>
+                    <span class="block text-[9px] font-semibold text-[#8b958c]">${pct}% share</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 2. WEEKLY VIEW
+    // ==========================================
+    else if (granularity === 'week') {
+      const weeks = {};
+      const getWeekInfo = (isoDate) => {
+        const d = new Date(isoDate + 'T00:00:00');
+        const day = d.getDay();
+        const sun = new Date(d);
+        sun.setDate(d.getDate() - day);
+        const sat = new Date(sun);
+        sat.setDate(sun.getDate() + 6);
+        const firstJan = new Date(d.getFullYear(), 0, 1);
+        const weekNum = Math.ceil((((d - firstJan) / 86400000) + firstJan.getDay() + 1) / 7);
+        const wkKey = sun.toISOString().slice(0, 10);
+        return {
+          key: wkKey,
+          label: `W${weekNum}`,
+          dateRange: `${sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sat.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          shortRange: `${sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+        };
+      };
+
+      filteredClasses.forEach(c => {
+        const wInfo = getWeekInfo(c.isoDate);
+        if (!weeks[wInfo.key]) {
+          weeks[wInfo.key] = {
+            key: wInfo.key,
+            label: wInfo.label,
+            dateRange: wInfo.dateRange,
+            shortRange: wInfo.shortRange,
+            total: 0,
+            hours: 0,
+            batches: {},
+            classes: []
+          };
+        }
+        const bKey = resolveBatchKey(c);
+        const hrs = parseHours(c.duration);
+        weeks[wInfo.key].total++;
+        weeks[wInfo.key].hours += hrs;
+        if (!weeks[wInfo.key].batches[bKey]) weeks[wInfo.key].batches[bKey] = { count: 0, hours: 0 };
+        weeks[wInfo.key].batches[bKey].count++;
+        weeks[wInfo.key].batches[bKey].hours += hrs;
+        weeks[wInfo.key].classes.push(c);
+      });
+
+      const sortedWeekKeys = Object.keys(weeks).sort();
+      const maxWeekClasses = Math.max(1, ...Object.values(weeks).map(w => w.total));
+      const peakWeekKey = sortedWeekKeys.find(k => weeks[k].total === maxWeekClasses) || sortedWeekKeys[0];
+      peakBadgeText = `Peak Week: ${weeks[peakWeekKey]?.label || 'W42'} (${maxWeekClasses} cls)`;
+
+      const selectedWeekKey = this.batchGraphSelectedKey && weeks[this.batchGraphSelectedKey]
+        ? this.batchGraphSelectedKey
+        : peakWeekKey;
+
+      const weeklyBarsHtml = sortedWeekKeys.map(k => {
+        const w = weeks[k];
+        const isSelected = w.key === selectedWeekKey;
+        const isPeak = w.total === maxWeekClasses;
+        const barHeightPct = Math.max(14, Math.round((w.total / maxWeekClasses) * 100));
+
+        const segmentsHtml = BATCH_ORDER.map(bId => {
+          const bData = w.batches[bId];
+          if (!bData || bData.count === 0) return '';
+          const cfg = BATCH_CONFIG[bId];
+          const segPct = ((bData.count / (w.total || 1)) * 100).toFixed(1);
+          return `
+            <div
+              class="w-full transition-all duration-200 cursor-pointer"
+              style="height: ${segPct}%; background-color: ${cfg.hex};"
+              title="${cfg.shortName}: ${bData.count} cls (${bData.hours}h)"
+            ></div>
+          `;
+        }).join('');
+
+        return `
+          <div
+            class="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer batch-graph-week-item"
+            data-graph-item-key="${w.key}"
+          >
+            <span class="text-[10px] font-bold ${isSelected ? 'text-[#3b6347]' : isPeak ? 'text-[#c26d3e]' : 'text-[#68736a]'}">
+              ${w.total}
+            </span>
+
+            <div class="w-full flex-1 flex items-end justify-center">
+              <div
+                class="w-full max-w-[28px] rounded-t-lg overflow-hidden flex flex-col-reverse transition-all duration-300 group-hover:scale-105 ${
+                  isSelected ? 'ring-2 ring-[#3b6347] shadow-md' : 'shadow-2xs'
+                }"
+                style="height: ${barHeightPct}%;"
+              >
+                ${segmentsHtml}
+              </div>
+            </div>
+
+            <div class="text-center pt-0.5">
+              <span class="block text-[10.5px] font-bold ${isSelected ? 'text-[#3b6347]' : 'text-[#2c332d]'}">${w.label}</span>
+              <span class="block text-[8.5px] text-[#8b958c] truncate">${w.shortRange}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      chartHtml = `
+        <div class="p-3 bg-[#faf7f2] rounded-2xl border border-[#ded5c6] space-y-2">
+          <div class="flex items-center justify-between text-[10.5px] text-[#788279] px-2">
+            <span>Calendar Timeline: W36 to W48 (13 Active Curriculum Weeks)</span>
+            <span class="flex items-center gap-1 font-bold text-[#3b6347]">
+              <span class="material-symbols-outlined text-[13px]">touch_app</span>
+              Click any week to inspect batch breakdown
+            </span>
+          </div>
+
+          <div class="h-40 flex items-end justify-between gap-1 sm:gap-2 px-1 pt-4 pb-1 border-b border-[#e5dfd5]">
+            ${weeklyBarsHtml}
+          </div>
+        </div>
+      `;
+
+      // Inspector for selected week
+      const activeWeek = weeks[selectedWeekKey] || weeks[peakWeekKey];
+      const activeWeekFaculties = [...new Set(activeWeek.classes.map(c => c.faculty).filter(Boolean))];
+
+      inspectorHtml = `
+        <div class="p-3.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#3b6347]">view_week</span>
+              <strong class="text-xs font-bold text-[#2c332d]">${activeWeek.label} (${activeWeek.dateRange})</strong>
+              <span class="text-[10.5px] text-[#68736a]">• ${activeWeek.total} Classes scheduled (${activeWeek.hours} Teaching Hours)</span>
+            </div>
+            <span class="text-[10.5px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">
+              ${activeWeekFaculties.length} Active Faculty
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            ${BATCH_ORDER.map(bId => {
+              const cfg = BATCH_CONFIG[bId];
+              const bData = activeWeek.batches[bId] || { count: 0, hours: 0 };
+              const pct = Math.round((bData.count / (activeWeek.total || 1)) * 100);
+              return `
+                <div class="p-2 rounded-lg bg-white border ${cfg.borderColor} flex items-center justify-between">
+                  <div>
+                    <span class="block font-bold text-[11px] ${cfg.textColor}">${cfg.shortName}</span>
+                    <span class="block text-[10px] text-[#788279]">${bData.hours} teaching hrs</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-headline font-bold text-xs text-[#2c332d]">${bData.count} cls</span>
+                    <span class="block text-[9px] font-semibold text-[#8b958c]">${pct}% share</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 3. DAY-WISE VIEW
+    // ==========================================
+    else {
+      const days = {};
+      filteredClasses.forEach(c => {
+        const dt = c.isoDate;
+        const ym = dt.slice(0, 7);
+        if (activeDayMonth !== 'all' && ym !== activeDayMonth) return;
+
+        if (!days[dt]) {
+          const d = new Date(dt + 'T00:00:00');
+          days[dt] = {
+            key: dt,
+            dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+            formattedDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            dayNum: d.getDate(),
+            monthKey: ym,
+            total: 0,
+            hours: 0,
+            batches: {},
+            classes: []
+          };
+        }
+        const bKey = resolveBatchKey(c);
+        const hrs = parseHours(c.duration);
+        days[dt].total++;
+        days[dt].hours += hrs;
+        if (!days[dt].batches[bKey]) days[dt].batches[bKey] = { count: 0, hours: 0 };
+        days[dt].batches[bKey].count++;
+        days[dt].batches[bKey].hours += hrs;
+        days[dt].classes.push(c);
+      });
+
+      const sortedDayKeys = Object.keys(days).sort();
+      const maxDayClasses = Math.max(1, ...Object.values(days).map(d => d.total));
+      const peakDayKey = sortedDayKeys.find(k => days[k].total === maxDayClasses) || '2026-10-15';
+      peakBadgeText = `Peak Day: ${days[peakDayKey]?.formattedDate || 'Oct 15'} (${maxDayClasses} cls)`;
+
+      const selectedDayKey = this.batchGraphSelectedKey && days[this.batchGraphSelectedKey]
+        ? this.batchGraphSelectedKey
+        : (days['2026-10-15'] ? '2026-10-15' : peakDayKey);
+
+      const dayBarsHtml = sortedDayKeys.map(k => {
+        const d = days[k];
+        const isSelected = d.key === selectedDayKey;
+        const isPeak = d.total === maxDayClasses && d.total > 1;
+        const barHeightPct = Math.max(20, Math.round((d.total / maxDayClasses) * 100));
+
+        const segmentsHtml = BATCH_ORDER.map(bId => {
+          const bData = d.batches[bId];
+          if (!bData || bData.count === 0) return '';
+          const cfg = BATCH_CONFIG[bId];
+          const segPct = ((bData.count / (d.total || 1)) * 100).toFixed(1);
+          return `
+            <div
+              class="w-full transition-all duration-200 cursor-pointer"
+              style="height: ${segPct}%; background-color: ${cfg.hex};"
+              title="${cfg.shortName}: ${bData.count} cls (${bData.hours}h)"
+            ></div>
+          `;
+        }).join('');
+
+        return `
+          <div
+            class="flex-1 min-w-[28px] max-w-[42px] flex flex-col items-center gap-1 group cursor-pointer batch-graph-day-item"
+            data-graph-item-key="${d.key}"
+          >
+            <span class="text-[9.5px] font-bold ${isSelected ? 'text-[#3b6347]' : isPeak ? 'text-[#c26d3e]' : 'text-[#68736a]'}">
+              ${d.total}
+            </span>
+
+            <div class="w-full flex-1 flex items-end justify-center">
+              <div
+                class="w-full max-w-[22px] rounded-t-md overflow-hidden flex flex-col-reverse transition-all duration-300 group-hover:scale-105 ${
+                  isSelected ? 'ring-2 ring-[#3b6347] shadow-md' : 'shadow-2xs'
+                }"
+                style="height: ${barHeightPct}%;"
+              >
+                ${segmentsHtml}
+              </div>
+            </div>
+
+            <div class="text-center pt-0.5">
+              <span class="block text-[10px] font-bold ${isSelected ? 'text-[#3b6347]' : 'text-[#2c332d]'}">${d.dayNum}</span>
+              <span class="block text-[8px] text-[#8b958c]">${d.dayName}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      chartHtml = `
+        <div class="p-3 bg-[#faf7f2] rounded-2xl border border-[#ded5c6] space-y-2">
+          <div class="flex items-center justify-between text-[10.5px] text-[#788279] px-2">
+            <span>Day-Wise Cadence: ${sortedDayKeys.length} Active Teaching Days Scheduled</span>
+            <span class="flex items-center gap-1 font-bold text-[#3b6347]">
+              <span class="material-symbols-outlined text-[13px]">touch_app</span>
+              Click any date to inspect scheduled sessions
+            </span>
+          </div>
+
+          <div class="h-36 flex items-end justify-start gap-1 sm:gap-1.5 overflow-x-auto px-2 pt-4 pb-1 border-b border-[#e5dfd5]">
+            ${dayBarsHtml || `<p class="py-8 text-center text-xs text-[#788279] w-full">No active days in this month range</p>`}
+          </div>
+        </div>
+      `;
+
+      // Inspector for selected day
+      const activeDay = days[selectedDayKey] || days[peakDayKey] || { classes: [], formattedDate: 'Oct 15', total: 0, hours: 0 };
+
+      const daySessionsHtml = (activeDay.classes || []).map(c => {
+        const bKey = resolveBatchKey(c);
+        const cfg = BATCH_CONFIG[bKey];
+        const isYt = c.isYoutube || c.platform === 'youtube' || (c.batchName && /youtube|yt/i.test(c.batchName));
+
+        return `
+          <div class="p-2.5 rounded-xl bg-white border border-[#ded5c6] hover:border-[#3b6347] transition-all flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${cfg.badgeBg} ${cfg.badgeText} border ${cfg.badgeBorder} shrink-0">
+                ${cfg.shortName}
+              </span>
+              <div class="truncate">
+                <strong class="text-xs font-bold text-[#2c332d] block truncate">${c.subject || 'Lecture'} • ${c.faculty || 'Faculty'}</strong>
+                <span class="text-[10px] text-[#788279]">${c.time || '10:00 AM - 12:00 PM'} • ${c.duration || '2 hrs'}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0 text-xs">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isYt ? 'bg-[#fdf2f2] text-[#9e1c1c] border border-[#f8c8c8]' : 'bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]'}">
+                ${isYt ? 'YouTube Live' : 'PW MedEd App'}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      inspectorHtml = `
+        <div class="p-3.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-[#3b6347]">event_available</span>
+              <strong class="text-xs font-bold text-[#2c332d]">${activeDay.dayName ? `${activeDay.dayName}, ` : ''}${activeDay.formattedDate || 'Selected Day'}</strong>
+              <span class="text-[10.5px] text-[#68736a]">• ${activeDay.total || 0} Lectures scheduled (${activeDay.hours || 0} hrs)</span>
+            </div>
+            <span class="text-[10.5px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">
+              ${Object.keys(activeDay.batches || {}).length} Cohorts Active Today
+            </span>
+          </div>
+
+          <div class="space-y-1.5">
+            ${daySessionsHtml || `<p class="text-xs text-[#788279] py-2">No lecture sessions scheduled on this date.</p>`}
+          </div>
+        </div>
+      `;
+    }
+
+    // Cohort Legend HTML
+    const legendHtml = BATCH_ORDER.map(bId => {
+      const cfg = BATCH_CONFIG[bId];
+      const stats = cohortStats[bId] || { count: 0, hours: 0 };
+      const isFiltered = cohortFilter === bId;
+
+      return `
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all cursor-pointer text-xs font-semibold ${
+            isFiltered
+              ? `${cfg.badgeBg} ${cfg.badgeText} ${cfg.badgeBorder} ring-2 ring-[#3b6347]/20 font-bold`
+              : 'bg-white hover:bg-[#f7f4ed] text-[#3b433c] border-[#ded5c6]'
+          }"
+          data-cohort-filter="${bId}"
+          title="Filter to ${cfg.fullName}"
+        >
+          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${cfg.hex};"></span>
+          <span class="truncate">${cfg.shortName}</span>
+          <span class="font-bold text-[10.5px] text-[#2c332d]">(${stats.count})</span>
+        </button>
+      `;
+    }).join('');
+
+    return `
+      <div class="panel-3d rounded-2xl p-5 bg-white space-y-4">
+        <!-- Card Header with Granularity Switcher -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#f0ece4]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center font-bold shrink-0">
+              <span class="material-symbols-outlined text-[24px]">stacked_bar_chart</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-headline font-bold text-lg text-[#2c332d]">Batch-Level Lecture Volume &amp; Rhythm</h3>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">
+                  ${peakBadgeText}
+                </span>
+              </div>
+              <p class="text-xs text-[#68736a] mt-0.5">
+                Interactive day-wise, weekly &amp; monthly session volume across all medical cohorts
+              </p>
+            </div>
+          </div>
+
+          <!-- Granularity Switcher Buttons (Day | Week | Month) -->
+          <div class="track-3d flex items-center p-1 rounded-xl text-xs font-bold">
+            <button id="batchGraphScopeDayBtn" type="button" class="px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${granularity === 'day' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Day-Wise</button>
+            <button id="batchGraphScopeWeekBtn" type="button" class="px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${granularity === 'week' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Weekly</button>
+            <button id="batchGraphScopeMonthBtn" type="button" class="px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none ${granularity === 'month' ? 'btn-3d-primary font-bold text-white' : 'text-[#576058] hover:text-[#2c332d] bg-transparent'}">Monthly</button>
+          </div>
+        </div>
+
+        <!-- Cohort Filter & Day-Month Filter Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <!-- Cohort Chips -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[11px] font-bold text-[#788279] mr-1">Filter Cohort:</span>
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer text-xs font-semibold ${
+                cohortFilter === 'all'
+                  ? 'btn-3d-primary font-bold text-white border-transparent'
+                  : 'bg-white hover:bg-[#f7f4ed] text-[#3b433c] border-[#ded5c6]'
+              }"
+              data-cohort-filter="all"
+            >
+              All Cohorts (${classes.length})
+            </button>
+            ${legendHtml}
+          </div>
+
+          <!-- Day-Wise Month Switcher (Only visible in Day-Wise view) -->
+          ${granularity === 'day' ? `
+            <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-bold">
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === 'all' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="all">All Days (67)</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (14)</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (26)</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (27)</button>
+            </div>
+          ` : `
+            <div class="text-[11px] font-bold text-[#68736a] bg-[#f7f4ed] px-2.5 py-1 rounded-lg border border-[#ded5c6]">
+              ${filteredClasses.length} Sessions Plotted • ${totalFilteredHours} Teaching Hours
+            </div>
+          `}
+        </div>
+
+        <!-- The Main Chart Visualization Area -->
+        ${chartHtml}
+
+        <!-- Dynamic Period Inspector Box -->
+        ${inspectorHtml}
+      </div>
+    `;
+  }
+
+  attachBatchLectureGraphListeners(container) {
+    if (!container) return;
+
+    // Granularity Switcher
+    container.querySelector('#batchGraphScopeDayBtn')?.addEventListener('click', () => {
+      this.batchGraphGranularity = 'day';
+      this.batchGraphSelectedKey = null;
+      this.updateBatchLectureGraph(container);
+    });
+
+    container.querySelector('#batchGraphScopeWeekBtn')?.addEventListener('click', () => {
+      this.batchGraphGranularity = 'week';
+      this.batchGraphSelectedKey = null;
+      this.updateBatchLectureGraph(container);
+    });
+
+    container.querySelector('#batchGraphScopeMonthBtn')?.addEventListener('click', () => {
+      this.batchGraphGranularity = 'month';
+      this.batchGraphSelectedKey = null;
+      this.updateBatchLectureGraph(container);
+    });
+
+    // Cohort Filters
+    container.querySelectorAll('[data-cohort-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.batchGraphCohort = btn.getAttribute('data-cohort-filter');
+        this.updateBatchLectureGraph(container);
+      });
+    });
+
+    // Day Month Filters
+    container.querySelectorAll('[data-day-month-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.batchGraphDayMonth = btn.getAttribute('data-day-month-filter');
+        this.batchGraphSelectedKey = null;
+        this.updateBatchLectureGraph(container);
+      });
+    });
+
+    // Bar / Card click handlers to inspect item
+    container.querySelectorAll('[data-graph-item-key]').forEach(item => {
+      item.addEventListener('click', () => {
+        this.batchGraphSelectedKey = item.getAttribute('data-graph-item-key');
+        this.updateBatchLectureGraph(container);
+      });
+    });
+  }
+
+  updateBatchLectureGraph(container) {
+    const card = container.querySelector('#batchLectureGraphCard') || document.getElementById('batchLectureGraphCard');
+    if (card) {
+      card.innerHTML = this.buildBatchLectureGraphHtml();
+      this.attachBatchLectureGraphListeners(card);
+    }
   }
 
   // --- 10. Faculty Directory View (In-Dashboard) ---
@@ -3161,7 +4629,7 @@ class AdminDashboardController {
 
     const openDrawer = () => {
       this.renderAdminNotifications(currentFilter);
-      modal?.classList.remove('pointer-events-none');
+      modal?.classList.remove('hidden', 'pointer-events-none');
       backdrop?.classList.remove('pointer-events-none', 'opacity-0');
       backdrop?.classList.add('opacity-100', 'pointer-events-auto');
       drawer?.classList.remove('translate-x-full');
@@ -3174,8 +4642,12 @@ class AdminDashboardController {
       backdrop?.classList.add('opacity-0', 'pointer-events-none');
       drawer?.classList.remove('translate-x-0');
       drawer?.classList.add('translate-x-full');
-      modal?.classList.add('pointer-events-none');
       document.body.style.overflow = '';
+      setTimeout(() => {
+        if (drawer?.classList.contains('translate-x-full')) {
+          modal?.classList.add('hidden', 'pointer-events-none');
+        }
+      }, 300);
     };
 
     openBtn?.addEventListener('click', openDrawer);

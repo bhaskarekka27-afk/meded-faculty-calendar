@@ -119,8 +119,12 @@
         </div>
 
         <!-- Dropdown Menu -->
-        <div id="adminBatchDropdown" class="hidden absolute top-full mt-1 left-0 w-80 bg-white border border-[#ded5c6] rounded-xl modal-3d p-1.5 z-50">
-          <div id="adminBatchDropdownList" class="space-y-1">
+        <div id="adminBatchDropdown" class="hidden absolute top-full mt-2 left-0 w-80 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
+          <div class="px-3.5 py-2 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between">
+            <span>Select Active Batch</span>
+            <span class="text-[#4a7c59] font-semibold">Live Google Sheets</span>
+          </div>
+          <div id="adminBatchDropdownList" class="py-1">
             <!-- Dynamic Batches populated by adminApp.js -->
           </div>
         </div>
@@ -325,11 +329,40 @@
         </div>
       </div>
 
-      <!-- Second Row: Subject Filter Buttons (Always in the exact same place) -->
-      <div class="flex items-center justify-between gap-3 overflow-x-auto py-0.5">
-        <div class="flex items-center gap-2 text-xs flex-wrap" id="adminSubjectFilters">
-          <!-- Dynamic subject filters injected by adminApp.js -->
+      <!-- Second Row: Subject Filter Navigation Bar (Single line with Left & Right scroll arrows) -->
+      <div class="relative flex items-center gap-1.5 py-0.5 w-full">
+        <!-- Scroll Left Arrow Button -->
+        <button
+          id="btnSubjectScrollLeft"
+          type="button"
+          class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+          aria-label="Scroll left"
+          title="Scroll subjects left"
+        >
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+
+        <!-- Horizontal Scrollable Container (Single Line, No Wrap) -->
+        <div
+          id="adminSubjectFiltersScroll"
+          class="flex-1 overflow-x-auto scroll-smooth no-scrollbar py-1"
+          style="scrollbar-width: none; -ms-overflow-style: none;"
+        >
+          <div class="flex items-center gap-2 text-xs flex-nowrap whitespace-nowrap min-w-max" id="adminSubjectFilters">
+            <!-- Dynamic subject filters injected by adminApp.js -->
+          </div>
         </div>
+
+        <!-- Scroll Right Arrow Button -->
+        <button
+          id="btnSubjectScrollRight"
+          type="button"
+          class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+          aria-label="Scroll right"
+          title="Scroll subjects right"
+        >
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
       </div>
     </div>
 
@@ -610,7 +643,7 @@
   </nav>
 
   <!-- RIGHT-SIDE NOTIFICATION SLIDE-OVER DRAWER -->
-  <div id="notificationModal" class="fixed inset-0 z-50 pointer-events-none transition-all">
+  <div id="notificationModal" class="hidden fixed inset-0 z-50 pointer-events-none transition-all overflow-hidden">
     <!-- Backdrop -->
     <div id="notificationBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
 

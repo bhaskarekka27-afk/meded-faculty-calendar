@@ -44,6 +44,19 @@
   <style>
     * { font-family: 'Reddit Sans', sans-serif !important; }
     .material-symbols-outlined { font-family: 'Material Symbols Outlined' !important; }
+    html, body, * {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+      -webkit-appearance: none !important;
+    }
     body {
       background-color: #fbf9f5;
     }

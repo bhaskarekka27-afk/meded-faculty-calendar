@@ -39,14 +39,21 @@ export class FacultyDashboardController {
     // Simulated "Today" ISO matching academic schedule
     this.todayIso = '2026-10-15';
 
+    // Mobile responsive view state
+    this.mobileView = 'month'; // 'month', 'week', 'agenda'
+    this.mobileSelectedDateIso = '2026-10-17'; // default selected date matching screenshot
+
     this.init();
   }
 
   init() {
     this.loadFacultySession();
     this.bindDOM();
+    this.bindMobileDOM();
     this.populateBatchDropdown();
+    this.populateMobileBatchDropdown();
     this.populateFacultySwitcher();
+    this.populateMobileFacultySwitcher();
     this.setupFacultyNotificationDrawer();
     this.setupFacultyEmailPreviewModal();
     this.render();
@@ -328,12 +335,15 @@ export class FacultyDashboardController {
 
     // Close batch dropdown popup immediately
     this.batchDropdown?.classList.add('hidden');
+    this.mobileBatchDropdown?.classList.add('hidden');
 
     // Re-populate batch dropdown list so checkmark updates to the selected batch
     this.populateBatchDropdown();
+    this.populateMobileBatchDropdown();
 
     // Re-populate faculty switcher with new batch faculty
     this.populateFacultySwitcher();
+    this.populateMobileFacultySwitcher();
 
     // Re-render calendar views and metric tabs
     this.render();
@@ -442,8 +452,10 @@ export class FacultyDashboardController {
     this.updateFacultyProfileUI();
     // Close profile dropdown immediately
     this.profileDropdown?.classList.add('hidden');
+    this.mobileProfileDropdown?.classList.add('hidden');
     // Re-populate faculty list so checkmark updates to the newly selected faculty
     this.populateFacultySwitcher();
+    this.populateMobileFacultySwitcher();
     this.render();
     this.renderFacultyNotifications();
     this.showToast(`Switched view to ${name}`);
@@ -462,6 +474,31 @@ export class FacultyDashboardController {
     if (this.dropdownCurrentName) this.dropdownCurrentName.textContent = displayName;
     if (this.dropdownCurrentSubject) this.dropdownCurrentSubject.textContent = isAll ? 'Combined Curriculum' : `Department of ${this.facultySubject}`;
     if (this.activeNameBadge) this.activeNameBadge.textContent = displayBadge;
+
+    // Mobile profile elements sync
+    const mobileAvatar = document.getElementById('mobileProfileAvatar');
+    const mobileName = document.getElementById('mobileProfileName');
+    const mobileSubj = document.getElementById('mobileProfileSubject');
+    const mobileDropName = document.getElementById('mobileDropdownName');
+    const mobileDropSubj = document.getElementById('mobileDropdownSubject');
+    const mobileDropEmail = document.getElementById('mobileDropdownEmail');
+    const mobileFacultySub = document.getElementById('mobileFacultySubtitle');
+
+    if (mobileAvatar) mobileAvatar.textContent = initials;
+    if (mobileName) {
+      const parts = displayName.split(' ');
+      mobileName.textContent = isAll ? 'All Faculty' : (parts.length > 1 ? `Dr. ${parts[1]}` : displayName);
+    }
+    if (mobileSubj) {
+      mobileSubj.textContent = isAll ? 'All Batches' : (displaySubject.length > 9 ? displaySubject.slice(0, 8) + '..' : displaySubject);
+    }
+    if (mobileDropName) mobileDropName.textContent = displayName;
+    if (mobileDropSubj) mobileDropSubj.textContent = isAll ? 'Combined Curriculum' : `${displaySubject} HOD`;
+    if (mobileDropEmail) {
+      const emailPrefix = displayName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').slice(0, 12);
+      mobileDropEmail.textContent = `${emailPrefix}@pwmeded.edu.in`;
+    }
+    if (mobileFacultySub) mobileFacultySub.textContent = displayName;
   }
 
   /**
@@ -710,6 +747,7 @@ export class FacultyDashboardController {
     this.updatePeriodTitle();
     this.updateMetricTabs();
     this.renderCurrentView();
+    this.renderMobileView();
   }
 
   updatePeriodTitle() {
@@ -880,7 +918,7 @@ export class FacultyDashboardController {
         }
 
         html += `
-          <div class="${cellClasses}">
+          <div class="${cellClasses} calendar-day-box">
             <div class="flex items-center justify-between mb-1.5">
               <span class="text-xs ${cell.isToday ? 'font-extrabold text-[#2d4d37] flex items-center gap-1.5 font-headline' : 'font-bold text-[#2c332d]'}">
                 ${cell.dayNum}
@@ -890,7 +928,7 @@ export class FacultyDashboardController {
         `;
 
         if (classEvents.length > 0) {
-          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5">`;
+          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5 no-scrollbar">`;
           classEvents.forEach(ev => {
             const initial = this.getFacultyInitials(ev.faculty);
             const batchBadge = renderBatchBadge(ev.batchName);
@@ -1315,7 +1353,7 @@ export class FacultyDashboardController {
 
     const openDrawer = () => {
       this.renderFacultyNotifications();
-      modal?.classList.remove('pointer-events-none');
+      modal?.classList.remove('hidden', 'pointer-events-none');
       backdrop?.classList.remove('opacity-0', 'pointer-events-none');
       backdrop?.classList.add('opacity-100');
       drawer?.classList.remove('translate-x-full');
@@ -1328,7 +1366,9 @@ export class FacultyDashboardController {
       backdrop?.classList.remove('opacity-100');
       backdrop?.classList.add('opacity-0', 'pointer-events-none');
       setTimeout(() => {
-        modal?.classList.add('pointer-events-none');
+        if (drawer?.classList.contains('translate-x-full')) {
+          modal?.classList.add('hidden', 'pointer-events-none');
+        }
       }, 300);
     };
 
@@ -1552,6 +1592,1219 @@ export class FacultyDashboardController {
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
+  }
+
+  /* ========================================================================= */
+  /* MOBILE RESPONSIVE DASHBOARD METHODS                                      */
+  /* ========================================================================= */
+
+  bindMobileDOM() {
+    this.mobileBatchBtn = document.getElementById('mobileBatchBtn');
+    this.mobileBatchLabel = document.getElementById('mobileBatchLabel');
+    this.mobileBatchDropdown = document.getElementById('mobileBatchDropdown');
+    this.mobileBatchDropdownList = document.getElementById('mobileBatchDropdownList');
+
+    this.mobileProfileBtn = document.getElementById('mobileProfileBtn');
+    this.mobileProfileDropdown = document.getElementById('mobileProfileDropdown');
+    this.mobileFacultyProfilesList = document.getElementById('mobileFacultyProfilesList');
+
+    this.mobileMetricToday = document.getElementById('mobileMetricToday');
+    this.mobileTodayCount = document.getElementById('mobileTodayCount');
+    this.mobileTodaySubtitle = document.getElementById('mobileTodaySubtitle');
+
+    this.mobileMetricUpcoming = document.getElementById('mobileMetricUpcoming');
+    this.mobileUpcomingCount = document.getElementById('mobileUpcomingCount');
+    this.mobileUpcomingSubtitle = document.getElementById('mobileUpcomingSubtitle');
+
+    this.mobileMetricTotal = document.getElementById('mobileMetricTotal');
+    this.mobileTotalCount = document.getElementById('mobileTotalCount');
+    this.mobileTotalSubtitle = document.getElementById('mobileTotalSubtitle');
+
+    this.mobilePeriodTitle = document.getElementById('mobilePeriodTitle');
+    this.mobileFacultySubtitle = document.getElementById('mobileFacultySubtitle');
+    this.mobilePrevPeriodBtn = document.getElementById('mobilePrevPeriodBtn');
+    this.mobileTodayPeriodBtn = document.getElementById('mobileTodayPeriodBtn');
+    this.mobileNextPeriodBtn = document.getElementById('mobileNextPeriodBtn');
+
+    this.mobileBtnViewMonth = document.getElementById('mobileBtnViewMonth');
+    this.mobileBtnViewWeek = document.getElementById('mobileBtnViewWeek');
+    this.mobileBtnViewAgenda = document.getElementById('mobileBtnViewAgenda');
+
+    this.mobileViewSectionMonth = document.getElementById('mobileViewSectionMonth');
+    this.mobileViewSectionWeek = document.getElementById('mobileViewSectionWeek');
+    this.mobileViewSectionAgenda = document.getElementById('mobileViewSectionAgenda');
+
+    this.mobileCalendarDaysGrid = document.getElementById('mobileCalendarDaysGrid');
+    this.mobileSelectedDateTitle = document.getElementById('mobileSelectedDateTitle');
+    this.mobileSelectedDateBadge = document.getElementById('mobileSelectedDateBadge');
+    this.mobileSelectedScheduleContainer = document.getElementById('mobileSelectedScheduleContainer');
+
+    this.mobileUpcomingLecturesHeader = document.getElementById('mobileUpcomingLecturesHeader');
+    this.mobileUpcomingLecturesContainer = document.getElementById('mobileUpcomingLecturesContainer');
+
+    this.mobileWeekScheduleContainer = document.getElementById('mobileWeekScheduleContainer');
+    this.mobileWeekRangeBadge = document.getElementById('mobileWeekRangeBadge');
+    this.mobileWeekDaysGrid = document.getElementById('mobileWeekDaysGrid');
+    this.mobileSharedScheduleSections = document.getElementById('mobileSharedScheduleSections');
+    this.mobileWeekLiveCount = document.getElementById('mobileWeekLiveCount');
+    this.mobileWeekLegendLive = document.getElementById('mobileWeekLegendLive');
+    this.mobileWeekLegendToday = document.getElementById('mobileWeekLegendToday');
+
+    this.mobileAgendaScheduleContainer = document.getElementById('mobileAgendaScheduleContainer');
+    this.mobileAgendaCountBadge = document.getElementById('mobileAgendaCountBadge');
+
+    this.mobileExportIcsBtn = document.getElementById('mobileExportIcsBtn');
+
+    // Notifications
+    this.mobileNotificationBtn = document.getElementById('mobileNotificationBtn');
+    this.mobileNotificationDrawer = document.getElementById('notification-drawer');
+    this.mobileNotificationBackdrop = document.getElementById('mobileNotificationBackdrop');
+    this.mobileNotificationCloseBtn = document.getElementById('mobileNotificationCloseBtn');
+    this.mobileNotificationDismissBtn = document.getElementById('mobileNotificationDismissBtn');
+    this.mobileNotificationMarkReadBtn = document.getElementById('mobileNotificationMarkReadBtn');
+    this.mobileNotificationFeed = document.getElementById('mobileNotificationFeed');
+    this.mobileNotificationBadge = document.getElementById('mobileNotificationBadge');
+
+    // Lecture Bottom Sheet
+    this.mobileLectureBackdrop = document.getElementById('lecture-modal-backdrop');
+    this.mobileLectureSheet = document.getElementById('lecture-bottom-sheet');
+    this.mobileModalCloseBtn = document.getElementById('mobileModalCloseBtn');
+    this.mobileModalCloseSecondaryBtn = document.getElementById('mobileModalCloseSecondaryBtn');
+    this.mobileModalStartBtn = document.getElementById('mobileModalStartBtn');
+
+    // Batch toggle
+    this.mobileBatchBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.mobileBatchDropdown?.classList.toggle('hidden');
+      this.mobileProfileDropdown?.classList.add('hidden');
+    });
+
+    // Profile toggle
+    this.mobileProfileBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.mobileProfileDropdown?.classList.toggle('hidden');
+      this.mobileBatchDropdown?.classList.add('hidden');
+    });
+
+    // Click outside to close mobile dropdowns
+    document.addEventListener('click', () => {
+      this.mobileBatchDropdown?.classList.add('hidden');
+      this.mobileProfileDropdown?.classList.add('hidden');
+    });
+
+    // Mobile period navigation
+    this.mobilePrevPeriodBtn?.addEventListener('click', () => this.navigateMobilePeriod(-1));
+    this.mobileNextPeriodBtn?.addEventListener('click', () => this.navigateMobilePeriod(1));
+    this.mobileTodayPeriodBtn?.addEventListener('click', () => {
+      this.currentYear = 2026;
+      this.currentMonth = 9;
+      this.currentWeekStart = new Date(2026, 9, 15);
+      this.mobileSelectedDateIso = this.todayIso;
+      this.render();
+    });
+
+    // Mobile segmented views
+    this.mobileBtnViewMonth?.addEventListener('click', () => this.switchMobileView('month'));
+    this.mobileBtnViewWeek?.addEventListener('click', () => this.switchMobileView('week'));
+    this.mobileBtnViewAgenda?.addEventListener('click', () => this.switchMobileView('agenda'));
+
+    // Mobile metrics click
+    this.mobileMetricToday?.addEventListener('click', () => {
+      this.mobileSelectedDateIso = this.todayIso;
+      this.switchMobileView('month');
+      this.renderMobileView();
+    });
+
+    this.mobileMetricUpcoming?.addEventListener('click', () => {
+      const upcoming = this.getFacultyEvents().filter(e => e.eventType === 'class' && e.isoDate >= this.todayIso);
+      if (upcoming.length > 0) {
+        this.mobileSelectedDateIso = upcoming[0].isoDate;
+      }
+      this.switchMobileView('month');
+      this.renderMobileView();
+    });
+
+    this.mobileMetricTotal?.addEventListener('click', () => {
+      this.switchMobileView('agenda');
+    });
+
+    // Export ICS
+    this.mobileExportIcsBtn?.addEventListener('click', () => this.exportScheduleIcs());
+
+    // Notifications
+    this.mobileNotificationBtn?.addEventListener('click', () => this.openMobileNotifications());
+    this.mobileNotificationCloseBtn?.addEventListener('click', () => this.closeMobileNotifications());
+    this.mobileNotificationBackdrop?.addEventListener('click', () => this.closeMobileNotifications());
+    this.mobileNotificationDismissBtn?.addEventListener('click', () => this.closeMobileNotifications());
+    this.mobileNotificationMarkReadBtn?.addEventListener('click', () => this.markMobileNotificationsRead());
+
+    // Modal
+    this.mobileModalCloseBtn?.addEventListener('click', () => this.closeMobileLectureDetail());
+    this.mobileModalCloseSecondaryBtn?.addEventListener('click', () => this.closeMobileLectureDetail());
+    this.mobileLectureBackdrop?.addEventListener('click', (e) => {
+      if (e.target === this.mobileLectureBackdrop) this.closeMobileLectureDetail();
+    });
+    this.mobileModalStartBtn?.addEventListener('click', () => this.startMobileLiveSession());
+  }
+
+  switchMobileView(view) {
+    this.mobileView = view;
+    
+    // Update segmented buttons
+    const activeClass = 'py-1.5 text-xs font-bold rounded-lg bg-terra-forest text-white text-center shadow-sm transition-all cursor-pointer';
+    const inactiveClass = 'py-1.5 text-xs font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer bg-transparent';
+
+    if (this.mobileBtnViewMonth) this.mobileBtnViewMonth.className = view === 'month' ? activeClass : inactiveClass;
+    if (this.mobileBtnViewWeek) this.mobileBtnViewWeek.className = view === 'week' ? activeClass : inactiveClass;
+    if (this.mobileBtnViewAgenda) this.mobileBtnViewAgenda.className = view === 'agenda' ? activeClass : inactiveClass;
+
+    if (this.mobileViewSectionMonth) this.mobileViewSectionMonth.classList.toggle('hidden', view !== 'month');
+    if (this.mobileViewSectionWeek) this.mobileViewSectionWeek.classList.toggle('hidden', view !== 'week');
+    if (this.mobileViewSectionAgenda) this.mobileViewSectionAgenda.classList.toggle('hidden', view !== 'agenda');
+    if (this.mobileSharedScheduleSections) this.mobileSharedScheduleSections.classList.toggle('hidden', view === 'agenda');
+
+    this.renderMobileView();
+  }
+
+  navigateMobilePeriod(delta) {
+    if (this.mobileView === 'week') {
+      this.currentWeekStart = new Date(this.currentWeekStart.getTime() + delta * 7 * 86400000);
+      this.currentMonth = this.currentWeekStart.getMonth();
+      this.currentYear = this.currentWeekStart.getFullYear();
+    } else {
+      this.currentMonth += delta;
+      if (this.currentMonth > 11) {
+        this.currentMonth = 0;
+        this.currentYear += 1;
+      } else if (this.currentMonth < 0) {
+        this.currentMonth = 11;
+        this.currentYear -= 1;
+      }
+      this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 15);
+    }
+    this.render();
+  }
+
+  populateMobileBatchDropdown() {
+    if (!this.mobileBatchDropdownList) return;
+    this.mobileBatchDropdownList.innerHTML = '';
+
+    const batches = this.batchManager.getBatches();
+    const isAll = this.activeBatchId === 'all';
+    const allEvents = this.batchManager.getAllEvents('all');
+    const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
+
+    // 1. All Batches item
+    const allItem = document.createElement('button');
+    allItem.type = 'button';
+    allItem.className = `w-full text-left px-3 py-2 flex items-center justify-between hover:bg-terra-sand/80 transition-colors border-b border-terra-border/50 cursor-pointer ${
+      isAll ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
+    }`;
+    allItem.innerHTML = `
+      <div class="truncate mr-2">
+        <span class="block font-bold text-xs">All Batches (Combined)</span>
+        <span class="text-[10px] text-terra-muted block">${totalAllClasses} Total Classes</span>
+      </div>
+      ${isAll ? '<svg class="w-4 h-4 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+    `;
+    allItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.mobileBatchDropdown?.classList.add('hidden');
+      this.switchBatch('all');
+    });
+    this.mobileBatchDropdownList.appendChild(allItem);
+
+    // 2. Individual Batches
+    batches.forEach(b => {
+      const isSelected = b.id === this.activeBatchId;
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `w-full text-left px-3 py-2 flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
+        isSelected ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
+      }`;
+      const badgeText = (b.platform === 'youtube' || b.isYoutube) ? 'YT Live' : 'App Live';
+      const badgeClass = (b.platform === 'youtube' || b.isYoutube) ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+      item.innerHTML = `
+        <div class="truncate mr-2 min-w-0">
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="block font-semibold text-xs truncate">${b.name}</span>
+            <span class="text-[9px] font-bold px-1 py-0.5 rounded border ${badgeClass} shrink-0">${badgeText}</span>
+          </div>
+          <span class="text-[10px] text-terra-muted block truncate">${b.events ? b.events.length : 0} classes</span>
+        </div>
+        ${isSelected ? '<svg class="w-4 h-4 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.mobileBatchDropdown?.classList.add('hidden');
+        this.switchBatch(b.id);
+      });
+      this.mobileBatchDropdownList.appendChild(item);
+    });
+
+    this.updateMobileHeader();
+  }
+
+  populateMobileFacultySwitcher() {
+    if (!this.mobileFacultyProfilesList) return;
+    this.mobileFacultyProfilesList.innerHTML = '';
+
+    const allBatchEvents = this.batchManager.getAllEvents(this.activeBatchId);
+    const facultyMap = new Map();
+
+    allBatchEvents.forEach(ev => {
+      if (ev.eventType === 'class' && ev.faculty && !ev.faculty.toLowerCase().includes('cool off')) {
+        const facName = ev.faculty.trim();
+        if (!facultyMap.has(facName)) {
+          facultyMap.set(facName, {
+            name: facName,
+            subject: ev.subject || 'Faculty',
+            count: 0
+          });
+        }
+        facultyMap.get(facName).count++;
+      }
+    });
+
+    if (facultyMap.size === 0) {
+      facultyMap.set('Dr. Rajesh Jambhulkar', { name: 'Dr. Rajesh Jambhulkar', subject: 'Biochemistry', count: 12 });
+      facultyMap.set('Dr. Pradeep Pawar', { name: 'Dr. Pradeep Pawar', subject: 'Anatomy', count: 12 });
+      facultyMap.set('Dr. Vivek Nalgirkar', { name: 'Dr. Vivek Nalgirkar', subject: 'Physiology', count: 10 });
+    }
+
+    if (this.activeBatchId === 'all') {
+      const isAllFaculty = this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all';
+      const allItem = document.createElement('button');
+      allItem.type = 'button';
+      allItem.className = `w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
+        isAllFaculty ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
+      }`;
+      allItem.innerHTML = `
+        <div class="flex items-center gap-2 truncate mr-2">
+          <div class="w-5 h-5 rounded-full bg-terra-forest text-white text-[9px] font-bold flex items-center justify-center shrink-0">ALL</div>
+          <div class="truncate">
+            <span class="block truncate text-xs font-semibold leading-tight">All Faculty</span>
+            <span class="text-[9px] text-terra-muted block">All Classes</span>
+          </div>
+        </div>
+        ${isAllFaculty ? '<svg class="w-3.5 h-3.5 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+      `;
+      allItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.mobileProfileDropdown?.classList.add('hidden');
+        this.switchFaculty('All Faculty', 'Combined Curriculum');
+      });
+      this.mobileFacultyProfilesList.appendChild(allItem);
+    }
+
+    facultyMap.forEach(fac => {
+      const isCurrent = fac.name.toLowerCase() === this.currentFaculty.toLowerCase();
+      const initials = this.getFacultyInitials(fac.name);
+
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
+        isCurrent ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
+      }`;
+      item.innerHTML = `
+        <div class="flex items-center gap-2 truncate mr-2">
+          <div class="w-5 h-5 rounded-full bg-terra-forest/10 border border-terra-forest/20 text-terra-forest text-[9px] font-bold flex items-center justify-center shrink-0">
+            ${initials}
+          </div>
+          <div class="truncate">
+            <span class="block truncate text-xs font-semibold leading-tight">${fac.name}</span>
+            <span class="text-[9px] text-terra-muted block">${fac.subject} • ${fac.count} classes</span>
+          </div>
+        </div>
+        ${isCurrent ? '<svg class="w-3.5 h-3.5 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.mobileProfileDropdown?.classList.add('hidden');
+        this.switchFaculty(fac.name, fac.subject);
+      });
+      this.mobileFacultyProfilesList.appendChild(item);
+    });
+  }
+
+  updateMobileHeader() {
+    if (this.mobileBatchLabel) {
+      if (this.activeBatchId === 'all') {
+        this.mobileBatchLabel.textContent = 'All Batches (Combined Schedule)';
+      } else {
+        const b = this.batches.find(x => x.id === this.activeBatchId);
+        this.mobileBatchLabel.textContent = b ? b.name : 'Select Batch';
+      }
+    }
+    this.updateFacultyProfileUI();
+  }
+
+  updateMobileMetrics() {
+    const allEvents = this.getFacultyEvents();
+    const classesOnly = allEvents.filter(ev => ev.eventType === 'class');
+
+    // 1. Today
+    const todayClasses = classesOnly.filter(ev => ev.isoDate === this.todayIso);
+    const todayCount = todayClasses.length;
+    if (this.mobileTodayCount) this.mobileTodayCount.textContent = todayCount;
+    if (this.mobileTodaySubtitle) {
+      if (todayCount === 0) {
+        this.mobileTodaySubtitle.textContent = 'No clinical sessions today';
+      } else {
+        const first = todayClasses[0];
+        this.mobileTodaySubtitle.textContent = `${todayCount} Class${todayCount > 1 ? 'es' : ''} • ${first.timings || '7:00 PM - 9:00 PM'}`;
+      }
+    }
+
+    // 2. Upcoming Ahead
+    const upcomingClasses = classesOnly.filter(ev => ev.isoDate >= this.todayIso);
+    const upcomingCount = upcomingClasses.length;
+    if (this.mobileUpcomingCount) this.mobileUpcomingCount.textContent = upcomingCount;
+    if (this.mobileUpcomingSubtitle) {
+      if (upcomingCount === 0) {
+        this.mobileUpcomingSubtitle.textContent = 'No upcoming classes ahead';
+      } else {
+        const nextEv = upcomingClasses[0];
+        const dateParts = nextEv.isoDate ? nextEv.isoDate.split('-') : [];
+        const evMonthName = dateParts.length === 3 ? new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2])).toLocaleString('en-US', { month: 'short' }) : 'Oct';
+        const dayDisplay = dateParts[2] || '';
+        const dayName = nextEv.dayName ? nextEv.dayName.slice(0, 3) : '';
+        this.mobileUpcomingSubtitle.textContent = `Next: ${dayName} ${dayDisplay} ${evMonthName} • ${nextEv.subject || 'Biochem'}`;
+      }
+    }
+
+    // 3. Total Scope (month scope)
+    const year = this.currentYear;
+    const month = this.currentMonth;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const rangeStartIso = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const rangeEndIso = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const monthClasses = classesOnly.filter(ev => ev.isoDate >= rangeStartIso && ev.isoDate <= rangeEndIso);
+    const totalCount = monthClasses.length;
+    if (this.mobileTotalCount) this.mobileTotalCount.textContent = totalCount;
+    if (this.mobileTotalSubtitle) {
+      const totalHrs = (totalCount * 2.0).toFixed(1);
+      this.mobileTotalSubtitle.textContent = `${totalHrs} total teaching hrs`;
+    }
+  }
+
+  updateMobileNavigation() {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    if (this.mobilePeriodTitle) {
+      if (this.mobileView === 'week') {
+        const weekDays = this.getWeekDays(this.currentWeekStart);
+        const sun = weekDays[0].dateObj;
+        const sat = weekDays[6].dateObj;
+        const sunM = sun.toLocaleString('en-US', { month: 'short' });
+        const satM = sat.toLocaleString('en-US', { month: 'short' });
+        this.mobilePeriodTitle.textContent = `${sunM} ${sun.getDate()} – ${satM} ${sat.getDate()}, ${sat.getFullYear()}`;
+      } else {
+        this.mobilePeriodTitle.textContent = `${months[this.currentMonth]} ${this.currentYear}`;
+      }
+    }
+    if (this.mobileFacultySubtitle) {
+      this.mobileFacultySubtitle.textContent = this.currentFaculty;
+    }
+  }
+
+  renderMobileView() {
+    this.updateMobileHeader();
+    this.updateMobileMetrics();
+    this.updateMobileNavigation();
+
+    if (this.mobileView === 'month') {
+      this.renderMobileMonthGrid();
+      this.renderMobileSelectedSchedule();
+      this.renderMobileUpcomingLectures();
+    } else if (this.mobileView === 'week') {
+      this.renderMobileWeekView();
+    } else if (this.mobileView === 'agenda') {
+      this.renderMobileAgendaView();
+    }
+    this.renderMobileNotifications();
+  }
+
+  renderMobileMonthGrid() {
+    if (!this.mobileCalendarDaysGrid) return;
+    this.mobileCalendarDaysGrid.innerHTML = '';
+
+    const year = this.currentYear;
+    const month = this.currentMonth;
+
+    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    // Map of events by ISO
+    const facultyEvents = this.getFacultyEvents();
+    const eventMap = new Map();
+    let monthClassCount = 0;
+
+    facultyEvents.forEach(ev => {
+      if (!ev.isoDate) return;
+      if (!eventMap.has(ev.isoDate)) eventMap.set(ev.isoDate, []);
+      eventMap.get(ev.isoDate).push(ev);
+      if (ev.eventType === 'class' && ev.isoDate.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
+        monthClassCount++;
+      }
+    });
+
+    // Update legend
+    const liveLegend = document.getElementById('mobileLegendLiveCount');
+    if (liveLegend) liveLegend.textContent = `Live Class (${monthClassCount})`;
+    const todayLegend = document.getElementById('mobileLegendTodayText');
+    if (todayLegend) todayLegend.textContent = `Today (15 Oct)`;
+
+    // Prev month padding
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const prevNum = prevMonthDays - i;
+      const padEl = document.createElement('div');
+      padEl.className = 'h-8 flex flex-col items-center justify-center text-terra-muted/40 font-normal select-none';
+      padEl.textContent = prevNum;
+      this.mobileCalendarDaysGrid.appendChild(padEl);
+    }
+
+    // Days of current month
+    for (let day = 1; day <= totalDays; day++) {
+      const curDate = new Date(year, month, day);
+      const dayOfWeek = curDate.getDay(); // 0 is Sun
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayEvents = eventMap.get(iso) || [];
+      const hasClass = dayEvents.some(e => e.eventType === 'class');
+      const isSunday = dayOfWeek === 0;
+      const isHoliday = dayEvents.some(e => e.eventType === 'holiday') || (month === 9 && day === 2); // Gandhi Jayanti
+      const isToday = iso === this.todayIso;
+      const isSelected = iso === this.mobileSelectedDateIso;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+
+      if (isSelected) {
+        // Active selected day style
+        btn.className = 'h-8 rounded-lg bg-terra-forest text-white flex flex-col items-center justify-center font-bold shadow-sm ring-2 ring-terra-forest/20 cursor-pointer';
+        btn.innerHTML = `
+          <span class="leading-none text-xs">${day}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white mt-0.5"></span>
+        `;
+      } else if (isSunday) {
+        // Sunday Cool Off
+        btn.className = 'h-8 rounded-lg bg-terra-amberBg/70 border border-terra-amberBorder/60 flex flex-col items-center justify-center font-semibold text-terra-amber cursor-pointer hover:bg-terra-amberBg transition-colors';
+        btn.innerHTML = `
+          <span class="leading-none text-xs">${day}</span>
+          <span class="text-[7px] leading-none uppercase font-bold">OFF</span>
+        `;
+      } else if (isToday) {
+        // Today Marker
+        btn.className = 'h-8 rounded-lg border-2 border-terra-forest bg-terra-forestLight/50 flex flex-col items-center justify-center font-bold text-terra-forest relative shadow-sm cursor-pointer hover:bg-terra-forestLight transition-colors';
+        btn.innerHTML = `
+          <span class="leading-none text-xs">${day}</span>
+          <span class="text-[7px] font-extrabold uppercase tracking-tighter text-terra-forest leading-none">TODAY</span>
+        `;
+      } else if (hasClass) {
+        // Has class
+        btn.className = 'h-8 rounded-lg hover:bg-terra-sand flex flex-col items-center justify-center font-semibold text-terra-forest relative cursor-pointer transition-colors';
+        btn.innerHTML = `
+          <span class="leading-none text-xs">${day}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-terra-forest mt-0.5"></span>
+        `;
+      } else if (isHoliday) {
+        // Holiday
+        btn.className = 'h-8 rounded-lg hover:bg-terra-sand flex flex-col items-center justify-center font-medium text-terra-charcoal relative cursor-pointer transition-colors';
+        btn.innerHTML = `
+          <span class="leading-none text-xs">${day}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-terra-amber mt-0.5"></span>
+        `;
+      } else {
+        // Regular day
+        btn.className = 'h-8 rounded-lg flex flex-col items-center justify-center hover:bg-terra-sand font-medium text-terra-charcoal cursor-pointer transition-colors';
+        btn.innerHTML = `<span class="leading-none text-xs">${day}</span>`;
+      }
+
+      btn.addEventListener('click', () => {
+        this.mobileSelectedDateIso = iso;
+        this.renderMobileMonthGrid();
+        this.renderMobileSelectedSchedule();
+      });
+
+      this.mobileCalendarDaysGrid.appendChild(btn);
+    }
+  }
+
+  renderMobileSelectedSchedule() {
+    if (!this.mobileSelectedScheduleContainer) return;
+    this.mobileSelectedScheduleContainer.innerHTML = '';
+
+    const selectedIso = this.mobileSelectedDateIso;
+    const [y, m, d] = (selectedIso || '').split('-').map(Number);
+    const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date(2026, 9, 17);
+
+    const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const formattedTitle = `${fullDayNames[dateObj.getDay()]}, ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+    if (this.mobileSelectedDateTitle) this.mobileSelectedDateTitle.textContent = formattedTitle;
+
+    const allEvents = this.getFacultyEvents();
+    const dayClasses = allEvents.filter(ev => ev.isoDate === selectedIso && ev.eventType === 'class');
+    const isSunday = dateObj.getDay() === 0;
+    const isHoliday = allEvents.some(ev => ev.isoDate === selectedIso && ev.eventType === 'holiday') || (dateObj.getMonth() === 9 && dateObj.getDate() === 2);
+
+    if (this.mobileSelectedDateBadge) {
+      if (dayClasses.length > 0) {
+        this.mobileSelectedDateBadge.textContent = `${dayClasses.length} Lecture${dayClasses.length > 1 ? 's' : ''}`;
+        this.mobileSelectedDateBadge.className = 'text-[11px] font-semibold text-terra-forest bg-terra-forestLight px-2.5 py-1 rounded-md border border-terra-forest/20 whitespace-nowrap shrink-0';
+      } else if (isSunday) {
+        this.mobileSelectedDateBadge.textContent = 'Cool Off Day';
+        this.mobileSelectedDateBadge.className = 'text-[11px] font-semibold text-terra-amber bg-terra-amberBg px-2.5 py-1 rounded-md border border-terra-amberBorder/60 whitespace-nowrap shrink-0';
+      } else if (isHoliday) {
+        this.mobileSelectedDateBadge.textContent = 'Holiday';
+        this.mobileSelectedDateBadge.className = 'text-[11px] font-semibold text-terra-amber bg-terra-amberBg px-2.5 py-1 rounded-md border border-terra-amberBorder/60 whitespace-nowrap shrink-0';
+      } else {
+        this.mobileSelectedDateBadge.textContent = 'No Lectures';
+        this.mobileSelectedDateBadge.className = 'text-[11px] font-medium text-terra-muted bg-terra-sand px-2.5 py-1 rounded-md border border-terra-border whitespace-nowrap shrink-0';
+      }
+    }
+
+    if (isSunday) {
+      // Sunday Cool Off Card
+      const coolOffCard = document.createElement('article');
+      coolOffCard.className = 'bg-terra-amberBg/50 rounded-2xl border border-dashed border-terra-amberBorder p-4 shadow-soft space-y-2.5';
+      coolOffCard.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-amber text-white shadow-sm">
+            Sunday Cool Off
+          </span>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-terra-amber border border-terra-amberBorder/80">
+            Self Study &amp; Revision
+          </span>
+        </div>
+        <h4 class="text-base font-bold text-terra-charcoal leading-snug">No live lectures scheduled for Sunday</h4>
+        <p class="text-xs text-terra-muted leading-relaxed">
+          Students use this day for self-paced revision, mock drills, and clearing backlogs.
+        </p>
+      `;
+      this.mobileSelectedScheduleContainer.appendChild(coolOffCard);
+      return;
+    }
+
+    if (isHoliday && dayClasses.length === 0) {
+      const holidayCard = document.createElement('article');
+      holidayCard.className = 'bg-terra-amberBg/50 rounded-2xl border border-dashed border-terra-amberBorder p-4 shadow-soft space-y-2';
+      holidayCard.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-amber text-white shadow-sm">
+            Gazetted Holiday
+          </span>
+        </div>
+        <h4 class="text-base font-bold text-terra-charcoal leading-snug">Gandhi Jayanti • Academic Break</h4>
+        <p class="text-xs text-terra-muted leading-relaxed">No live streaming sessions on national holidays.</p>
+      `;
+      this.mobileSelectedScheduleContainer.appendChild(holidayCard);
+      return;
+    }
+
+    if (dayClasses.length === 0) {
+      // Empty weekday
+      const emptyCard = document.createElement('article');
+      emptyCard.className = 'bg-white rounded-2xl border border-terra-border/80 p-4 shadow-soft text-center space-y-3';
+      emptyCard.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-terra-sand mx-auto flex items-center justify-center text-terra-muted">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-terra-charcoal">No Lectures Scheduled</h4>
+          <p class="text-xs text-terra-muted mt-0.5">There are no teaching commitments scheduled on this date.</p>
+        </div>
+        <button id="mobileViewNextClassBtn" type="button" class="py-2 px-3.5 rounded-xl bg-terra-sand/80 hover:bg-terra-sand text-terra-charcoal font-bold text-xs border border-terra-border mx-auto inline-flex items-center gap-1.5 transition-colors cursor-pointer">
+          <span>View Next Upcoming Class</span>
+          <svg class="w-3.5 h-3.5 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        </button>
+      `;
+      this.mobileSelectedScheduleContainer.appendChild(emptyCard);
+
+      const nextBtn = document.getElementById('mobileViewNextClassBtn');
+      nextBtn?.addEventListener('click', () => {
+        const nextClasses = allEvents.filter(ev => ev.eventType === 'class' && ev.isoDate > selectedIso);
+        if (nextClasses.length > 0) {
+          this.mobileSelectedDateIso = nextClasses[0].isoDate;
+          this.renderMobileMonthGrid();
+          this.renderMobileSelectedSchedule();
+        } else {
+          this.showToast('No later classes found in current view');
+        }
+      });
+      return;
+    }
+
+    // Render classes
+    dayClasses.forEach(ev => {
+      const card = document.createElement('article');
+      card.className = 'bg-white rounded-2xl border border-terra-border/80 p-4 shadow-soft space-y-3.5 cursor-pointer hover:border-terra-forest/40 transition-all';
+      if (typeof card.setAttribute === 'function') {
+        card.setAttribute('data-purpose', 'lecture-card');
+      }
+
+      const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026', platform: 'app' };
+      const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
+      const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+      const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
+
+      const initials = this.getFacultyInitials(ev.faculty || this.currentFaculty);
+
+      card.innerHTML = `
+        <!-- Header Row: Subject & Batch Badge + Time -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-forest text-white shadow-sm">
+              ${ev.subject || this.facultySubject}
+            </span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-terra-sand text-terra-charcoal border border-terra-border/80 truncate max-w-[120px]">
+              ${batchObj.name || "Prarambh '26"}
+            </span>
+            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded border flex items-center gap-1 ${badgeLiveClass}">
+              <span class="w-1.5 h-1.5 rounded-full animate-pulse ${pulseColor}"></span>
+              ${badgeLiveText}
+            </span>
+          </div>
+          <div class="text-[11px] font-bold text-terra-charcoal flex items-center gap-1 shrink-0 bg-terra-sand/60 px-2 py-1 rounded-lg border border-terra-border/50">
+            <svg class="w-3.5 h-3.5 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            ${ev.timings || '7:00pm – 9:00pm'}
+          </div>
+        </div>
+
+        <!-- Title and Details -->
+        <div>
+          <h4 class="text-base font-bold text-terra-charcoal leading-snug tracking-tight">${ev.topic || 'Medical Lecture'}</h4>
+          <div class="text-xs text-terra-muted mt-2 flex items-center gap-2 font-medium">
+            <div class="w-6 h-6 rounded-full bg-terra-sand border border-terra-border text-terra-forest flex items-center justify-center text-[10px] font-bold shrink-0">
+              ${initials}
+            </div>
+            <span class="truncate">${ev.faculty || this.currentFaculty} <span class="text-terra-muted/60">•</span> 2.0 Teaching Hours</span>
+          </div>
+        </div>
+
+        <!-- Action Row: Reschedule and Cancel Class -->
+        <div class="pt-1 border-t border-terra-border/60 flex items-center gap-2">
+          <button type="button" class="btn-reschedule flex-1 py-2 px-3 rounded-xl bg-terra-sand/70 hover:bg-terra-sand text-terra-charcoal font-bold text-xs border border-terra-border flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            <span>Reschedule</span>
+          </button>
+          <button type="button" class="btn-cancel py-2 px-3.5 rounded-xl bg-terra-amberBg hover:bg-terra-amberBg/80 text-terra-amber font-bold text-xs border border-terra-amberBorder/80 flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-terra-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            <span>Cancel</span>
+          </button>
+        </div>
+      `;
+
+      // Open detail modal when clicking card body
+      card.addEventListener?.('click', (e) => {
+        if (e.target?.closest?.('.btn-reschedule') || e.target?.closest?.('.btn-cancel')) return;
+        this.openMobileLectureDetail(ev);
+      });
+
+      // Reschedule action
+      card.querySelector?.('.btn-reschedule')?.addEventListener?.('click', (e) => {
+        e.stopPropagation();
+        this.showToast('Reschedule request sent to Academic Coordinator');
+      });
+
+      // Cancel action
+      card.querySelector?.('.btn-cancel')?.addEventListener?.('click', (e) => {
+        e.stopPropagation();
+        this.showToast('Class cancellation request submitted');
+      });
+
+      this.mobileSelectedScheduleContainer.appendChild(card);
+    });
+  }
+
+  renderMobileUpcomingLectures() {
+    if (!this.mobileUpcomingLecturesContainer) return;
+    this.mobileUpcomingLecturesContainer.innerHTML = '';
+
+    const allEvents = this.getFacultyEvents();
+    const upcomingEvents = allEvents.filter(ev => {
+      return (ev.eventType === 'class' || ev.eventType === 'cool_off') && ev.isoDate > this.mobileSelectedDateIso;
+    });
+
+    if (this.mobileUpcomingLecturesHeader) {
+      const classCount = upcomingEvents.filter(e => e.eventType === 'class').length;
+      this.mobileUpcomingLecturesHeader.textContent = `${classCount} Lecture${classCount !== 1 ? 's' : ''} Left`;
+    }
+
+    if (upcomingEvents.length === 0) {
+      this.mobileUpcomingLecturesContainer.innerHTML = `
+        <div class="p-3 bg-terra-sand/50 rounded-xl text-center text-xs text-terra-muted">
+          No further lectures remaining in this month view.
+        </div>
+      `;
+      return;
+    }
+
+    // Render up to 6 remaining items
+    upcomingEvents.slice(0, 6).forEach(ev => {
+      const [y, m, d] = (ev.isoDate || '').split('-').map(Number);
+      const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date();
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayStr = dayNames[dateObj.getDay()] || 'Day';
+
+      if (ev.eventType === 'cool_off' || dateObj.getDay() === 0) {
+        // Cool Off item
+        const item = document.createElement('div');
+        item.className = 'bg-terra-amberBg/50 border border-dashed border-terra-amberBorder rounded-xl p-3 flex items-center justify-between cursor-pointer';
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-terra-amberBg border border-terra-amberBorder flex flex-col items-center justify-center shrink-0">
+              <span class="text-[10px] font-bold uppercase text-terra-amber">${dayStr}</span>
+              <span class="text-sm font-black leading-none text-terra-amber">${d || 18}</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-terra-amber">Cool Off</span>
+                <span class="text-[10px] text-terra-muted">• All Batches</span>
+              </div>
+              <h4 class="text-xs font-bold text-terra-charcoal">Self Study Day &amp; Revision</h4>
+            </div>
+          </div>
+          <div class="w-6 h-6 rounded-full bg-terra-amber/10 flex items-center justify-center text-terra-amber shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          this.mobileSelectedDateIso = ev.isoDate;
+          this.renderMobileMonthGrid();
+          this.renderMobileSelectedSchedule();
+        });
+        this.mobileUpcomingLecturesContainer.appendChild(item);
+      } else {
+        // Lecture item
+        const item = document.createElement('div');
+        item.className = 'bg-terra-card border border-terra-border rounded-xl p-3 flex items-center justify-between shadow-soft cursor-pointer hover:border-terra-forest/40 transition-colors';
+        item.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-lg bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
+              <span class="text-[10px] font-bold uppercase text-terra-forest">${dayStr}</span>
+              <span class="text-sm font-black leading-none text-terra-forest">${d || 21}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 text-[10px] font-semibold text-terra-muted">
+                <span>${ev.timings || '7:00pm – 9:00pm'}</span>
+                <span>•</span>
+                <span class="text-terra-forest font-bold">${ev.subject || this.facultySubject}</span>
+              </div>
+              <h4 class="text-xs font-bold text-terra-charcoal truncate">${ev.topic || 'Medical Lecture'}</h4>
+            </div>
+          </div>
+          <button aria-label="View lecture details" class="w-8 h-8 rounded-lg bg-terra-sand hover:bg-terra-sandHover flex items-center justify-center text-terra-charcoal shrink-0 ml-2 cursor-pointer" type="button">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </button>
+        `;
+        item.addEventListener('click', () => {
+          this.openMobileLectureDetail(ev);
+        });
+        this.mobileUpcomingLecturesContainer.appendChild(item);
+      }
+    });
+  }
+
+  getMobileWeekDays(startDate) {
+    const d = new Date(startDate);
+    const day = d.getDay(); // 0 is Sunday, 1 is Mon, ..., 6 is Sat
+    const distToMon = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + distToMon);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6); // Sunday of this week (e.g. Oct 18)
+
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // Sunday first in the strip (matching user's provided snippet: Sun 18, Mon 12, Tue 13, Wed 14, Thu 15, Fri 16, Sat 17)
+    const sunIso = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+    const result = [{
+      dateObj: sunday,
+      isoDate: sunIso,
+      dayName: 'Sun',
+      dayFullName: 'Sunday',
+      dayNum: sunday.getDate(),
+      isToday: sunIso === this.todayIso,
+      isSunday: true
+    }];
+
+    for (let i = 0; i < 6; i++) {
+      const cur = new Date(monday);
+      cur.setDate(monday.getDate() + i);
+      const iso = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      result.push({
+        dateObj: cur,
+        isoDate: iso,
+        dayName: dayNames[i],
+        dayFullName: fullDayNames[i],
+        dayNum: cur.getDate(),
+        isToday: iso === this.todayIso,
+        isSunday: false
+      });
+    }
+
+    return result;
+  }
+
+  renderMobileWeekGrid() {
+    if (!this.mobileWeekDaysGrid) return;
+    this.mobileWeekDaysGrid.innerHTML = '';
+
+    const weekDays = this.getMobileWeekDays(this.currentWeekStart);
+    const allEvents = this.getFacultyEvents();
+
+    const monObj = weekDays.find(d => d.dayName === 'Mon')?.dateObj || weekDays[1].dateObj;
+    const sunObj = weekDays.find(d => d.dayName === 'Sun')?.dateObj || weekDays[0].dateObj;
+    const weekNum = Math.ceil(monObj.getDate() / 7);
+
+    const weekIsos = weekDays.map(d => d.isoDate);
+    const weekClasses = allEvents.filter(ev => weekIsos.includes(ev.isoDate) && ev.eventType === 'class');
+    const liveSessionsCount = weekClasses.length;
+
+    if (this.mobileWeekRangeBadge) {
+      const sm = monObj.toLocaleString('en-US', { month: 'short' });
+      const em = sunObj.toLocaleString('en-US', { month: 'short' });
+      this.mobileWeekRangeBadge.textContent = `Week ${weekNum}: ${sm} ${monObj.getDate()} – ${em} ${sunObj.getDate()}`;
+    }
+
+    if (this.mobileWeekLiveCount) {
+      this.mobileWeekLiveCount.textContent = `${liveSessionsCount} Live Session${liveSessionsCount !== 1 ? 's' : ''}`;
+    }
+
+    if (this.mobileWeekLegendLive) {
+      const monthClasses = allEvents.filter(ev => {
+        if (ev.eventType !== 'class' || !ev.isoDate) return false;
+        const [y, m] = ev.isoDate.split('-').map(Number);
+        return y === this.currentYear && (m - 1) === this.currentMonth;
+      });
+      this.mobileWeekLegendLive.textContent = `Live Class (${monthClasses.length})`;
+    }
+
+    if (this.mobileWeekLegendToday) {
+      const [ty, tm, td] = this.todayIso.split('-').map(Number);
+      const tDate = new Date(ty, tm - 1, td);
+      this.mobileWeekLegendToday.textContent = `Today (${tDate.getDate()} ${tDate.toLocaleString('en-US', { month: 'short' })})`;
+    }
+
+    weekDays.forEach(dayInfo => {
+      const dayClasses = allEvents.filter(ev => ev.isoDate === dayInfo.isoDate && ev.eventType === 'class');
+      const isSelected = dayInfo.isoDate === this.mobileSelectedDateIso;
+      const isToday = dayInfo.isToday;
+      const isSunday = dayInfo.isSunday;
+      const hasClasses = dayClasses.length > 0;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+
+      if (isSelected) {
+        btn.className = 'h-12 rounded-lg bg-[#2D553E] text-white flex flex-col items-center justify-center font-bold shadow-sm ring-2 ring-[#2D553E]/20 transition-all cursor-pointer';
+        btn.innerHTML = `
+          <span class="text-[9px] font-semibold text-white/80 uppercase leading-none">${dayInfo.dayName}</span>
+          <span class="text-xs font-black mt-0.5 leading-none">${dayInfo.dayNum}</span>
+          ${hasClasses ? '<span class="w-1.5 h-1.5 rounded-full bg-white mt-1"></span>' : ''}
+        `;
+      } else if (isToday) {
+        btn.className = 'h-12 rounded-lg border-2 border-[#2D553E] bg-[#EDF4EE]/50 flex flex-col items-center justify-center font-bold text-[#2D553E] shadow-sm transition-all cursor-pointer';
+        btn.innerHTML = `
+          <span class="text-[7px] font-extrabold uppercase tracking-tighter text-[#2D553E] leading-none">TODAY</span>
+          <span class="text-xs font-black mt-1 leading-none">${dayInfo.dayNum}</span>
+        `;
+      } else if (isSunday) {
+        btn.className = 'h-12 rounded-lg bg-[#FDF4EC]/70 border border-[#F6D7BE]/60 flex flex-col items-center justify-center font-semibold text-[#C86D3B] transition-all cursor-pointer';
+        btn.innerHTML = `
+          <span class="text-[9px] font-bold uppercase leading-none">${dayInfo.dayName}</span>
+          <span class="text-xs font-black mt-0.5 leading-none">${dayInfo.dayNum}</span>
+          <span class="text-[7px] leading-none uppercase mt-0.5 px-1 py-0.2 rounded bg-[#FDF4EC] font-bold">OFF</span>
+        `;
+      } else {
+        btn.className = 'h-12 rounded-lg flex flex-col items-center justify-center hover:bg-[#F3EDE2] font-medium text-[#242424] transition-all cursor-pointer';
+        btn.innerHTML = `
+          <span class="text-[9px] font-semibold text-[#706E6B] uppercase leading-none">${dayInfo.dayName}</span>
+          <span class="text-xs font-bold mt-1 leading-none">${dayInfo.dayNum}</span>
+          ${hasClasses ? '<span class="w-1.5 h-1.5 rounded-full bg-[#2D553E] mt-1"></span>' : ''}
+        `;
+      }
+
+      btn.addEventListener('click', () => {
+        this.mobileSelectedDateIso = dayInfo.isoDate;
+        this.renderMobileWeekGrid();
+        this.renderMobileSelectedSchedule();
+        this.renderMobileUpcomingLectures();
+      });
+
+      this.mobileWeekDaysGrid.appendChild(btn);
+    });
+  }
+
+  renderMobileWeekView() {
+    this.renderMobileWeekGrid();
+
+    // Populate backward-compatible container if needed
+    if (this.mobileWeekScheduleContainer) {
+      this.mobileWeekScheduleContainer.innerHTML = '';
+      const weekDays = this.getWeekDays(this.currentWeekStart);
+      const allEvents = this.getFacultyEvents();
+      weekDays.forEach(dayInfo => {
+        const dayClasses = allEvents.filter(ev => ev.isoDate === dayInfo.isoDate && ev.eventType === 'class');
+        const dayCard = document.createElement('div');
+        dayCard.className = 'hidden';
+        dayCard.textContent = `${dayInfo.dayFullName}: ${dayClasses.length} lectures`;
+        this.mobileWeekScheduleContainer.appendChild(dayCard);
+      });
+    }
+
+    this.renderMobileSelectedSchedule();
+    this.renderMobileUpcomingLectures();
+  }
+
+  renderMobileAgendaView() {
+    if (!this.mobileAgendaScheduleContainer) return;
+    this.mobileAgendaScheduleContainer.innerHTML = '';
+
+    const allEvents = this.getFacultyEvents();
+    const classes = allEvents.filter(ev => ev.eventType === 'class').sort((a, b) => (a.isoDate || '').localeCompare(b.isoDate || ''));
+
+    if (this.mobileAgendaCountBadge) {
+      this.mobileAgendaCountBadge.textContent = `${classes.length} Total Lectures`;
+    }
+
+    if (classes.length === 0) {
+      this.mobileAgendaScheduleContainer.innerHTML = `
+        <div class="p-6 text-center text-xs text-terra-muted bg-white rounded-2xl border border-terra-border">
+          No lectures found in active batch for this faculty.
+        </div>
+      `;
+      return;
+    }
+
+    classes.forEach(c => {
+      const [y, m, d] = (c.isoDate || '').split('-').map(Number);
+      const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-2xl border border-terra-border/80 p-3.5 shadow-soft flex items-center justify-between cursor-pointer hover:border-terra-forest/40 transition-all';
+      card.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-12 h-12 rounded-xl bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
+            <span class="text-[9px] font-bold uppercase text-terra-forest">${monthNames[dateObj.getMonth()]}</span>
+            <span class="text-base font-black leading-none text-terra-forest">${d || 1}</span>
+            <span class="text-[8px] font-semibold text-terra-muted uppercase">${dayNames[dateObj.getDay()]}</span>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 text-[10px] font-bold">
+              <span class="text-terra-forest uppercase">${c.subject || this.facultySubject}</span>
+              <span class="text-terra-muted">•</span>
+              <span class="text-terra-muted">${c.timings || '7:00 PM – 9:00 PM'}</span>
+            </div>
+            <h4 class="text-xs font-bold text-terra-charcoal truncate mt-0.5">${c.topic || 'Medical Lecture'}</h4>
+            <div class="text-[10px] text-terra-muted truncate mt-0.5">${c.faculty || this.currentFaculty}</div>
+          </div>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg bg-terra-sand flex items-center justify-center text-terra-charcoal shrink-0 ml-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        </button>
+      `;
+
+      card.addEventListener('click', () => this.openMobileLectureDetail(c));
+      this.mobileAgendaScheduleContainer.appendChild(card);
+    });
+  }
+
+  openMobileLectureDetail(ev) {
+    if (!ev) return;
+    const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026 Batch', platform: 'app' };
+
+    const modalBatch = document.getElementById('mobileModalBatchBadge');
+    const modalSubj = document.getElementById('mobileModalSubjectBadge');
+    const modalPlatform = document.getElementById('mobileModalPlatformBadge');
+    const modalTopic = document.getElementById('mobileModalTopic');
+    const modalDesc = document.getElementById('mobileModalDescription');
+    const modalConcepts = document.getElementById('mobileModalConceptsContainer');
+    const modalConceptCount = document.getElementById('mobileModalConceptCount');
+    const modalDate = document.getElementById('mobileModalDate');
+    const modalTimings = document.getElementById('mobileModalTimings');
+    const modalStudio = document.getElementById('mobileModalStudio');
+    const modalAvatar = document.getElementById('mobileModalFacultyAvatar');
+    const modalFacName = document.getElementById('mobileModalFacultyName');
+    const modalFacRole = document.getElementById('mobileModalFacultyRole');
+    const modalDeck = document.getElementById('mobileModalDeckTitle');
+
+    const facultyName = ev.faculty || this.currentFaculty;
+    const initials = this.getFacultyInitials(facultyName);
+    const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
+
+    if (modalBatch) modalBatch.textContent = `${batchObj.name || 'Prarambh 2026'} • MBBS`;
+    if (modalSubj) modalSubj.textContent = ev.subject || this.facultySubject;
+    if (modalPlatform) {
+      modalPlatform.textContent = isYoutube ? 'YouTube Live Stream' : 'Live Interactive Stream';
+      modalPlatform.className = isYoutube ? 'text-[10px] font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1' : 'text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1';
+    }
+    if (modalTopic) modalTopic.textContent = ev.topic || 'Medical Lecture';
+    if (modalDesc) modalDesc.textContent = ev.description || `Comprehensive interactive clinical lecture covering ${ev.topic || 'key concepts'}, case discussions, and board exam focus points.`;
+
+    // Format Date
+    const [y, m, d] = (ev.isoDate || '').split('-').map(Number);
+    if (y && m && d) {
+      const dateObj = new Date(y, m - 1, d);
+      const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      if (modalDate) modalDate.textContent = `${fullDays[dateObj.getDay()]}, ${d} ${monthNames[m - 1]} ${y}`;
+    }
+    if (modalTimings) modalTimings.textContent = `${ev.timings || '7:00 PM – 9:00 PM'} (2.0 hrs)`;
+    if (modalStudio) modalStudio.textContent = ev.studio || 'Virtual Studio 3';
+
+    if (modalAvatar) modalAvatar.textContent = initials;
+    if (modalFacName) modalFacName.textContent = facultyName;
+    if (modalFacRole) modalFacRole.textContent = `Department of ${ev.subject || this.facultySubject}`;
+    if (modalDeck) modalDeck.textContent = `${(ev.subject || 'Lecture').replace(/\s+/g, '_')}_Deck_${ev.isoDate || '2026'}.pdf`;
+
+    // Key concepts
+    if (modalConcepts) {
+      const concepts = [
+        `Core principles & physiological mechanisms of ${ev.subject || 'lecture'}`,
+        `High-yield differential diagnostic markers and clinical signs`,
+        `Clinical correlation & USMLE/NEET-PG high frequency question patterns`,
+        `Interactive doubt resolution & live problem-solving scenarios`
+      ];
+      if (modalConceptCount) modalConceptCount.textContent = `${concepts.length} Modules`;
+
+      modalConcepts.innerHTML = concepts.map((c, i) => `
+        <div class="flex items-start gap-2">
+          <div class="w-4 h-4 rounded-full ${i === 3 ? 'bg-terra-amberBg text-terra-amber' : 'bg-terra-forestLight text-terra-forest'} flex items-center justify-center text-[10px] font-bold mt-0.5 shrink-0">${i + 1}</div>
+          <span class="leading-tight ${i === 3 ? 'font-medium text-terra-amber' : ''}">${c}</span>
+        </div>
+      `).join('');
+    }
+
+    const backdrop = document.getElementById('lecture-modal-backdrop');
+    const sheet = document.getElementById('lecture-bottom-sheet');
+    if (backdrop && sheet) {
+      backdrop.classList.remove('hidden');
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => {
+          sheet.classList.remove('translate-y-full');
+        });
+      } else {
+        sheet.classList.remove('translate-y-full');
+      }
+    }
+  }
+
+  closeMobileLectureDetail() {
+    const backdrop = document.getElementById('lecture-modal-backdrop');
+    const sheet = document.getElementById('lecture-bottom-sheet');
+    if (sheet) sheet.classList.add('translate-y-full');
+    setTimeout(() => {
+      if (backdrop) backdrop.classList.add('hidden');
+    }, 280);
+  }
+
+  startMobileLiveSession() {
+    this.closeMobileLectureDetail();
+    this.showToast('Connecting to PW MedEd Live Broadcast Studio...');
+  }
+
+  openMobileNotifications() {
+    if (this.mobileNotificationDrawer) {
+      this.mobileNotificationDrawer.classList.remove('hidden');
+    }
+  }
+
+  closeMobileNotifications() {
+    if (this.mobileNotificationDrawer) {
+      this.mobileNotificationDrawer.classList.add('hidden');
+    }
+  }
+
+  markMobileNotificationsRead() {
+    if (this.mobileNotificationDrawer) {
+      const dots = this.mobileNotificationDrawer.querySelectorAll('.unread-dot');
+      dots.forEach(d => d.remove());
+      if (this.mobileNotificationBadge) this.mobileNotificationBadge.classList.add('hidden');
+      this.showToast('All notifications marked as read');
+    }
+  }
+
+  renderMobileNotifications() {
+    if (!this.mobileNotificationFeed) return;
+    this.mobileNotificationFeed.innerHTML = '';
+
+    const allEvents = this.getFacultyEvents();
+    const upcoming = allEvents.filter(e => e.eventType === 'class' && e.isoDate >= this.todayIso);
+
+    const notifications = [
+      {
+        title: 'Upcoming Lecture Reminder',
+        text: upcoming[0] ? `${upcoming[0].subject}: ${upcoming[0].topic} scheduled for ${upcoming[0].isoDate}` : 'No upcoming classes today.',
+        time: '10m ago',
+        type: 'schedule',
+        unread: true
+      },
+      {
+        title: 'Attendance Logged',
+        text: '94% attendance logged for previous Biochemistry lecture session.',
+        time: '1h ago',
+        type: 'attendance',
+        unread: false
+      },
+      {
+        title: 'Academic Circular',
+        text: 'Academic calendar 2026-27 updated with Diwali holiday schedule.',
+        time: 'Yesterday',
+        type: 'circular',
+        unread: false
+      }
+    ];
+
+    const countBadge = document.getElementById('mobileNotificationCountBadge');
+    if (countBadge) countBadge.textContent = `All (${notifications.length})`;
+
+    notifications.forEach(n => {
+      const item = document.createElement('div');
+      item.className = `p-3 rounded-2xl border flex gap-3 relative ${
+        n.unread ? 'bg-terra-forestLight/40 border-terra-forest/20' : 'bg-terra-card border-terra-border/80 shadow-soft'
+      }`;
+
+      item.innerHTML = `
+        <div class="w-8 h-8 rounded-xl ${n.type === 'attendance' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (n.type === 'circular' ? 'bg-terra-amberBg text-terra-amber border border-terra-amberBorder' : 'bg-terra-forest text-white')} flex items-center justify-center shrink-0 mt-0.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0 pr-2">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[10px] font-bold uppercase tracking-wider ${n.type === 'circular' ? 'text-terra-amber' : 'text-terra-forest'}">${n.title}</span>
+            <span class="text-[10px] text-terra-muted">${n.time}</span>
+          </div>
+          <p class="text-xs font-bold text-terra-charcoal mt-0.5 leading-snug">${n.title}</p>
+          <p class="text-[11px] text-terra-muted mt-0.5 leading-relaxed">${n.text}</p>
+        </div>
+        ${n.unread ? '<span class="unread-dot w-2 h-2 rounded-full bg-terra-forest shrink-0 mt-1"></span>' : ''}
+      `;
+      this.mobileNotificationFeed.appendChild(item);
+    });
   }
 }
 
