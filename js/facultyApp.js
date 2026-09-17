@@ -140,6 +140,8 @@ export class FacultyDashboardController {
     this.detailModal = document.getElementById('facultyEventDetailModal');
     this.closeModalBtn = document.getElementById('closeFacultyEventModal');
     this.modalCloseBtn = document.getElementById('modalDetailCloseBtn');
+    this.modalRescheduleBtn = document.getElementById('modalDetailRescheduleBtn');
+    this.modalCancelBtn = document.getElementById('modalDetailCancelBtn');
     this.modalGCalBtn = document.getElementById('modalDetailGCalBtn');
     this.modalIcsBtn = document.getElementById('modalDetailIcsBtn');
 
@@ -192,9 +194,11 @@ export class FacultyDashboardController {
     // Export .ics Schedule
     this.exportIcsBtn?.addEventListener('click', () => this.exportScheduleIcs());
 
-    // Modal Close
+    // Modal Actions
     this.closeModalBtn?.addEventListener('click', () => this.closeDetailModal());
     this.modalCloseBtn?.addEventListener('click', () => this.closeDetailModal());
+    this.modalRescheduleBtn?.addEventListener('click', () => this.handleRescheduleLecture());
+    this.modalCancelBtn?.addEventListener('click', () => this.handleCancelLecture());
     this.detailModal?.addEventListener('click', (e) => {
       if (e.target === this.detailModal) this.closeDetailModal();
     });
@@ -1260,6 +1264,7 @@ export class FacultyDashboardController {
    */
   openDetailModal(ev) {
     if (!this.detailModal) return;
+    this.currentDetailEvent = ev;
 
     const modalSubjectBadge = document.getElementById('modalSubjectBadge');
     const modalDetailTitle = document.getElementById('modalDetailTitle');
@@ -1316,6 +1321,20 @@ export class FacultyDashboardController {
 
   closeDetailModal() {
     this.detailModal?.classList.add('hidden');
+  }
+
+  handleRescheduleLecture() {
+    const ev = this.currentDetailEvent;
+    const topic = ev?.topic || ev?.subject || 'Class';
+    this.closeDetailModal();
+    this.showToast(`Reschedule request sent to Academic Coordinator for ${topic}`);
+  }
+
+  handleCancelLecture() {
+    const ev = this.currentDetailEvent;
+    const topic = ev?.topic || ev?.subject || 'Class';
+    this.closeDetailModal();
+    this.showToast(`Class cancellation request submitted for ${topic}`);
   }
 
   exportScheduleIcs() {
@@ -1671,6 +1690,8 @@ export class FacultyDashboardController {
     this.mobileModalCloseBtn = document.getElementById('mobileModalCloseBtn');
     this.mobileModalCloseSecondaryBtn = document.getElementById('mobileModalCloseSecondaryBtn');
     this.mobileModalStartBtn = document.getElementById('mobileModalStartBtn');
+    this.mobileModalRescheduleBtn = document.getElementById('mobileModalRescheduleBtn');
+    this.mobileModalCancelBtn = document.getElementById('mobileModalCancelBtn');
 
     // Batch toggle
     this.mobileBatchBtn?.addEventListener('click', (e) => {
@@ -1741,6 +1762,8 @@ export class FacultyDashboardController {
     // Modal
     this.mobileModalCloseBtn?.addEventListener('click', () => this.closeMobileLectureDetail());
     this.mobileModalCloseSecondaryBtn?.addEventListener('click', () => this.closeMobileLectureDetail());
+    this.mobileModalRescheduleBtn?.addEventListener('click', () => this.handleMobileRescheduleLecture());
+    this.mobileModalCancelBtn?.addEventListener('click', () => this.handleMobileCancelLecture());
     this.mobileLectureBackdrop?.addEventListener('click', (e) => {
       if (e.target === this.mobileLectureBackdrop) this.closeMobileLectureDetail();
     });
@@ -2634,6 +2657,7 @@ export class FacultyDashboardController {
 
   openMobileLectureDetail(ev) {
     if (!ev) return;
+    this.currentMobileDetailEvent = ev;
     const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026 Batch', platform: 'app' };
 
     const modalBatch = document.getElementById('mobileModalBatchBadge');
@@ -2719,6 +2743,20 @@ export class FacultyDashboardController {
     setTimeout(() => {
       if (backdrop) backdrop.classList.add('hidden');
     }, 280);
+  }
+
+  handleMobileRescheduleLecture() {
+    const ev = this.currentMobileDetailEvent;
+    const topic = ev?.topic || ev?.subject || 'Class';
+    this.closeMobileLectureDetail();
+    this.showToast(`Reschedule request sent to Academic Coordinator for ${topic}`);
+  }
+
+  handleMobileCancelLecture() {
+    const ev = this.currentMobileDetailEvent;
+    const topic = ev?.topic || ev?.subject || 'Class';
+    this.closeMobileLectureDetail();
+    this.showToast(`Class cancellation request submitted for ${topic}`);
   }
 
   startMobileLiveSession() {
