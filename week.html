@@ -161,37 +161,33 @@
             <span class="material-symbols-outlined text-[#788279] text-[16px] hidden sm:inline">expand_more</span>
           </div>
 
-          <!-- Dean Dropdown Menu -->
-          <div id="adminDeanDropdown" class="hidden absolute top-full mt-2 right-0 w-64 bg-white border border-[#ded5c6] rounded-xl modal-3d p-2 z-50">
-            <div class="px-3 py-2 border-b border-[#ece5d8] mb-1">
-              <p class="text-xs font-bold text-[#2c332d]">Dean Academic Directorate</p>
-              <p class="text-[10px] text-[#68736a]">Dean Office • Institutional Node 990</p>
+          <!-- Dean / Admin Profile Dropdown Menu -->
+          <div id="adminDeanDropdown" class="hidden absolute top-full mt-2 right-0 w-64 bg-white border border-[#ded5c6] rounded-2xl shadow-xl modal-3d p-3 z-50 text-xs">
+            <!-- Logged-in Admin Info -->
+            <div class="pb-2.5 border-b border-[#f0ece4]">
+              <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In Administrator</span>
+              <p class="font-bold text-[#2c332d] text-sm mt-0.5">Dean Academic Directorate</p>
+              <p class="text-[11px] text-[#4a7c59] font-semibold mt-0.5">Dean Office • Institutional Node 990</p>
+              <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                <span>Super Admin • Full Access</span>
+              </span>
             </div>
-            <div class="space-y-0.5">
-              <a href="/login.html" class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-lg transition-colors no-underline">
-                <span class="material-symbols-outlined text-[17px] text-[#4a7c59]">badge</span>
-                <span>Faculty Sign In Gateway</span>
+
+            <!-- Quick Links -->
+            <div class="py-2 border-b border-[#f0ece4] space-y-1">
+              <a href="requests.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">sync_alt</span>
+                <span>Requests & Approvals</span>
               </a>
-              <button id="deanMenuDashboardBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-lg transition-colors text-left border-none bg-transparent cursor-pointer">
-                <span class="material-symbols-outlined text-[17px] text-[#3b6347]">monitoring</span>
-                <span>Curriculum Dashboard</span>
-              </button>
-              <button id="deanMenuFacultyBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-lg transition-colors text-left border-none bg-transparent cursor-pointer">
-                <span class="material-symbols-outlined text-[17px] text-[#c26d3e]">groups</span>
-                <span>Faculty Directory</span>
-              </button>
-              <button id="deanMenuOnboardBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-lg transition-colors text-left border-none bg-transparent cursor-pointer">
-                <span class="material-symbols-outlined text-[17px] text-[#4a7c59]">person_add</span>
-                <span>Faculty Onboarding</span>
-              </button>
-              <button id="deanMenuSettingsBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-lg transition-colors text-left border-none bg-transparent cursor-pointer border-t border-[#ece5d8] mt-1 pt-1.5">
-                <span class="material-symbols-outlined text-[17px] text-[#4a7c59]">settings</span>
-                <span>Automated Email &amp; Settings</span>
-              </button>
-              <button id="deanMenuConnectSheetBtn" class="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#4a7c59] hover:bg-[#eef4f0] rounded-lg transition-colors text-left border-none bg-transparent cursor-pointer">
-                <span class="material-symbols-outlined text-[17px]">table_chart</span>
-                <span>Connect Batch Sheet</span>
-              </button>
+            </div>
+
+            <!-- Logout Button -->
+            <div class="pt-2">
+              <a href="/login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                <span>Sign Out / Logout</span>
+              </a>
             </div>
           </div>
         </div>
@@ -616,29 +612,43 @@
       </div>
     </div>
 
+  
+    <!-- 8. REQUESTS & APPROVALS VIEW CONTAINER -->
+    <div id="viewSectionRequests" class="hidden flex flex-col w-full animate-in fade-in duration-200">
+      <!-- Dynamically rendered via renderRequestsView with zero dummy data -->
+    </div>
+
   </main>
 
   <!-- BOTTOM FLOATING NAVIGATION PILL (CANDY DOCK) -->
-  <nav aria-label="Main Navigation" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 dock-3d rounded-2xl px-3 py-1.5 flex items-center gap-1.5">
-    <button type="button" class="dock-nav-item flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-xs font-semibold transition-all cursor-pointer border-none bg-transparent" data-dock="dashboard">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="9" rx="1" width="7" x="3" y="3"></rect><rect height="5" rx="1" width="7" x="14" y="3"></rect><rect height="9" rx="1" width="7" x="14" y="12"></rect><rect height="5" rx="1" width="7" x="3" y="16"></rect></svg>
-      <span>Dashboard</span>
+  <nav aria-label="Main Navigation" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 dock-3d rounded-2xl px-2 sm:px-3.5 py-1.5 flex items-center gap-1 sm:gap-1.5 select-none max-w-[96vw] sm:max-w-max overflow-x-auto no-scrollbar" style="scrollbar-width: none; -ms-overflow-style: none;">
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="dashboard">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect height="9" rx="1" width="7" x="3" y="3"></rect><rect height="5" rx="1" width="7" x="14" y="3"></rect><rect height="9" rx="1" width="7" x="14" y="12"></rect><rect height="5" rx="1" width="7" x="3" y="16"></rect></svg>
+      <span class="whitespace-nowrap">Dashboard</span>
     </button>
-    <button type="button" class="dock-nav-item flex items-center gap-2 px-4 py-1.5 rounded-xl btn-3d-primary text-white text-xs font-bold transition-all cursor-pointer border-none" data-dock="calendar">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
-      <span>Calendar</span>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 rounded-xl btn-3d-primary text-white text-[11px] sm:text-xs font-bold transition-all cursor-pointer border-none whitespace-nowrap shrink-0" data-dock="calendar">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+      <span class="whitespace-nowrap">Calendar</span>
     </button>
-    <button type="button" class="dock-nav-item flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-xs font-semibold transition-all cursor-pointer border-none bg-transparent" data-dock="faculty">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-      <span>Faculty</span>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="faculty">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <span class="whitespace-nowrap">Faculty</span>
     </button>
-    <button type="button" class="dock-nav-item flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-xs font-semibold transition-all cursor-pointer border-none bg-transparent" data-dock="onboarding">
-      <span class="material-symbols-outlined text-[17px]">person_add</span>
-      <span>Faculty Onboarding</span>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="workload">
+      <span class="material-symbols-outlined text-[17px] shrink-0">work_history</span>
+      <span class="whitespace-nowrap">Workload Analytics</span>
     </button>
-    <button type="button" class="dock-nav-item flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-xs font-semibold transition-all cursor-pointer border-none bg-transparent" data-dock="settings">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-      <span>Settings</span>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="onboarding">
+      <span class="material-symbols-outlined text-[17px] shrink-0">person_add</span>
+      <span class="whitespace-nowrap">Faculty Onboarding</span>
+    </button>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="requests">
+      <span class="material-symbols-outlined text-[17px] shrink-0">sync_alt</span>
+      <span class="whitespace-nowrap">Requests</span>
+    </button>
+    <button type="button" class="dock-nav-item flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-[11px] sm:text-xs font-semibold transition-all cursor-pointer border-none bg-transparent whitespace-nowrap shrink-0" data-dock="settings">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span class="whitespace-nowrap">Settings</span>
     </button>
   </nav>
 
@@ -1149,6 +1159,660 @@
 
     </div>
   </div>
+
+  <!-- 1. DECLINE / CANCEL CONFIRMATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="declineConfirmModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="declineModalBackdrop"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <!-- Close Button -->
+      <button aria-label="Close dialog" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#f5f1ea] hover:bg-[#f0ece4] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeDeclineIconBtn" type="button">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+      
+      <!-- Icon -->
+      <div class="mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#faece3] border border-[#f3dcd0] flex items-center justify-center text-[#c85a32] shadow-xs">
+          <span class="material-symbols-outlined text-[26px]">warning</span>
+        </div>
+      </div>
+      
+      <!-- Header Titles -->
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] bg-[#faece3] px-2 py-0.5 rounded border border-[#f3dcd0] font-label">Action Required</span>
+          <span class="text-xs text-[#74796e] font-medium">Decline Reschedule Request</span>
+        </div>
+        <h2 class="font-headline text-xl sm:text-2xl font-bold text-[#2e3230] leading-snug">
+          Do you want to cancel this session?
+        </h2>
+      </div>
+      
+      <!-- Subtitle & Information -->
+      <div class="mt-3 space-y-3.5">
+        <p class="text-xs sm:text-sm text-[#4a4e4a] leading-relaxed" id="declinePromptSubtitle">
+          Declining will reject the requested slot change for <strong class="text-[#2e3230] font-semibold" id="declineFacultyTarget">Dr. Rajesh Jambhulkar</strong> (<span id="declineFacultySub">Biochemistry - Prarambh 2026</span>) and notify the faculty member.
+        </p>
+        
+        <!-- Session Details Card -->
+        <div class="p-3.5 rounded-xl bg-[#faf6f0] border border-[#e8e2d8] text-xs space-y-2">
+          <div class="flex items-center justify-between text-[#4a4e4a] text-xs">
+            <span class="font-medium text-[#74796e]">Scheduled Slot:</span>
+            <span class="font-semibold text-[#2e3230]" id="declineSessionTime">Sat, 17 Oct • 7:00 PM – 9:00 PM</span>
+          </div>
+          <div class="flex items-center justify-between text-[#4a4e4a] text-xs pt-1.5 border-t border-[#e8e2d8]">
+            <span class="font-medium text-[#74796e]">Notice Action:</span>
+            <span class="font-semibold text-[#c85a32]">Slot Vacated &amp; Student Alert Triggered</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="mt-6 pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-5 py-2.5 rounded-xl border border-[#c4c8bc] bg-white hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-all cursor-pointer min-w-[80px]" id="declineNoBtn" type="button">
+          No
+        </button>
+        <button class="px-5 py-2.5 rounded-xl bg-[#c85a32] hover:bg-[#b04b25] text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer min-w-[90px] justify-center border-none" id="declineYesBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">check</span>
+          <span>Yes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. INTERACTIVE RESCHEDULE TIMETABLE MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rescheduleModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="modalBackdrop"></div>
+    <div class="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-[#e8e2d8] flex items-center justify-between bg-[#fbf9f5]">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-[#c8e8d0] text-[#002110] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-sm" id="rescheduleModalAvatar">
+            RJ
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="font-headline text-lg font-bold text-[#2e3230] leading-tight">
+                Faculty Schedule &amp; Slot Availability — Oct 2026
+              </h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#f8e0a8] text-[#221a05] text-[11px] font-bold uppercase tracking-wider">Pending Approval</span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="rescheduleModalSubtitle">
+              Dr. Rajesh Jambhulkar • Subject: Biochemistry • Prarambh 2026 Batch (MBBS 1st Year)
+            </p>
+          </div>
+        </div>
+        <button aria-label="Close dialog" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeModalIconBtn" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+        
+        <!-- 1. Slot Comparison Banner -->
+        <div class="relative p-4 rounded-xl bg-[#f5f1ea] border border-[#e8e2d8]">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch relative">
+            <!-- Current Slot -->
+            <div class="p-4 rounded-xl bg-white border border-[#f3dcd0] shadow-xs flex flex-col justify-between relative overflow-hidden">
+              <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-[#faece3]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-[#b3532c]"></span>
+                  <span class="text-[11px] font-bold text-[#4a4e4a] uppercase tracking-wider font-label">Original Schedule</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#faece3] text-[#b3532c] border border-[#f3dcd0]">
+                  Shift Requested
+                </span>
+              </div>
+              <div class="pt-3 space-y-1.5">
+                <div class="flex items-center gap-2 text-[#2e3230] font-headline font-bold text-base line-through opacity-70">
+                  <span class="material-symbols-outlined text-[18px] text-[#b3532c]">event_busy</span>
+                  <span id="rescheduleOriginalSlotText">Sat, 17 Oct • 7:00 PM – 9:00 PM</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Proposed Slot -->
+            <div class="p-4 rounded-xl bg-[#f0f6f2] border-2 border-[#4a7c59] shadow-xs flex flex-col justify-between relative overflow-hidden">
+              <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-[#d2e2d6]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-[#4a7c59]"></span>
+                  <span class="text-[11px] font-bold text-[#4a7c59] uppercase tracking-wider font-label">Proposed Reschedule</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#eaf1ec] text-[#4a7c59] border border-[#cbe0d2] flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[12px]">check_circle</span> Conflict-Free
+                </span>
+              </div>
+              <div class="pt-3 space-y-1.5">
+                <div class="flex items-center gap-2 text-[#2e3230] font-headline font-bold text-base">
+                  <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">event_available</span>
+                  <span id="rescheduleProposedSlotText">Tue, 20 Oct • 6:30 PM – 8:30 PM</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-[#4a7c59] flex-wrap pt-0.5">
+                  <span class="text-[11px] text-[#2a6038] font-medium">Full Batch Free • 0 Clashes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Timetable Overview: Context Sequence -->
+        <div class="space-y-3.5 rounded-xl border border-[#e8e2d8] bg-white p-4 shadow-sm">
+          <!-- Header & Toolbar -->
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[#e8e2d8]">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-[#eaf1ec] text-[#4a7c59] flex items-center justify-center shrink-0 border border-[#d2e2d6]">
+                <span class="material-symbols-outlined text-[20px]">calendar_view_week</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label">
+                    Batch Timetable &amp; Slot Availability Grid
+                  </h3>
+                  <span class="px-2 py-0.2 text-[10px] font-semibold bg-[#f0f6f2] text-[#4a7c59] rounded border border-[#cbe0d2]">Prarambh 2026</span>
+                </div>
+                <p class="text-[11px] text-[#74796e] font-medium mt-0.5">Live Lecture allocation • MBBS Year 1</p>
+              </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center bg-[#f5f1ea] rounded-lg p-0.5 border border-[#e8e2d8]">
+                <button aria-label="Previous week" class="w-7 h-7 flex items-center justify-center text-[#4a4e4a] hover:text-[#2e3230] hover:bg-white rounded transition-colors border-none bg-transparent cursor-pointer" type="button">
+                  <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <span class="px-3 text-xs font-bold text-[#2e3230] whitespace-nowrap">Oct 15 – Oct 21, 2026</span>
+                <button aria-label="Next week" class="w-7 h-7 flex items-center justify-center text-[#4a4e4a] hover:text-[#2e3230] hover:bg-white rounded transition-colors border-none bg-transparent cursor-pointer" type="button">
+                  <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+              </div>
+              <button class="px-3 py-1 text-xs font-semibold bg-white hover:bg-[#f5f1ea] text-[#2e3230] rounded-lg border border-[#e8e2d8] shadow-xs transition-colors cursor-pointer" type="button">
+                Today
+              </button>
+              <div class="flex items-center bg-[#f5f1ea] p-0.5 rounded-lg border border-[#e8e2d8] text-xs font-semibold">
+                <button class="px-2.5 py-1 rounded-md bg-[#4a7c59] text-white shadow-xs font-semibold border-none cursor-pointer" type="button">Week</button>
+                <button class="px-2.5 py-1 rounded-md text-[#4a4e4a] hover:text-[#2e3230] transition-colors font-medium border-none bg-transparent cursor-pointer" type="button">Day</button>
+                <button class="px-2.5 py-1 rounded-md text-[#4a4e4a] hover:text-[#2e3230] transition-colors font-medium border-none bg-transparent cursor-pointer" type="button">Month</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Legend -->
+          <div class="flex items-center justify-between flex-wrap gap-2.5 px-3 py-2 rounded-lg bg-[#f5f1ea]/60 border border-[#e8e2d8] text-[11px]">
+            <div class="flex items-center gap-4 flex-wrap">
+              <span class="font-bold text-[#2e3230] uppercase font-label tracking-wider text-[10px]">Legend:</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#4a7c59] ring-2 ring-[#4a7c59]/20"></span>
+                <span class="text-[#2e3230] font-semibold">Selected Proposed Slot</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded border border-dashed border-[#4a7c59] bg-[#f0f6f2]"></span>
+                <span class="text-[#4a4e4a]">Available Slot (Conflict-Free)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#b3532c]"></span>
+                <span class="text-[#b3532c] font-medium">Shift Requested / Vacated</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded bg-[#f0ece4] border border-[#e8e2d8]"></span>
+                <span class="text-[#4a4e4a]">Other Regular Lecture</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 text-[#4a7c59] text-[11px] font-semibold">
+              <span class="material-symbols-outlined text-[14px]">verified</span> Live Sync Active
+            </div>
+          </div>
+
+          <!-- Multi-Day Timetable Grid -->
+          <div class="overflow-x-auto rounded-xl border border-[#e8e2d8] bg-[#fbf9f5]">
+            <div class="min-w-[760px] divide-y divide-[#e8e2d8]">
+              <!-- Grid Header Row -->
+              <div class="grid grid-cols-7 text-center divide-x divide-[#e8e2d8]">
+                <div class="py-2.5 px-2 bg-[#f5f1ea] text-[#4a4e4a]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider text-[#74796e]">Thu</span>
+                  <span class="text-xs font-bold text-[#2e3230]">15 Oct</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#f5f1ea] text-[#4a4e4a]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider text-[#74796e]">Fri</span>
+                  <span class="text-xs font-bold text-[#2e3230]">16 Oct</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#faece3]/60 text-[#b3532c] border-b-2 border-b-[#b3532c]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider">Sat</span>
+                  <span class="text-xs font-bold">17 Oct (Vacating)</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#f0ece4]/60 text-[#4a4e4a]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider text-[#74796e]">Sun</span>
+                  <span class="text-xs font-bold text-[#4a4e4a]">18 Oct</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#f5f1ea] text-[#2e3230]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider text-[#74796e]">Mon</span>
+                  <span class="text-xs font-bold text-[#2e3230]">19 Oct</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#eaf1ec] text-[#4a7c59] border-b-2 border-b-[#4a7c59]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                    <span class="material-symbols-outlined text-[13px]">verified</span> Tue
+                  </span>
+                  <span class="text-xs font-bold text-[#4a7c59]">20 Oct (Proposed)</span>
+                </div>
+                <div class="py-2.5 px-2 bg-[#f5f1ea] text-[#4a4e4a]">
+                  <span class="block text-[11px] font-bold uppercase tracking-wider text-[#74796e]">Wed</span>
+                  <span class="text-xs font-bold text-[#2e3230]">21 Oct</span>
+                </div>
+              </div>
+
+              <!-- Time Band 1: Afternoon Slot (5:00 PM – 7:00 PM) -->
+              <div class="grid grid-cols-7 divide-x divide-[#e8e2d8] text-xs bg-white min-h-[105px]">
+                <div class="p-2 flex flex-col justify-between group hover:bg-[#f0f6f2] transition-colors cursor-pointer bg-white">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a4e4a] font-medium">
+                    <span>5:00 – 7:00 PM</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg border border-dashed border-[#c4c8bc] group-hover:border-[#4a7c59] text-center bg-[#f5f1ea]/40 group-hover:bg-white transition-all">
+                    <span class="text-[11px] text-[#4a7c59] font-bold block leading-tight">+ Available</span>
+                    <span class="text-[9px] text-[#74796e] block mt-0.5">Studio 01 / 02</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Physiology (LT-1)</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Vivek Nalgirkar</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Booked • Hall 1</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Anatomy Lab</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Pradeep Pawar</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Dissection Hall</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0ece4]/40 flex flex-col justify-center items-center text-center">
+                  <span class="material-symbols-outlined text-[#4a4e4a]/40 text-[20px]">spa</span>
+                  <span class="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wide font-label mt-1">Cool-Off</span>
+                  <span class="text-[9px] text-[#74796e]">Weekly Recess</span>
+                </div>
+                <!-- Mon 19: Available Alternate (Click to open Alt Slot Modal) -->
+                <div class="p-2 flex flex-col justify-between group hover:bg-[#f0f6f2] transition-all cursor-pointer bg-white relative rounded-lg border-2 border-dashed border-[#4a7c59]/40 hover:border-[#4a7c59] hover:shadow-md" id="mon19SlotTrigger">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a4e4a] font-medium">
+                    <span class="font-semibold text-[#4a7c59]">5:00 – 7:00 PM</span>
+                    <span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse ring-2 ring-[#4a7c59]/20"></span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg border border-dashed border-[#4a7c59] text-center bg-[#f0f6f2]/80 group-hover:bg-[#eaf1ec] transition-all">
+                    <span class="text-[11px] text-[#4a7c59] font-bold block leading-tight">+ Available Alt</span>
+                    <span class="text-[9px] text-[#2a6038] font-semibold block mt-0.5">Studio 04 Free</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0f6f2]/80 flex flex-col justify-between">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a7c59] font-semibold">
+                    <span>5:00 – 6:30 PM</span>
+                    <span class="material-symbols-outlined text-[13px]">tune</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#cbe0d2] text-center shadow-xs">
+                    <span class="text-[10px] text-[#4a7c59] font-bold block leading-tight">Studio 02 Prep</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Tech Check Buffer</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Clinical Posting</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Ward Rotations</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Hospital Wing</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Time Band 2: Prime Evening / Reschedule Focus (6:30 PM – 9:00 PM) -->
+              <div class="grid grid-cols-7 divide-x divide-[#e8e2d8] text-xs bg-white min-h-[125px]">
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">7:00 – 9:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Anatomy Live</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Pradeep Pawar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 02</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">6:30 – 8:30 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Cardio Physiology</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Vivek Nalgirkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 03</span>
+                  </div>
+                </div>
+                <!-- Sat 17: Vacated Slot -->
+                <div class="p-2 bg-[#faece3]/60 flex flex-col justify-between border-l-2 border-l-[#b3532c]">
+                  <div class="flex items-center justify-between text-[10px] text-[#b3532c] font-bold">
+                    <span>7:00 – 9:00 PM</span>
+                    <span class="material-symbols-outlined text-[14px]">event_busy</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#f3dcd0] space-y-1 shadow-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[9px] font-bold uppercase text-[#b3532c] bg-[#faece3] px-1.5 py-0.2 rounded border border-[#f3dcd0]">Shift Requested</span>
+                    </div>
+                    <span class="text-[10px] font-bold line-through text-[#74796e] block leading-tight">
+                      Biochemistry Live
+                    </span>
+                    <span class="text-[9px] text-[#b3532c] font-medium block leading-tight">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 04 (Released)</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0ece4]/40 flex flex-col justify-center items-center text-center">
+                  <span class="material-symbols-outlined text-[#4a4e4a]/40 text-[18px]">menu_book</span>
+                  <span class="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wide font-label mt-1">Self Study</span>
+                  <span class="text-[9px] text-[#74796e]">NMC Protected Hour</span>
+                </div>
+                <div class="p-2 flex flex-col justify-between group hover:bg-[#f0f6f2] transition-colors cursor-pointer bg-white">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a4e4a] font-medium">
+                    <span>7:00 – 9:00 PM</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg border-2 border-dashed border-[#cbe0d2] group-hover:border-[#4a7c59] text-center bg-[#f5f1ea]/40 group-hover:bg-white transition-all space-y-0.5">
+                    <span class="text-[10px] text-[#4a7c59] font-bold block leading-tight">+ Available Alt</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Studio 04 Free</span>
+                    <span class="text-[8px] text-[#4a7c59] font-semibold">Batch Free</span>
+                  </div>
+                </div>
+                <!-- Tue 20: SELECTED PROPOSED RESCHEDULE SLOT -->
+                <div class="p-2 bg-[#eaf1ec] flex flex-col justify-between border-2 border-[#4a7c59] rounded-lg shadow-sm">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a7c59] font-bold">
+                    <span>6:30 – 8:30 PM</span>
+                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#cbe0d2] space-y-1 shadow-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[9px] font-bold uppercase text-[#4a7c59] bg-[#eaf1ec] px-1.5 py-0.2 rounded border border-[#cbe0d2]">Proposed Slot</span>
+                    </div>
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">
+                      Biochemistry Live
+                    </span>
+                    <span class="text-[9px] text-[#4a7c59] font-semibold block leading-tight">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 02 • Zero Clashes</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">7:00 – 9:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Biochemistry (Cont.)</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 04 (Regular)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom verification status strip -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-[#4a4e4a] pt-1 px-1">
+            <div class="flex items-center gap-1.5 text-[#4a7c59] font-medium">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check_circle</span>
+              <span>Tuesday 6:30 PM slot verified: Zero batch clash, Studio 02 reserved &amp; faculty travel clearance verified.</span>
+            </div>
+            <a href="admin.html#calendar" class="text-xs font-semibold text-[#4a7c59] hover:underline self-start sm:self-auto flex items-center gap-1 no-underline">
+              <span>Full Month Schedule</span>
+              <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 3. Notification Options -->
+        <div class="flex items-center justify-between p-3.5 rounded-xl bg-white border border-[#e8e2d8] shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <div class="flex items-center gap-2.5">
+              <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyEmailCheck" type="checkbox">
+              <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyEmailCheck">
+                <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">mail</span>
+                <span>Notify Faculty via Email</span>
+                <strong class="text-[#2e3230] font-bold bg-[#f5f1ea] px-1.5 py-0.5 rounded border border-[#e8e2d8] text-[11px]" id="notifyFacultyEmailName">Dr. Rajesh Jambhulkar</strong>
+              </label>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyWhatsappCheck" type="checkbox">
+              <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyWhatsappCheck">
+                <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">chat</span>
+                <span>Notify via WhatsApp</span>
+              </label>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-[#4a4e4a] font-semibold hidden sm:flex shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+            <span>Instant Broadcast on Approval</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-[#e8e2d8] bg-[#fbf9f5] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button class="px-4 py-2 rounded-xl bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer w-full sm:w-auto border-none" id="closeModalBtn" type="button">
+            Decline / Suggest Alt Slot
+          </button>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rescheduleCancelBtn" type="button">
+            Cancel
+          </button>
+          <button class="px-5 py-2 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer border-none" id="confirmApproveBtn" type="button">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+            <span>Confirm Reschedule &amp; Approve</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. APPROVE CANCELLATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="approveCancellationModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="approveCancellationModalBackdrop"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-[#e8e2d8]">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-full bg-[#c8e8d0] text-[#002110] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-xs" id="approveCancellationModalAvatar">
+            VN
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2e3230] leading-tight">Approve Session Cancellation</h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#eaf1ec] text-[#4a7c59] text-[10px] font-bold uppercase tracking-wider">Faculty Request</span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="approveCancellationModalSubtitle">Dr. Vivek Nalgirkar • Physiology • Sushruta 2026</p>
+          </div>
+        </div>
+        <button aria-label="Close approve cancellation modal" class="w-8 h-8 rounded-full bg-[#f5f1ea] hover:bg-[#eae4d9] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeApproveCancellationIconBtn" type="button">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Body Content -->
+      <div class="py-4 space-y-4 overflow-y-auto max-h-[75vh]">
+        <!-- Session Details Card -->
+        <div class="p-4 rounded-2xl bg-[#faf6f0] border border-[#e8e2d8] text-xs space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <span class="font-medium text-[#74796e] shrink-0">Cancelled Session:</span>
+            <span class="font-bold text-[#2e3230] text-right" id="approveCancellationModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM (LT-1 Lecture Hall)</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 pt-2 border-t border-[#e8e2d8]">
+            <span class="font-medium text-[#74796e] shrink-0">Substitute Faculty:</span>
+            <span class="font-bold text-[#4a7c59] text-right" id="approveCancellationModalSubstitute">Dr. Priya Sharma (Verified NMC Faculty)</span>
+          </div>
+          <div class="pt-2 border-t border-[#e8e2d8]">
+            <p class="text-[#4a4e4a] italic text-[11px]" id="approveCancellationModalFacultyNote">“Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person LT-1.”</p>
+          </div>
+        </div>
+
+        <!-- Confirmation Notice -->
+        <div class="p-3.5 rounded-2xl bg-[#eaf1ec]/80 border border-[#d2e2d6] flex items-start gap-2.5 text-[#2d4d37]">
+          <span class="material-symbols-outlined text-[20px] text-[#4a7c59] shrink-0 mt-0.5">check_circle</span>
+          <div class="text-xs space-y-0.5">
+            <div class="font-bold text-[#2e3230]">Slot Vacated &amp; Substitute Assigned</div>
+            <p class="text-[#4a4e4a] text-[11px]">Approving will vacate this slot from Dr. Vivek's schedule, map substitute teaching hours, and update batch timetables.</p>
+          </div>
+        </div>
+
+        <!-- Notification Strip -->
+        <div class="p-3.5 rounded-2xl bg-[#f5f1ea] border border-[#e8e2d8] flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyFacultyApproveCancel" type="checkbox">
+            <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyFacultyApproveCancel">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">notifications_active</span>Notify faculty &amp; enrolled students immediately
+            </label>
+          </div>
+          <span class="text-[10px] text-[#74796e] font-bold uppercase tracking-wider">Automated alert</span>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-6 py-2 rounded-full border border-[#c4c8bc] bg-white hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer min-w-[80px]" id="approveCancelDismissBtn" type="button">Dismiss</button>
+        <button class="px-6 py-2 rounded-full bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer border-none min-w-[140px] justify-center" id="confirmApproveCancellationBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span>Confirm Approval</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. REJECT CANCELLATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rejectCancellationModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="rejectModalBackdrop"></div>
+    <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-2 py-2 border-b border-[#e8e2d8] flex items-center justify-between pb-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-[#ffdad8] text-[#690005] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-sm" id="rejectModalAvatar">
+            VN
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="font-headline text-lg font-bold text-[#2e3230] leading-tight">Reject Cancellation Request</h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#ffdad8] text-[#690005] text-[11px] font-bold uppercase tracking-wider">Action Required</span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="rejectModalSubtitle">Dr. Vivek Nalgirkar • Physiology • Sushruta 2026</p>
+          </div>
+        </div>
+        <button aria-label="Close reject modal" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeRejectModalIconBtn" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="py-4 space-y-4 overflow-y-auto max-h-[75vh]">
+        <div class="p-3.5 rounded-xl bg-[#faece3]/60 border border-[#f3dcd0] flex items-start gap-3">
+          <span class="material-symbols-outlined text-[#b3532c] text-[20px] shrink-0 mt-0.5">info</span>
+          <div class="text-xs space-y-1">
+            <div class="font-bold text-[#2e3230]">Cancelled Session Details</div>
+            <p class="text-[#4a4e4a]" id="rejectModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM • LT-1 Lecture Hall (Renal Hemodynamics)</p>
+            <p class="text-[#b3532c] font-medium text-[11px]" id="rejectModalFacultyNote">Faculty note: “Sudden clinical emergency duty at affiliated ICU.”</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label">Quick-Select Reason</label>
+          <div class="flex flex-wrap gap-2" id="quickReasonButtonGroup">
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="Crucial Exam Milestone: Upcoming mid-term practical assessments depend directly on Renal Hemodynamics coverage." type="button">Crucial Exam Milestone</button>
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="No Equivalent Alternate Slot: The batch calendar has zero open lecture hall slots available prior to syllabus freeze." type="button">No Equivalent Alternate Slot</button>
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="" type="button">Other</button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label" for="rejectionReasonText">Rejection Reason / Notes for Faculty <span class="text-[#b83230]">*</span></label>
+            <span class="text-[11px] text-[#74796e]">Mandatory</span>
+          </div>
+          <textarea class="w-full p-3 rounded-xl border border-[#c4c8bc] focus:border-[#4a7c59] focus:outline-none text-xs text-[#2e3230] bg-white resize-none h-24 transition-colors font-body" id="rejectionReasonText" placeholder="Explain why the cancellation cannot be approved and provide guidance on alternative arrangements or substitute faculty delegation..."></textarea>
+        </div>
+
+        <div class="p-3 rounded-xl bg-[#f5f1ea] border border-[#e8e2d8] flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyFacultyReject" type="checkbox">
+            <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyFacultyReject">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">notifications_active</span>
+              <span>Notify faculty immediately via Email &amp; PW MedApp</span>
+            </label>
+          </div>
+          <span class="text-[10px] text-[#74796e] font-semibold uppercase tracking-wider">Automated alert</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rejectCancelDismissBtn" type="button">Dismiss</button>
+        <button class="px-5 py-2 rounded-xl bg-[#b83230] hover:bg-[#962624] text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer border-none" id="confirmRejectBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">cancel</span>
+          <span>Confirm Rejection</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. CENTERED ALTERNATIVE SLOT MODAL OVERLAY (Top Layer z-[100]) -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto" id="altSlotModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="altSlotBackdrop"></div>
+    <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-[#c4c8bc] p-4 text-left z-[100] transition-all animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#4a7c59]/20">
+      
+      <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-[#e8e2d8]">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">event_available</span>
+          <span class="font-headline text-sm font-bold text-[#2e3230]">Select Alternative Slot</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] font-bold text-[#4a7c59] bg-[#f0f6f2] px-1.5 py-0.5 rounded border border-[#d2e2d6]">Batch Free</span>
+          <button aria-label="Close alternative slot dialog" class="w-6 h-6 rounded-md hover:bg-[#f5f1ea] flex items-center justify-center text-[#4a4e4a] hover:text-[#2e3230] transition-colors cursor-pointer border-none bg-transparent" id="closeAltSlotBtn" type="button">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="py-3 space-y-2.5 text-xs">
+        <div class="flex items-center gap-1.5 text-[#2e3230] font-semibold text-xs">
+          <span class="material-symbols-outlined text-[16px] text-[#74796e]">calendar_month</span>
+          <span>Mon, 19 Oct • 5:00 – 7:00 PM <span class="text-[#74796e] font-normal">(2.0 hrs)</span></span>
+        </div>
+        
+        <div class="bg-[#f5f1ea] p-2.5 rounded-xl border border-[#e8e2d8] space-y-2">
+          <div class="flex items-center justify-between text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wider font-label">
+            <span>Time Window &amp; Duration</span>
+            <span class="text-[#4a7c59] font-semibold lowercase cursor-pointer hover:underline">edit</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
+              <span class="text-[10px] text-[#74796e]">Start</span>
+              <span class="font-bold text-[#2e3230]">5:00 PM</span>
+            </div>
+            <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
+              <span class="text-[10px] text-[#74796e]">End</span>
+              <span class="font-bold text-[#2e3230]">7:00 PM</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-1.5 pt-0.5">
+            <button class="btn-alt-dur flex-1 py-1 rounded-lg bg-white hover:bg-[#f5f1ea] border border-[#c4c8bc] text-[10px] font-semibold text-[#2e3230] transition-colors cursor-pointer" data-dur="1.5" type="button">1.5h</button>
+            <button class="btn-alt-dur active flex-1 py-1 rounded-lg bg-[#4a7c59] text-white text-[10px] font-bold shadow-xs border border-[#4a7c59] cursor-pointer" data-dur="2.0" type="button">2.0h (Std)</button>
+            <button class="btn-alt-dur flex-1 py-1 rounded-lg bg-white hover:bg-[#f5f1ea] border border-[#c4c8bc] text-[10px] font-semibold text-[#2e3230] transition-colors cursor-pointer" data-dur="2.5" type="button">2.5h</button>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-1.5 text-[11px] text-[#2a6038] font-medium bg-[#f0f6f2] px-2.5 py-1.5 rounded-lg border border-[#d2e2d6]">
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">check_circle</span>
+          <span>Conflict-Free • Batch Prarambh '26 free</span>
+        </div>
+      </div>
+      
+      <div class="pt-1">
+        <button class="w-full py-2 px-3 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none" id="scheduleAltSlotBtn" type="button">
+          <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
+          <span>Schedule to This Slot</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
 
   <!-- Admin Controller Application Script -->
   <script type="module" src="js/adminApp.js"></script>

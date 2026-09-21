@@ -17,6 +17,7 @@ import { BatchManager } from './sheetConnector.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
+import { addFacultyRequest } from './requestsView.js';
 
 export class FacultyDashboardController {
   constructor() {
@@ -98,7 +99,6 @@ export class FacultyDashboardController {
     this.activeNameBadge = document.getElementById('facultyActiveNameBadge');
 
     this.searchInput = document.getElementById('facultySearchInput');
-    this.exportIcsBtn = document.getElementById('facultyExportIcsBtn');
 
     // 3 Dynamic Metric Tabs
     this.tabToday = document.getElementById('tabFacultyToday');
@@ -191,8 +191,6 @@ export class FacultyDashboardController {
       this.renderCurrentView();
     });
 
-    // Export .ics Schedule
-    this.exportIcsBtn?.addEventListener('click', () => this.exportScheduleIcs());
 
     // Modal Actions
     this.closeModalBtn?.addEventListener('click', () => this.closeDetailModal());
@@ -355,89 +353,9 @@ export class FacultyDashboardController {
   }
 
   populateFacultySwitcher() {
-    if (!this.profilesList) return;
-    this.profilesList.innerHTML = '';
-
-    const allBatchEvents = this.batchManager.getAllEvents(this.activeBatchId);
-    const facultyMap = new Map();
-
-    allBatchEvents.forEach(ev => {
-      if (ev.eventType === 'class' && ev.faculty && !ev.faculty.toLowerCase().includes('cool off')) {
-        const facName = ev.faculty.trim();
-        if (!facultyMap.has(facName)) {
-          facultyMap.set(facName, {
-            name: facName,
-            subject: ev.subject || 'Faculty',
-            count: 0
-          });
-        }
-        facultyMap.get(facName).count++;
-      }
-    });
-
-    // Fallback if no classes detected
-    if (facultyMap.size === 0) {
-      facultyMap.set('Dr. Rajesh Jambhulkar', { name: 'Dr. Rajesh Jambhulkar', subject: 'Biochemistry', count: 12 });
-      facultyMap.set('Dr. Pradeep Pawar', { name: 'Dr. Pradeep Pawar', subject: 'Anatomy', count: 12 });
-      facultyMap.set('Dr. Vivek Nalgirkar', { name: 'Dr. Vivek Nalgirkar', subject: 'Physiology', count: 10 });
+    if (this.profilesList) {
+      this.profilesList.innerHTML = '';
     }
-
-    // When viewing 'all' batches, add an "All Faculty & Batches (All Classes)" option at top
-    if (this.activeBatchId === 'all') {
-      const isAllFaculty = this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all';
-      const totalCombinedClasses = allBatchEvents.filter(e => e.eventType === 'class').length;
-      const allItem = document.createElement('button');
-      allItem.type = 'button';
-      allItem.className = `w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-[#f4efe6] transition-colors border-b border-[#f0ece4] ${
-        isAllFaculty ? 'bg-[#eef4f0] font-bold text-[#3b6347]' : 'text-[#2c332d]'
-      }`;
-      allItem.innerHTML = `
-        <div class="flex items-center gap-2.5 truncate mr-2">
-          <div class="w-6 h-6 rounded-full bg-[#4a7c59] text-white text-[9px] font-bold flex items-center justify-center shrink-0 shadow-xs">
-            ALL
-          </div>
-          <div class="truncate">
-            <span class="block truncate leading-tight text-xs font-semibold">All Faculty &amp; Batches</span>
-            <span class="text-[10px] text-[#788279] block">All Classes Combined • ${totalCombinedClasses} classes</span>
-          </div>
-        </div>
-        ${isAllFaculty ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
-      `;
-      allItem.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.switchFaculty('All Faculty', 'Combined Curriculum');
-      });
-      this.profilesList.appendChild(allItem);
-    }
-
-    facultyMap.forEach(fac => {
-      const isCurrent = fac.name.toLowerCase() === this.currentFaculty.toLowerCase();
-      const initials = this.getFacultyInitials(fac.name);
-
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = `w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-[#f4efe6] transition-colors ${
-        isCurrent ? 'bg-[#eef4f0] font-bold text-[#3b6347]' : 'text-[#2c332d]'
-      }`;
-      item.innerHTML = `
-        <div class="flex items-center gap-2.5 truncate mr-2">
-          <div class="w-6 h-6 rounded-full bg-white border border-[#ded5c6] text-[10px] font-bold flex items-center justify-center text-[#4a7c59] shrink-0 shadow-xs">
-            ${initials}
-          </div>
-          <div class="truncate">
-            <span class="block truncate leading-tight text-xs font-semibold">${fac.name}</span>
-            <span class="text-[10px] text-[#788279] block">${fac.subject} • ${fac.count} classes</span>
-          </div>
-        </div>
-        ${isCurrent ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
-      `;
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.switchFaculty(fac.name, fac.subject);
-      });
-      this.profilesList.appendChild(item);
-    });
-
     this.updateFacultyProfileUI();
   }
 
@@ -1323,19 +1241,6 @@ export class FacultyDashboardController {
     this.detailModal?.classList.add('hidden');
   }
 
-  handleRescheduleLecture() {
-    const ev = this.currentDetailEvent;
-    const topic = ev?.topic || ev?.subject || 'Class';
-    this.closeDetailModal();
-    this.showToast(`Reschedule request sent to Academic Coordinator for ${topic}`);
-  }
-
-  handleCancelLecture() {
-    const ev = this.currentDetailEvent;
-    const topic = ev?.topic || ev?.subject || 'Class';
-    this.closeDetailModal();
-    this.showToast(`Class cancellation request submitted for ${topic}`);
-  }
 
   exportScheduleIcs() {
     const facultyEvents = this.getFacultyEvents().filter(ev => ev.eventType === 'class');
@@ -1672,8 +1577,6 @@ export class FacultyDashboardController {
     this.mobileAgendaScheduleContainer = document.getElementById('mobileAgendaScheduleContainer');
     this.mobileAgendaCountBadge = document.getElementById('mobileAgendaCountBadge');
 
-    this.mobileExportIcsBtn = document.getElementById('mobileExportIcsBtn');
-
     // Notifications
     this.mobileNotificationBtn = document.getElementById('mobileNotificationBtn');
     this.mobileNotificationDrawer = document.getElementById('notification-drawer');
@@ -1749,8 +1652,6 @@ export class FacultyDashboardController {
       this.switchMobileView('agenda');
     });
 
-    // Export ICS
-    this.mobileExportIcsBtn?.addEventListener('click', () => this.exportScheduleIcs());
 
     // Notifications
     this.mobileNotificationBtn?.addEventListener('click', () => this.openMobileNotifications());
@@ -1870,85 +1771,9 @@ export class FacultyDashboardController {
   }
 
   populateMobileFacultySwitcher() {
-    if (!this.mobileFacultyProfilesList) return;
-    this.mobileFacultyProfilesList.innerHTML = '';
-
-    const allBatchEvents = this.batchManager.getAllEvents(this.activeBatchId);
-    const facultyMap = new Map();
-
-    allBatchEvents.forEach(ev => {
-      if (ev.eventType === 'class' && ev.faculty && !ev.faculty.toLowerCase().includes('cool off')) {
-        const facName = ev.faculty.trim();
-        if (!facultyMap.has(facName)) {
-          facultyMap.set(facName, {
-            name: facName,
-            subject: ev.subject || 'Faculty',
-            count: 0
-          });
-        }
-        facultyMap.get(facName).count++;
-      }
-    });
-
-    if (facultyMap.size === 0) {
-      facultyMap.set('Dr. Rajesh Jambhulkar', { name: 'Dr. Rajesh Jambhulkar', subject: 'Biochemistry', count: 12 });
-      facultyMap.set('Dr. Pradeep Pawar', { name: 'Dr. Pradeep Pawar', subject: 'Anatomy', count: 12 });
-      facultyMap.set('Dr. Vivek Nalgirkar', { name: 'Dr. Vivek Nalgirkar', subject: 'Physiology', count: 10 });
+    if (this.mobileFacultyProfilesList) {
+      this.mobileFacultyProfilesList.innerHTML = '';
     }
-
-    if (this.activeBatchId === 'all') {
-      const isAllFaculty = this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all';
-      const allItem = document.createElement('button');
-      allItem.type = 'button';
-      allItem.className = `w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
-        isAllFaculty ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
-      }`;
-      allItem.innerHTML = `
-        <div class="flex items-center gap-2 truncate mr-2">
-          <div class="w-5 h-5 rounded-full bg-terra-forest text-white text-[9px] font-bold flex items-center justify-center shrink-0">ALL</div>
-          <div class="truncate">
-            <span class="block truncate text-xs font-semibold leading-tight">All Faculty</span>
-            <span class="text-[9px] text-terra-muted block">All Classes</span>
-          </div>
-        </div>
-        ${isAllFaculty ? '<svg class="w-3.5 h-3.5 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
-      `;
-      allItem.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.mobileProfileDropdown?.classList.add('hidden');
-        this.switchFaculty('All Faculty', 'Combined Curriculum');
-      });
-      this.mobileFacultyProfilesList.appendChild(allItem);
-    }
-
-    facultyMap.forEach(fac => {
-      const isCurrent = fac.name.toLowerCase() === this.currentFaculty.toLowerCase();
-      const initials = this.getFacultyInitials(fac.name);
-
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = `w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
-        isCurrent ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
-      }`;
-      item.innerHTML = `
-        <div class="flex items-center gap-2 truncate mr-2">
-          <div class="w-5 h-5 rounded-full bg-terra-forest/10 border border-terra-forest/20 text-terra-forest text-[9px] font-bold flex items-center justify-center shrink-0">
-            ${initials}
-          </div>
-          <div class="truncate">
-            <span class="block truncate text-xs font-semibold leading-tight">${fac.name}</span>
-            <span class="text-[9px] text-terra-muted block">${fac.subject} • ${fac.count} classes</span>
-          </div>
-        </div>
-        ${isCurrent ? '<svg class="w-3.5 h-3.5 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
-      `;
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.mobileProfileDropdown?.classList.add('hidden');
-        this.switchFaculty(fac.name, fac.subject);
-      });
-      this.mobileFacultyProfilesList.appendChild(item);
-    });
   }
 
   updateMobileHeader() {
@@ -2339,13 +2164,13 @@ export class FacultyDashboardController {
       // Reschedule action
       card.querySelector?.('.btn-reschedule')?.addEventListener?.('click', (e) => {
         e.stopPropagation();
-        this.showToast('Reschedule request sent to Academic Coordinator');
+        this.handleRescheduleLecture(ev);
       });
 
       // Cancel action
       card.querySelector?.('.btn-cancel')?.addEventListener?.('click', (e) => {
         e.stopPropagation();
-        this.showToast('Class cancellation request submitted');
+        this.handleCancelLecture(ev);
       });
 
       this.mobileSelectedScheduleContainer.appendChild(card);
@@ -2745,18 +2570,89 @@ export class FacultyDashboardController {
     }, 280);
   }
 
+  formatEventSlot(ev) {
+    if (!ev) return 'Saturday, October 17, 2026 • 7:00 PM – 9:00 PM';
+    if (ev.isoDate) {
+      try {
+        const [y, m, d] = ev.isoDate.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayName = days[dateObj.getDay()];
+        const monthName = months[dateObj.getMonth()];
+        const timeStr = (ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ');
+        return `${dayName}, ${monthName} ${d}, ${y} • ${timeStr}`;
+      } catch (e) {
+        return `${ev.isoDate} • ${ev.timings || '7:00 PM – 9:00 PM'}`;
+      }
+    }
+    if (ev.dateRaw) {
+      return `${ev.dateRaw} • ${(ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}`;
+    }
+    return 'Saturday, October 17, 2026 • 7:00 PM – 9:00 PM';
+  }
+
+  handleRescheduleLecture(evData) {
+    const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
+    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
+    const subject = ev.subject || this.facultySubject || 'Biochemistry';
+    const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
+    const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
+    const originalSlot = this.formatEventSlot(ev);
+    const proposedSlot = 'Tuesday, October 20, 2026 • 6:30 PM – 8:30 PM';
+
+    addFacultyRequest({
+      type: 'Reschedule',
+      facultyName: faculty,
+      subject: subject,
+      batch: batch,
+      originalSlot: originalSlot,
+      proposedSlot: proposedSlot,
+      reason: `Slot adjustment requested for clinical rounds & CME conference (${topic})`
+    });
+
+    this.closeDetailModal();
+    this.closeMobileLectureDetail();
+    this.showToast(`Reschedule request submitted for "${topic}". Admin notified.`);
+  }
+
+  handleCancelLecture(evData) {
+    const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
+    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
+    const subject = ev.subject || this.facultySubject || 'Biochemistry';
+    const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
+    const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
+    const originalSlot = this.formatEventSlot(ev);
+
+    addFacultyRequest({
+      type: 'Cancellation',
+      facultyName: faculty,
+      subject: subject,
+      batch: batch,
+      originalSlot: originalSlot,
+      reason: `Medical leave & scheduled clinical ward duties (${topic})`
+    });
+
+    this.closeDetailModal();
+    this.closeMobileLectureDetail();
+    this.showToast(`Cancellation request submitted for "${topic}". Admin notified.`);
+  }
+
+  closeDetailModal() {
+    if (this.detailModal) {
+      this.detailModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  }
+
   handleMobileRescheduleLecture() {
     const ev = this.currentMobileDetailEvent;
-    const topic = ev?.topic || ev?.subject || 'Class';
-    this.closeMobileLectureDetail();
-    this.showToast(`Reschedule request sent to Academic Coordinator for ${topic}`);
+    this.handleRescheduleLecture(ev);
   }
 
   handleMobileCancelLecture() {
     const ev = this.currentMobileDetailEvent;
-    const topic = ev?.topic || ev?.subject || 'Class';
-    this.closeMobileLectureDetail();
-    this.showToast(`Class cancellation request submitted for ${topic}`);
+    this.handleCancelLecture(ev);
   }
 
   startMobileLiveSession() {

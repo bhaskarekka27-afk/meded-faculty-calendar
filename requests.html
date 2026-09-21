@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Reschedule &amp; Cancellation Requests — PW MedEd</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  
+  <!-- CSS Styles & 3D Aesthetic Design System Tokens -->
+  <link rel="stylesheet" href="css/3d-aesthetic.css">
+  
+  <style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-tint": "#4a7c59",
+            "on-secondary-fixed": "#1e1a13",
+            "tertiary-container": "#c4a66a",
+            "on-error": "#ffffff",
+            "inverse-on-surface": "#f5f0e8",
+            "primary-fixed": "#c8e8d0",
+            "on-secondary": "#ffffff",
+            "error": "#b83230",
+            "primary-container": "#78a886",
+            "tertiary-fixed-dim": "#dcc48e",
+            "surface-container-highest": "#e4e0d8",
+            "on-error-container": "#690005",
+            "tertiary-fixed": "#f8e0a8",
+            "error-container": "#ffdad8",
+            "on-primary-fixed-variant": "#2a6038",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed": "#f0e8db",
+            "on-surface-variant": "#4a4e4a",
+            "secondary": "#6b6358",
+            "secondary-fixed-dim": "#d4ccbf",
+            "surface-container": "#f0ece4",
+            "on-primary": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#8ecf9e",
+            "on-surface": "#2e3230",
+            "surface-container-low": "#f5f1ea",
+            "primary": "#4a7c59",
+            "outline-variant": "#c4c8bc",
+            "on-tertiary-fixed": "#221a05",
+            "outline": "#74796e",
+            "surface-variant": "#e4e0d8",
+            "surface-bright": "#faf6f0",
+            "surface-container-high": "#eae6de",
+            "secondary-container": "#f0e8db",
+            "on-secondary-container": "#5e5548",
+            "on-primary-fixed": "#002110",
+            "surface-dim": "#dbd7cf",
+            "on-tertiary-fixed-variant": "#554020",
+            "on-tertiary-container": "#554020",
+            "surface": "#faf6f0",
+            "background": "#faf6f0",
+            "on-secondary-fixed-variant": "#4a4538",
+            "tertiary": "#705c30",
+            "on-primary-container": "#d8f0de",
+            "inverse-primary": "#8ecf9e",
+            "on-background": "#2e3230",
+            "inverse-surface": "#2e3230"
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            "headline": ["Literata", "serif"],
+            "display": ["Literata", "serif"],
+            "body": ["Reddit Sans", "sans-serif"],
+            "label": ["Nunito Sans", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#fbf9f5] text-[#2c332d] min-h-screen antialiased flex flex-col justify-between font-body selection:bg-[#4a7c59]/20 selection:text-[#4a7c59] overflow-x-hidden relative">
+
+  <!-- BACKGROUND MIST GLOW -->
+  <div class="fixed inset-0 pointer-events-none z-0"></div>
+
+  <!-- TOP HEADER (MATCHING ADMIN & MAIN SUITE) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#ded5c6] px-6 py-3.5 flex items-center justify-between shadow-[0_4px_20px_-2px_rgba(44,51,45,0.08)]">
+    <div class="flex items-center gap-5">
+      <!-- Logo -->
+      <a id="adminLogoBtn" href="admin.html" class="flex items-center gap-3 text-inherit no-underline cursor-pointer group" title="PW MedEd Academic Schedule">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-b from-[#558d67] to-[#4a7c59] flex items-center justify-center text-white shadow-[0_4px_12px_rgba(74,124,89,0.35)] border border-[#3d6b4b] group-hover:scale-105 transition-transform">
+          <span class="material-symbols-outlined text-[20px]">local_hospital</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-headline font-bold text-[18px] tracking-tight text-[#2d4d37]">PW MedEd</span>
+          <span class="text-[11px] font-bold text-[#4a7c59] bg-[#eef4f0] border border-[#cde0d3] px-2.5 py-0.5 rounded-md uppercase tracking-wider font-body badge-3d">Admin Portal</span>
+        </div>
+      </a>
+
+      <div class="h-4 w-[1px] bg-[#e2dad0] hidden sm:block"></div>
+
+      <!-- Batch Selector Dropdown Pill -->
+      <div class="relative">
+        <div id="adminBatchPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+          <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">school</span>
+          <span class="font-semibold text-xs truncate max-w-[230px]" id="adminBatchLabel">Prarambh 2026 Batch • MBBS 1st Year</span>
+          <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <div id="adminBatchDropdown" class="hidden absolute top-full mt-2 left-0 w-80 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
+          <div class="px-3.5 py-2 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between">
+            <span>Select Active Batch</span>
+            <span class="text-[#4a7c59] font-semibold">Live Google Sheets</span>
+          </div>
+          <div id="adminBatchDropdownList" class="py-1">
+            <!-- Populated dynamically -->
+            <div class="batch-option px-3.5 py-2 hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between text-xs font-semibold text-[#2c332d]" data-batch="all">
+              <span>All Batches (Combined)</span>
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>
+            </div>
+            <div class="batch-option px-3.5 py-2 hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between text-xs font-semibold text-[#2c332d]" data-batch="Prarambh 2026 Batch">
+              <span>Prarambh 2026 Batch (MBBS 1st Year)</span>
+            </div>
+            <div class="batch-option px-3.5 py-2 hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between text-xs font-semibold text-[#2c332d]" data-batch="Sushruta 2026 Batch">
+              <span>Sushruta 2026 Batch (MBBS 2nd Year)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Right Side: Search, Notifications & Dean Profile -->
+    <div class="flex items-center gap-3.5">
+      <div class="relative hidden md:flex items-center">
+        <span class="material-symbols-outlined absolute left-3 text-[16px] text-[#788279] pointer-events-none">search</span>
+        <input id="adminSearchInput" class="w-64 pl-9 pr-4 py-1.5 input-3d rounded-xl text-xs font-medium text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59] transition-all font-body" placeholder="Search requests, faculty, subject..." type="text">
+      </div>
+
+      <div class="flex items-center gap-3 pl-2 border-l border-[#e2dad0]">
+        <!-- Notification Button -->
+        <button class="w-9 h-9 rounded-xl btn-3d-secondary flex items-center justify-center transition-all relative cursor-pointer" id="openNotificationBtn" title="Notifications" type="button">
+          <span class="material-symbols-outlined text-[19px]">notifications</span>
+          <span id="adminNotifPulse" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e] animate-ping"></span>
+          <span id="adminNotifDot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e]"></span>
+          <span id="adminNotifBadgeCount" class="hidden absolute -top-1 -right-1 bg-[#c26d3e] text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full ring-2 ring-white">0</span>
+        </button>
+
+        <!-- Admin Dean Profile Avatar with Dropdown -->
+        <div class="relative">
+          <div id="adminDeanProfileBtn" class="pill-3d bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-2.5 py-1 flex items-center gap-2.5 cursor-pointer group select-none">
+            <div class="relative">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e4dfd5] to-[#d2c9bd] border border-[#b8ae9f] shadow-xs flex items-center justify-center font-headline font-bold text-[12px] text-[#2d4d37] group-hover:brightness-95 transition-colors">AD</div>
+              <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#4a7c59] ring-2 ring-white"></span>
+            </div>
+            <div class="hidden xl:flex flex-col text-left leading-none">
+              <span class="text-xs font-bold text-[#2c332d] group-hover:text-[#4a7c59] transition-colors">Admin Dean</span>
+              <span class="text-[10px] text-[#5e695f] font-semibold mt-0.5">Dean Office • ID-990</span>
+            </div>
+            <span class="material-symbols-outlined text-[#788279] text-[16px] hidden sm:inline">expand_more</span>
+          </div>
+
+          <!-- Dean / Admin Profile Dropdown Menu -->
+          <div id="adminDeanDropdown" class="hidden absolute top-full mt-2 right-0 w-64 bg-white border border-[#ded5c6] rounded-2xl shadow-xl modal-3d p-3 z-50 text-xs">
+            <!-- Logged-in Admin Info -->
+            <div class="pb-2.5 border-b border-[#f0ece4]">
+              <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In Administrator</span>
+              <p class="font-bold text-[#2c332d] text-sm mt-0.5">Dean Academic Directorate</p>
+              <p class="text-[11px] text-[#4a7c59] font-semibold mt-0.5">Dean Office • Institutional Node 990</p>
+              <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                <span>Super Admin • Full Access</span>
+              </span>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="py-2 border-b border-[#f0ece4] space-y-1">
+              <a href="admin.html#dashboard" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">grid_view</span>
+                <span>Curriculum Dashboard</span>
+              </a>
+              <a href="admin.html#calendar" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">calendar_today</span>
+                <span>Master Calendar</span>
+              </a>
+              <a href="admin.html#faculty" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">group</span>
+                <span>Faculty Directory</span>
+              </a>
+              <a href="admin.html#workload" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">work_history</span>
+                <span>Workload Analytics</span>
+              </a>
+              <a href="admin.html#onboarding" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">person_add</span>
+                <span>Faculty Onboarding</span>
+              </a>
+              <a href="requests.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#4a7c59] bg-[#eef4f0] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">sync_alt</span>
+                <span>Requests &amp; Approvals</span>
+              </a>
+              <button type="button" id="deanMenuSettingsBtn" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors text-left border-none bg-transparent cursor-pointer">
+                <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">settings</span>
+                <span>Academic Directorate Settings</span>
+              </button>
+            </div>
+
+            <!-- Logout Button -->
+            <div class="pt-2">
+              <a href="login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                <span>Sign Out / Logout</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-28 flex-1 relative z-10">
+    <div id="requestsMainContainer" class="w-full">
+      <!-- Dynamic requests view will mount here with real data -->
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS & DIALOGS -->
+  <!-- ========================================================================= -->
+
+  <!-- 1. DECLINE / CANCEL CONFIRMATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="declineConfirmModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="declineModalBackdrop"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <!-- Close Button -->
+      <button aria-label="Close dialog" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#f5f1ea] hover:bg-[#f0ece4] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeDeclineIconBtn" type="button">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+      
+      <!-- Icon -->
+      <div class="mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#faece3] border border-[#f3dcd0] flex items-center justify-center text-[#c85a32] shadow-xs">
+          <span class="material-symbols-outlined text-[26px]">warning</span>
+        </div>
+      </div>
+      
+      <!-- Header Titles -->
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] bg-[#faece3] px-2 py-0.5 rounded border border-[#f3dcd0] font-label">Action Required</span>
+          <span class="text-xs text-[#74796e] font-medium">Decline Reschedule Request</span>
+        </div>
+        <h2 class="font-headline text-xl sm:text-2xl font-bold text-[#2e3230] leading-snug">
+          Do you want to cancel this session?
+        </h2>
+      </div>
+      
+      <!-- Subtitle & Information -->
+      <div class="mt-3 space-y-3.5">
+        <p class="text-xs sm:text-sm text-[#4a4e4a] leading-relaxed" id="declinePromptSubtitle">
+          Declining will reject the requested slot change for <strong class="text-[#2e3230] font-semibold" id="declineFacultyTarget">Dr. Rajesh Jambhulkar</strong> (<span id="declineFacultySub">Biochemistry - Prarambh 2026</span>) and notify the faculty member.
+        </p>
+        
+        <!-- Session Details Card -->
+        <div class="p-3.5 rounded-xl bg-[#faf6f0] border border-[#e8e2d8] text-xs space-y-2">
+          <div class="flex items-center justify-between text-[#4a4e4a] text-xs">
+            <span class="font-medium text-[#74796e]">Scheduled Slot:</span>
+            <span class="font-semibold text-[#2e3230]" id="declineSessionTime">Sat, 17 Oct • 7:00 PM – 9:00 PM</span>
+          </div>
+          <div class="flex items-center justify-between text-[#4a4e4a] text-xs pt-1.5 border-t border-[#e8e2d8]">
+            <span class="font-medium text-[#74796e]">Notice Action:</span>
+            <span class="font-semibold text-[#c85a32]">Slot Vacated &amp; Student Alert Triggered</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="mt-6 pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-5 py-2.5 rounded-xl border border-[#c4c8bc] bg-white hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-all cursor-pointer min-w-[80px]" id="declineNoBtn" type="button">
+          No
+        </button>
+        <button class="px-5 py-2.5 rounded-xl bg-[#c85a32] hover:bg-[#b04b25] text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer min-w-[90px] justify-center border-none" id="declineYesBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">check</span>
+          <span>Yes</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. INTERACTIVE RESCHEDULE TIMETABLE MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rescheduleModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="modalBackdrop"></div>
+    <div class="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-[#e8e2d8] flex items-center justify-between bg-[#fbf9f5]">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-[#c8e8d0] text-[#002110] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-sm" id="rescheduleModalAvatar">
+            RJ
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2e3230] leading-tight" id="rescheduleModalTitle">
+                Review Reschedule Request: Dr. Rajesh Jambhulkar
+              </h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#f8e0a8] text-[#554020] text-[11px] font-bold uppercase tracking-wider" id="rescheduleModalTypeBadge">
+                Reschedule
+              </span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="rescheduleModalSubtitle">
+              Biochemistry • Prarambh 2026 Batch (184 Enrolled) • Requested 2 hours ago
+            </p>
+          </div>
+        </div>
+        <button aria-label="Close modal" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeModalIconBtn" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+        
+        <!-- 1. Slot Comparison Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Current Slot Card -->
+          <div class="p-4 rounded-xl border border-[#f3dcd0] bg-[#faece3]/60 relative space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#b3532c] bg-[#faece3] px-2 py-0.5 rounded border border-[#f3dcd0] font-label">
+                Current Slot (Vacating)
+              </span>
+              <span class="material-symbols-outlined text-[18px] text-[#b3532c]">event_busy</span>
+            </div>
+            <div class="font-headline text-base sm:text-lg font-bold text-[#2e3230]" id="rescheduleCurrentSlotText">
+              Wednesday, October 21, 2026 • 7:00 PM – 9:00 PM
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-[#4a4e4a]">
+              <span class="material-symbols-outlined text-[15px] text-[#74796e]">videocam</span>
+              <span id="rescheduleCurrentVenueText">Live on PW MedEd Mobile App • Studio 04</span>
+            </div>
+            <p class="text-xs text-[#b3532c] font-medium pt-1 border-t border-[#f3dcd0]/70 flex items-center gap-1" id="rescheduleVacatingStatus">
+              <span class="material-symbols-outlined text-[14px]">info</span>
+              <span>Slot will be marked free for emergency revisions or peer subject.</span>
+            </p>
+          </div>
+
+          <!-- Proposed Slot Card -->
+          <div class="p-4 rounded-xl border-2 border-[#4a7c59] bg-[#eaf1ec] relative space-y-2 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#4a7c59] bg-[#eaf1ec] px-2 py-0.5 rounded border border-[#cbe0d2] font-label">
+                Proposed Slot (Requested)
+              </span>
+              <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">event_available</span>
+            </div>
+            <div class="font-headline text-base sm:text-lg font-bold text-[#2e3230]" id="rescheduleProposedSlotText">
+              Tuesday, October 20, 2026 • 6:30 PM – 8:30 PM
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-[#4a4e4a]">
+              <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">check_circle</span>
+              <span id="rescheduleProposedVenueText">Studio 02 (Cleared) • Zero Batch Clashes</span>
+            </div>
+            <p class="text-xs text-[#2a6038] font-medium pt-1 border-t border-[#cbe0d2] flex items-center gap-1" id="rescheduleProposedStatus">
+              <span class="material-symbols-outlined text-[14px]">verified</span>
+              <span>Verified conflict-free against MBBS 1st Year timetable.</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Faculty Note / Reason -->
+        <div class="p-3.5 rounded-xl bg-[#faf6f0] border border-[#e8e2d8] flex items-start gap-3">
+          <span class="material-symbols-outlined text-[#c4a66a] text-[20px] shrink-0 mt-0.5">format_quote</span>
+          <div class="text-xs space-y-0.5">
+            <span class="font-bold text-[#2e3230]">Faculty Submission Reason:</span>
+            <p class="text-[#4a4e4a] italic" id="rescheduleFacultyNoteText">
+              "Slot adjustment requested for clinical rounds &amp; CME conference (Fluid Mosaic Model, Passive Transport, Active Transport)"
+            </p>
+          </div>
+        </div>
+
+        <!-- 2. Timetable Grid View -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-headline text-sm font-bold text-[#2e3230] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">calendar_view_week</span>
+              <span>7-Day Batch Timetable Context (Week 42 • Oct 15 – Oct 21)</span>
+            </h3>
+            <span class="text-[11px] text-[#4a4e4a] bg-[#f5f1ea] px-2 py-0.5 rounded font-medium border border-[#e8e2d8]">
+              Prarambh 2026 MBBS 1st Year
+            </span>
+          </div>
+
+          <!-- Schedule Grid Container -->
+          <div class="border border-[#e8e2d8] rounded-xl overflow-hidden shadow-xs">
+            <!-- Day Columns Header -->
+            <div class="grid grid-cols-7 text-center bg-[#f0ece4] border-b border-[#e8e2d8] text-xs font-bold text-[#2e3230]">
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8]">
+                <div class="text-[10px] text-[#74796e] font-normal uppercase">Thu</div>
+                <div>15 Oct</div>
+              </div>
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8]">
+                <div class="text-[10px] text-[#74796e] font-normal uppercase">Fri</div>
+                <div>16 Oct</div>
+              </div>
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8] bg-[#faece3]/80 text-[#b3532c]">
+                <div class="text-[10px] text-[#b3532c] font-bold uppercase">Sat (Original)</div>
+                <div>17 Oct</div>
+              </div>
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8]">
+                <div class="text-[10px] text-[#74796e] font-normal uppercase">Sun</div>
+                <div>18 Oct</div>
+              </div>
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8]">
+                <div class="text-[10px] text-[#74796e] font-normal uppercase">Mon (Alt)</div>
+                <div>19 Oct</div>
+              </div>
+              <div class="py-2.5 px-1 border-r border-[#e8e2d8] bg-[#eaf1ec] text-[#4a7c59]">
+                <div class="text-[10px] text-[#4a7c59] font-bold uppercase">Tue (Proposed)</div>
+                <div>20 Oct</div>
+              </div>
+              <div class="py-2.5 px-1">
+                <div class="text-[10px] text-[#74796e] font-normal uppercase">Wed</div>
+                <div>21 Oct</div>
+              </div>
+            </div>
+
+            <!-- Time Slots Content -->
+            <div class="divide-y divide-[#e8e2d8]">
+              <!-- Time Band 1: Afternoon (5:00 PM – 7:00 PM) -->
+              <div class="grid grid-cols-7 divide-x divide-[#e8e2d8] text-xs bg-white min-h-[90px]">
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Physiology (LT-1)</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Vivek Nalgirkar</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Booked • Hall 1</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Anatomy Lab</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Pradeep Pawar</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Dissection Hall</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0ece4]/40 flex flex-col justify-center items-center text-center">
+                  <span class="material-symbols-outlined text-[#4a4e4a]/40 text-[20px]">spa</span>
+                  <span class="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wide font-label mt-1">Cool-Off</span>
+                  <span class="text-[9px] text-[#74796e]">Weekly Recess</span>
+                </div>
+                <!-- Mon 19: Available Alternate (Click to open Alt Slot Modal) -->
+                <div class="p-2 flex flex-col justify-between group hover:bg-[#f0f6f2] transition-all cursor-pointer bg-white relative rounded-lg border-2 border-dashed border-[#4a7c59]/40 hover:border-[#4a7c59] hover:shadow-md" id="mon19SlotTrigger">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a4e4a] font-medium">
+                    <span class="font-semibold text-[#4a7c59]">5:00 – 7:00 PM</span>
+                    <span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse ring-2 ring-[#4a7c59]/20"></span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg border border-dashed border-[#4a7c59] text-center bg-[#f0f6f2]/80 group-hover:bg-[#eaf1ec] transition-all">
+                    <span class="text-[11px] text-[#4a7c59] font-bold block leading-tight">+ Available Alt</span>
+                    <span class="text-[9px] text-[#2a6038] font-semibold block mt-0.5">Studio 04 Free</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0f6f2]/80 flex flex-col justify-between">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a7c59] font-semibold">
+                    <span>5:00 – 6:30 PM</span>
+                    <span class="material-symbols-outlined text-[13px]">tune</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#cbe0d2] text-center shadow-xs">
+                    <span class="text-[10px] text-[#4a7c59] font-bold block leading-tight">Studio 02 Prep</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Tech Check Buffer</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Clinical Posting</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Ward Rotations</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Hospital Wing</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Microbiology</span>
+                    <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Preeti Sharma</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">LT-2 Hall</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Time Band 2: Prime Evening / Reschedule Focus (6:30 PM – 9:00 PM) -->
+              <div class="grid grid-cols-7 divide-x divide-[#e8e2d8] text-xs bg-white min-h-[125px]">
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">7:00 – 9:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Anatomy Live</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Pradeep Pawar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 02</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">6:30 – 8:30 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Cardio Physiology</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Vivek Nalgirkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 03</span>
+                  </div>
+                </div>
+                <!-- Sat 17: Vacated Slot -->
+                <div class="p-2 bg-[#faece3]/60 flex flex-col justify-between border-l-2 border-l-[#b3532c]">
+                  <div class="flex items-center justify-between text-[10px] text-[#b3532c] font-bold">
+                    <span>7:00 – 9:00 PM</span>
+                    <span class="material-symbols-outlined text-[14px]">event_busy</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#f3dcd0] space-y-1 shadow-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[9px] font-bold uppercase text-[#b3532c] bg-[#faece3] px-1.5 py-0.2 rounded border border-[#f3dcd0]">Shift Requested</span>
+                    </div>
+                    <span class="text-[10px] font-bold line-through text-[#74796e] block leading-tight" id="rescheduleGridVacatingSubject">
+                      Biochemistry Live
+                    </span>
+                    <span class="text-[9px] text-[#b3532c] font-medium block leading-tight" id="rescheduleGridVacatingFaculty">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 04 (Released)</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f0ece4]/40 flex flex-col justify-center items-center text-center">
+                  <span class="material-symbols-outlined text-[#4a4e4a]/40 text-[18px]">menu_book</span>
+                  <span class="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wide font-label mt-1">Self Study</span>
+                  <span class="text-[9px] text-[#74796e]">NMC Protected Hour</span>
+                </div>
+                <div class="p-2 flex flex-col justify-between group hover:bg-[#f0f6f2] transition-colors cursor-pointer bg-white">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a4e4a] font-medium">
+                    <span>7:00 – 9:00 PM</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg border-2 border-dashed border-[#cbe0d2] group-hover:border-[#4a7c59] text-center bg-[#f5f1ea]/40 group-hover:bg-white transition-all space-y-0.5">
+                    <span class="text-[10px] text-[#4a7c59] font-bold block leading-tight">+ Available Alt</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Studio 04 Free</span>
+                    <span class="text-[8px] text-[#4a7c59] font-semibold">Batch Free</span>
+                  </div>
+                </div>
+                <!-- Tue 20: SELECTED PROPOSED RESCHEDULE SLOT -->
+                <div class="p-2 bg-[#eaf1ec] flex flex-col justify-between border-2 border-[#4a7c59] rounded-lg shadow-sm">
+                  <div class="flex items-center justify-between text-[10px] text-[#4a7c59] font-bold">
+                    <span>6:30 – 8:30 PM</span>
+                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  </div>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#cbe0d2] space-y-1 shadow-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[9px] font-bold uppercase text-[#4a7c59] bg-[#eaf1ec] px-1.5 py-0.2 rounded border border-[#cbe0d2]">Proposed Slot</span>
+                    </div>
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight" id="rescheduleGridProposedSubject">
+                      Biochemistry Live
+                    </span>
+                    <span class="text-[9px] text-[#4a7c59] font-semibold block leading-tight" id="rescheduleGridProposedFaculty">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 02 • Zero Clashes</span>
+                  </div>
+                </div>
+                <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
+                  <span class="text-[10px] text-[#4a4e4a] font-medium">7:00 – 9:00 PM</span>
+                  <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs space-y-0.5">
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Biochemistry (Cont.)</span>
+                    <span class="text-[9px] text-[#4a4e4a] block">Dr. Jambhulkar</span>
+                    <span class="text-[8px] text-[#74796e] block">Studio 04 (Regular)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom verification status strip -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-[#4a4e4a] pt-1 px-1">
+            <div class="flex items-center gap-1.5 text-[#4a7c59] font-medium">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check_circle</span>
+              <span id="rescheduleGridVerificationText">Tuesday 6:30 PM slot verified: Zero batch clash, Studio 02 reserved &amp; faculty travel clearance verified.</span>
+            </div>
+            <a href="admin.html#calendar" class="text-xs font-semibold text-[#4a7c59] hover:underline self-start sm:self-auto flex items-center gap-1 no-underline">
+              <span>Full Month Schedule</span>
+              <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 3. Notification Options -->
+        <div class="flex items-center justify-between p-3.5 rounded-xl bg-white border border-[#e8e2d8] shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <div class="flex items-center gap-2.5">
+              <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyEmailCheck" type="checkbox">
+              <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyEmailCheck">
+                <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">mail</span>
+                <span>Notify Faculty via Email</span>
+                <strong class="text-[#2e3230] font-bold bg-[#f5f1ea] px-1.5 py-0.5 rounded border border-[#e8e2d8] text-[11px]" id="notifyFacultyEmailName">Dr. Rajesh Jambhulkar</strong>
+              </label>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyWhatsappCheck" type="checkbox">
+              <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyWhatsappCheck">
+                <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">chat</span>
+                <span>Notify via WhatsApp</span>
+              </label>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-[#4a4e4a] font-semibold hidden sm:flex shrink-0">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+            <span>Instant Broadcast on Approval</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-[#e8e2d8] bg-[#fbf9f5] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button class="px-4 py-2 rounded-xl bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer w-full sm:w-auto border-none" id="closeModalBtn" type="button">
+            Decline / Suggest Alt Slot
+          </button>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rescheduleCancelBtn" type="button">
+            Cancel
+          </button>
+          <button class="px-5 py-2 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer border-none" id="confirmApproveBtn" type="button">
+            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+            <span>Confirm Reschedule &amp; Approve</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. APPROVE CANCELLATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="approveCancellationModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="approveCancellationModalBackdrop"></div>
+    <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-200">
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-[#e8e2d8]">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-full bg-[#c8e8d0] text-[#002110] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-xs" id="approveCancellationModalAvatar">
+            VN
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2e3230] leading-tight">Approve Session Cancellation</h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#eaf1ec] text-[#4a7c59] text-[10px] font-bold uppercase tracking-wider">Faculty Request</span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="approveCancellationModalSubtitle">Dr. Vivek Nalgirkar • Physiology • Sushruta 2026</p>
+          </div>
+        </div>
+        <button aria-label="Close approve cancellation modal" class="w-8 h-8 rounded-full bg-[#f5f1ea] hover:bg-[#eae4d9] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeApproveCancellationIconBtn" type="button">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Body Content -->
+      <div class="py-4 space-y-4 overflow-y-auto max-h-[75vh]">
+        <!-- Session Details Card -->
+        <div class="p-4 rounded-2xl bg-[#faf6f0] border border-[#e8e2d8] text-xs space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <span class="font-medium text-[#74796e] shrink-0">Cancelled Session:</span>
+            <span class="font-bold text-[#2e3230] text-right" id="approveCancellationModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM (LT-1 Lecture Hall)</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 pt-2 border-t border-[#e8e2d8]">
+            <span class="font-medium text-[#74796e] shrink-0">Substitute Faculty:</span>
+            <span class="font-bold text-[#4a7c59] text-right" id="approveCancellationModalSubstitute">Dr. Priya Sharma (Verified NMC Faculty)</span>
+          </div>
+          <div class="pt-2 border-t border-[#e8e2d8]">
+            <p class="text-[#4a4e4a] italic text-[11px]" id="approveCancellationModalFacultyNote">“Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person LT-1.”</p>
+          </div>
+        </div>
+
+        <!-- Confirmation Notice -->
+        <div class="p-3.5 rounded-2xl bg-[#eaf1ec]/80 border border-[#d2e2d6] flex items-start gap-2.5 text-[#2d4d37]">
+          <span class="material-symbols-outlined text-[20px] text-[#4a7c59] shrink-0 mt-0.5">check_circle</span>
+          <div class="text-xs space-y-0.5">
+            <div class="font-bold text-[#2e3230]">Slot Vacated &amp; Substitute Assigned</div>
+            <p class="text-[#4a4e4a] text-[11px]">Approving will vacate this slot from faculty schedule, map substitute teaching hours, and update batch timetables.</p>
+          </div>
+        </div>
+
+        <!-- Notification Strip -->
+        <div class="p-3.5 rounded-2xl bg-[#f5f1ea] border border-[#e8e2d8] flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyFacultyApproveCancel" type="checkbox">
+            <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyFacultyApproveCancel">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">notifications_active</span>Notify faculty &amp; enrolled students immediately
+            </label>
+          </div>
+          <span class="text-[10px] text-[#74796e] font-bold uppercase tracking-wider">Automated alert</span>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-6 py-2 rounded-full border border-[#c4c8bc] bg-white hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer min-w-[80px]" id="approveCancelDismissBtn" type="button">Dismiss</button>
+        <button class="px-6 py-2 rounded-full bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer border-none min-w-[140px] justify-center" id="confirmApproveCancellationBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span>Confirm Approval</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. REJECT CANCELLATION MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rejectCancellationModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="rejectModalBackdrop"></div>
+    <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-2 py-2 border-b border-[#e8e2d8] flex items-center justify-between pb-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-[#ffdad8] text-[#690005] font-headline font-bold text-base flex items-center justify-center shrink-0 shadow-sm" id="rejectModalAvatar">
+            VN
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="font-headline text-lg font-bold text-[#2e3230] leading-tight">Reject Cancellation Request</h2>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#ffdad8] text-[#690005] text-[11px] font-bold uppercase tracking-wider">Action Required</span>
+            </div>
+            <p class="text-xs text-[#4a4e4a] font-medium mt-0.5" id="rejectModalSubtitle">Dr. Vivek Nalgirkar • Physiology • Sushruta 2026</p>
+          </div>
+        </div>
+        <button aria-label="Close reject modal" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeRejectModalIconBtn" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="py-4 space-y-4 overflow-y-auto max-h-[75vh]">
+        <div class="p-3.5 rounded-xl bg-[#faece3]/60 border border-[#f3dcd0] flex items-start gap-3">
+          <span class="material-symbols-outlined text-[#b3532c] text-[20px] shrink-0 mt-0.5">info</span>
+          <div class="text-xs space-y-1">
+            <div class="font-bold text-[#2e3230]">Cancelled Session Details</div>
+            <p class="text-[#4a4e4a]" id="rejectModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM • LT-1 Lecture Hall (Renal Hemodynamics)</p>
+            <p class="text-[#b3532c] font-medium text-[11px]" id="rejectModalFacultyNote">Faculty note: “Sudden clinical emergency duty at affiliated ICU.”</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label">Quick-Select Reason</label>
+          <div class="flex flex-wrap gap-2" id="quickReasonButtonGroup">
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="Crucial Exam Milestone: Upcoming mid-term practical assessments depend directly on Renal Hemodynamics coverage." type="button">Crucial Exam Milestone</button>
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="No Equivalent Alternate Slot: The batch calendar has zero open lecture hall slots available prior to syllabus freeze." type="button">No Equivalent Alternate Slot</button>
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="" type="button">Other</button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label" for="rejectionReasonText">Rejection Reason / Notes for Faculty <span class="text-[#b83230]">*</span></label>
+            <span class="text-[11px] text-[#74796e]">Mandatory</span>
+          </div>
+          <textarea class="w-full p-3 rounded-xl border border-[#c4c8bc] focus:border-[#4a7c59] focus:outline-none text-xs text-[#2e3230] bg-white resize-none h-24 transition-colors font-body" id="rejectionReasonText" placeholder="Explain why the cancellation cannot be approved and provide guidance on alternative arrangements or substitute faculty delegation..."></textarea>
+        </div>
+
+        <div class="p-3 rounded-xl bg-[#f5f1ea] border border-[#e8e2d8] flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <input checked="" class="w-4 h-4 rounded text-[#4a7c59] border-[#c4c8bc] focus:ring-[#4a7c59] accent-[#4a7c59] cursor-pointer" id="notifyFacultyReject" type="checkbox">
+            <label class="text-[#2e3230] text-xs font-medium cursor-pointer select-none flex items-center gap-1.5" for="notifyFacultyReject">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">notifications_active</span>
+              <span>Notify faculty immediately via Email &amp; PW MedApp</span>
+            </label>
+          </div>
+          <span class="text-[10px] text-[#74796e] font-semibold uppercase tracking-wider">Automated alert</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-4 border-t border-[#e8e2d8] flex items-center justify-end gap-3">
+        <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rejectCancelDismissBtn" type="button">Dismiss</button>
+        <button class="px-5 py-2 rounded-xl bg-[#b83230] hover:bg-[#962624] text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer border-none" id="confirmRejectBtn" type="button">
+          <span class="material-symbols-outlined text-[16px]">cancel</span>
+          <span>Confirm Rejection</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. CENTERED ALTERNATIVE SLOT MODAL OVERLAY (Top Layer z-[100]) -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto" id="altSlotModal" role="dialog">
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="altSlotBackdrop"></div>
+    <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-[#c4c8bc] p-4 text-left z-[100] transition-all animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#4a7c59]/20">
+      
+      <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-[#e8e2d8]">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">event_available</span>
+          <span class="font-headline text-sm font-bold text-[#2e3230]">Select Alternative Slot</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] font-bold text-[#4a7c59] bg-[#f0f6f2] px-1.5 py-0.5 rounded border border-[#d2e2d6]">Batch Free</span>
+          <button aria-label="Close alternative slot dialog" class="w-6 h-6 rounded-md hover:bg-[#f5f1ea] flex items-center justify-center text-[#4a4e4a] hover:text-[#2e3230] transition-colors cursor-pointer border-none bg-transparent" id="closeAltSlotBtn" type="button">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="py-3 space-y-2.5 text-xs">
+        <div class="flex items-center gap-1.5 text-[#2e3230] font-semibold text-xs">
+          <span class="material-symbols-outlined text-[16px] text-[#74796e]">calendar_month</span>
+          <span>Mon, 19 Oct • 5:00 – 7:00 PM <span class="text-[#74796e] font-normal">(2.0 hrs)</span></span>
+        </div>
+        
+        <div class="bg-[#f5f1ea] p-2.5 rounded-xl border border-[#e8e2d8] space-y-2">
+          <div class="flex items-center justify-between text-[10px] font-bold text-[#4a4e4a] uppercase tracking-wider font-label">
+            <span>Time Window &amp; Duration</span>
+            <span class="text-[#4a7c59] font-semibold lowercase cursor-pointer hover:underline">edit</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
+              <span class="text-[10px] text-[#74796e]">Start</span>
+              <span class="font-bold text-[#2e3230]">5:00 PM</span>
+            </div>
+            <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
+              <span class="text-[10px] text-[#74796e]">End</span>
+              <span class="font-bold text-[#2e3230]">7:00 PM</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-1.5 pt-0.5">
+            <button class="btn-alt-dur flex-1 py-1 rounded-lg bg-white hover:bg-[#f5f1ea] border border-[#c4c8bc] text-[10px] font-semibold text-[#2e3230] transition-colors cursor-pointer" data-dur="1.5" type="button">1.5h</button>
+            <button class="btn-alt-dur active flex-1 py-1 rounded-lg bg-[#4a7c59] text-white text-[10px] font-bold shadow-xs border border-[#4a7c59] cursor-pointer" data-dur="2.0" type="button">2.0h (Std)</button>
+            <button class="btn-alt-dur flex-1 py-1 rounded-lg bg-white hover:bg-[#f5f1ea] border border-[#c4c8bc] text-[10px] font-semibold text-[#2e3230] transition-colors cursor-pointer" data-dur="2.5" type="button">2.5h</button>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-1.5 text-[11px] text-[#2a6038] font-medium bg-[#f0f6f2] px-2.5 py-1.5 rounded-lg border border-[#d2e2d6]">
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">check_circle</span>
+          <span>Conflict-Free • Batch Prarambh '26 free</span>
+        </div>
+      </div>
+      
+      <div class="pt-1">
+        <button class="w-full py-2 px-3 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer border-none" id="scheduleAltSlotBtn" type="button">
+          <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
+          <span>Schedule to This Slot</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ACADEMIC DIRECTORATE SETTINGS & EMAIL CONFIGURATION MODAL -->
+  <div id="adminSettingsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-[#ded5c6] modal-3d max-w-xl w-full p-6 relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-[#e5dfd5] mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+            <span class="material-symbols-outlined text-[20px]">tune</span>
+          </div>
+          <div>
+            <h3 class="font-headline font-bold text-lg text-[#2c332d]">Academic Directorate Settings</h3>
+            <p class="text-[11px] text-[#68736a] font-medium">Configure automated reminders, lead durations &amp; data sources</p>
+          </div>
+        </div>
+        <button id="closeAdminSettingsBtn" class="text-[#68736a] hover:text-[#2c332d] p-1.5 rounded-lg hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Settings Navigation Tabs -->
+      <div class="flex items-center gap-2 border-b border-[#e5dfd5] pb-2 mb-4">
+        <button id="tabSettingsEmailBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-bold btn-3d-primary text-white cursor-pointer border-none flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">forward_to_inbox</span>
+          <span>Automated Email Reminders</span>
+        </button>
+        <button id="tabSettingsSheetBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">table_chart</span>
+          <span>Google Sheet Connect</span>
+        </button>
+      </div>
+
+      <!-- Tab Content 1: Email Configuration -->
+      <div id="settingsTabContentEmail" class="space-y-4 text-xs">
+        
+        <!-- Toggle Automated Reminders -->
+        <div class="p-3.5 bg-[#fbf9f5] rounded-xl border border-[#ded5c6] flex items-center justify-between card-3d">
+          <div class="space-y-0.5 pr-3">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-[#2c332d]">Automated Class Reminders</span>
+              <span id="settingsStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Active</span>
+            </div>
+            <p class="text-[11px] text-[#576058]">Automatically sends lecture reminder emails to faculties on their registered onboarding email address.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="settingAutoReminderToggle" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-[#d8d2c4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#ded5c6] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4a7c59]"></div>
+          </label>
+        </div>
+
+        <!-- Section 1: Sender Email ID -->
+        <div class="p-3.5 bg-white rounded-xl border border-[#ded5c6] space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-bold uppercase text-[#576058]">
+              Automated Dispatch Sender Email ID *
+            </label>
+            <span class="text-[10px] text-[#4a7c59] font-semibold bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">Verified Institutional Node</span>
+          </div>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined absolute left-3 text-[18px] text-[#788279] pointer-events-none">mail</span>
+            <input type="email" id="settingSenderEmail" class="w-full input-3d rounded-xl text-xs pl-9 pr-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none font-medium" placeholder="academic-reminders@pwmeded.edu.in" value="academic-reminders@pwmeded.edu.in" required>
+          </div>
+          <p class="text-[10px] text-[#68736a]">Faculty members will receive automated pre-class reminders delivered from this verified sender identity.</p>
+          
+          <!-- Quick domain helper pills -->
+          <div class="flex items-center gap-1.5 pt-1">
+            <span class="text-[10px] text-[#68736a] font-medium">Quick Domains:</span>
+            <button type="button" class="btn-domain-preset px-2 py-0.5 rounded bg-[#f4efe6] text-[10px] font-bold text-[#2c332d] hover:bg-[#ede7da] border border-[#ded5c6] cursor-pointer" data-domain="@pwmeded.edu.in">@pwmeded.edu.in</button>
+            <button type="button" class="btn-domain-preset px-2 py-0.5 rounded bg-[#f4efe6] text-[10px] font-bold text-[#2c332d] hover:bg-[#ede7da] border border-[#ded5c6] cursor-pointer" data-domain="@pw.live">@pw.live</button>
+            <button type="button" class="btn-domain-preset px-2 py-0.5 rounded bg-[#f4efe6] text-[10px] font-bold text-[#2c332d] hover:bg-[#ede7da] border border-[#ded5c6] cursor-pointer" data-domain="@pwmeded.com">@pwmeded.com</button>
+          </div>
+        </div>
+
+        <!-- Section 2: Dynamic Lead Duration Prior to Class -->
+        <div class="p-3.5 bg-white rounded-xl border border-[#ded5c6] space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-bold uppercase text-[#576058]">
+              Reminder Dispatch Timing (Prior to Class) *
+            </label>
+            <span id="settingLeadSummaryBadge" class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded border border-[#eed9cc] badge-3d">30 Minutes Prior</span>
+          </div>
+          
+          <!-- Quick Presets -->
+          <div>
+            <span class="text-[10px] font-bold text-[#68736a] block mb-1.5 uppercase">Quick Presets:</span>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" id="leadDurationPresetGrid">
+              <button type="button" class="btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]" data-val="15" data-unit="minutes">15 Mins</button>
+              <button type="button" class="btn-lead-preset active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#4a7c59] text-white border-[#3d6b4b] shadow-xs" data-val="30" data-unit="minutes">30 Mins</button>
+              <button type="button" class="btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]" data-val="45" data-unit="minutes">45 Mins</button>
+              <button type="button" class="btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]" data-val="1" data-unit="hours">1 Hour</button>
+              <button type="button" class="btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]" data-val="2" data-unit="hours">2 Hours</button>
+              <button type="button" class="btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]" data-val="24" data-unit="hours">24 Hours</button>
+            </div>
+          </div>
+
+          <!-- Dynamic Custom Input -->
+          <div class="pt-2 border-t border-[#f0ece4] flex items-center gap-2">
+            <span class="text-[11px] font-semibold text-[#576058] shrink-0">Or Custom Duration:</span>
+            <input type="number" id="settingLeadDurationNum" min="5" max="1000" value="30" class="w-20 input-3d rounded-xl text-xs px-3 py-1.5 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none font-bold">
+            <select id="settingLeadDurationUnit" class="input-3d rounded-xl text-xs px-3 py-1.5 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none font-medium">
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+            </select>
+            <span class="text-[11px] text-[#68736a]">before start time</span>
+          </div>
+        </div>
+
+        <!-- Section 3: Registered Onboarding Email Flow Notice -->
+        <div class="p-3 bg-[#eef4f0] rounded-xl border border-[#cde0d3] flex items-start gap-2.5 text-[#2d4d37]">
+          <span class="material-symbols-outlined text-[18px] text-[#4a7c59] shrink-0 mt-0.5">verified_user</span>
+          <div class="text-[11px] leading-relaxed">
+            <strong>Target Registered Addresses:</strong> Emails are automatically routed to the registered email address saved during <strong>Faculty Onboarding</strong> (e.g. <code>rajesh.j@pwmeded.edu.in</code>, <code>pradeep.p@pwmeded.edu.in</code>).
+          </div>
+        </div>
+
+        <!-- Actions & Preview Trigger Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[#e5dfd5]">
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnPreviewEmailTheme" class="btn-3d-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">preview</span>
+              <span>Preview Email Template</span>
+            </button>
+            <button type="button" id="btnTestEmailDispatch" class="btn-3d-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer text-[#c26d3e]">
+              <span class="material-symbols-outlined text-[16px]">send</span>
+              <span>Test Dispatch Now</span>
+            </button>
+          </div>
+          <button type="button" id="btnSaveEmailSettings" class="btn-3d-primary px-5 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">save</span>
+            <span>Save Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Tab Content 2: Google Sheet Connection -->
+      <div id="settingsTabContentSheet" class="hidden space-y-3.5 text-xs">
+        <div>
+          <label class="block text-[11px] font-bold uppercase text-[#576058] mb-1">Google Sheet URL *</label>
+          <input type="url" id="settingsSheetUrl" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+          <span class="text-[10px] text-[#68736a] mt-1 block">Ensure the Google Sheet is shared as "Anyone with the link can view".</span>
+          <div id="settingsTabDetectStatus" class="hidden mt-1.5 flex items-center gap-1.5 text-[11px]"></div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase text-[#576058] mb-1">Sheet Tab Name</label>
+          <input type="text" id="settingsSheetTab" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" value="Lecture Planner" placeholder="Lecture Planner">
+          <span class="text-[10px] text-[#68736a] mt-1 block">Name of the tab at the bottom of your sheet.</span>
+          <div id="settingsDetectedTabsContainer" class="hidden mt-2 p-2 bg-[#faf7f2] rounded-xl border border-[#e5dfd5]">
+            <span class="text-[10px] font-bold uppercase text-[#576058] block mb-1.5">Detected Sheet Tabs:</span>
+            <div id="settingsDetectedTabsChips" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold uppercase text-[#576058] mb-1">Batch Name (Optional)</label>
+          <input type="text" id="settingsSheetBatchName" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" placeholder="Auto-detected from sheet header">
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-3 border-t border-[#e5dfd5]">
+          <button type="button" id="settingsConnectSheetBtn" class="btn-3d-primary px-5 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            Connect &amp; Import
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. EMAIL PREVIEW MODAL (Full HTML Template Viewer) -->
+  <div id="emailPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
+      
+      <!-- Email Client Window Bar -->
+      <div class="px-4 py-3 bg-[#ede7da] border-b border-[#ded5c6] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-[#e06c75] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-[#e5c07b] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-[#98c379] inline-block"></span>
+          <span class="text-xs font-bold text-[#2c332d] ml-2 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">mark_email_read</span>
+            <span>PW MedEd Automated Email Preview</span>
+          </span>
+        </div>
+        <button id="closeEmailPreviewBtn" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#ded5c6] cursor-pointer border-none bg-transparent" type="button">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Email Envelope Headers -->
+      <div class="px-5 py-3 bg-white border-b border-[#e5dfd5] text-xs space-y-1.5">
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">From:</span>
+          <span id="previewHeaderFrom" class="font-semibold text-[#2c332d]">academic-reminders@pwmeded.edu.in</span>
+          <span class="ml-2 text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3]">Configured Sender</span>
+        </div>
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">To:</span>
+          <span id="previewHeaderTo" class="font-semibold text-[#2c332d]">Dr. Rajesh Jambhulkar &lt;rajesh.j@pwmeded.edu.in&gt;</span>
+          <span class="ml-2 text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-1.5 py-0.2 rounded border border-[#eed9cc]">Onboarding Registered</span>
+        </div>
+        <div class="flex items-baseline">
+          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">Subject:</span>
+          <span id="previewHeaderSubject" class="font-bold text-[#2c332d]">[PW MedEd] Class Reminder: Enzymes &amp; Catalysis</span>
+        </div>
+      </div>
+
+      <!-- Email Rendered Body Area -->
+      <div class="flex-1 overflow-y-auto p-4 bg-[#fbf9f5]" id="emailPreviewContainer">
+        <!-- Rendered HTML Email injected here -->
+      </div>
+
+      <!-- Footer Action -->
+      <div class="px-5 py-3 bg-white border-t border-[#e5dfd5] flex items-center justify-between">
+        <span class="text-[11px] text-[#68736a] flex items-center gap-1">
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">palette</span>
+          <span>Theme matching PW MedEd main portal aesthetics &amp; typography</span>
+        </span>
+        <button id="closeEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer" type="button">
+          Close Preview
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 8. RIGHT-SIDE NOTIFICATION SLIDE-OVER DRAWER -->
+  <div id="notificationModal" class="hidden fixed inset-0 z-50 pointer-events-none transition-all overflow-hidden">
+    <!-- Backdrop -->
+    <div id="notificationBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Drawer Panel -->
+    <aside id="notificationDrawer" class="fixed inset-y-0 right-0 max-w-md w-full bg-white modal-3d p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 pointer-events-auto">
+      <div>
+        <!-- Drawer Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-[#e5dfd5]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+              <span class="material-symbols-outlined text-[20px]">notifications</span>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#2c332d]">Academic Directorate Alerts</h3>
+              <p class="text-[11px] text-[#68736a] font-medium">Real-time NMC &amp; Class notifications</p>
+            </div>
+          </div>
+          <button id="closeNotificationBtn" class="w-8 h-8 rounded-lg hover:bg-[#f4efe6] text-[#68736a] flex items-center justify-center transition-colors cursor-pointer border-none bg-transparent" type="button">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <!-- Notification Filters & Controls -->
+        <div class="mt-4 flex items-center justify-between px-0.5 border-b border-[#ece5d8] pb-2.5">
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="btnAdminNotifFilterAll" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] cursor-pointer">
+              All Alerts
+            </button>
+            <button type="button" id="btnAdminNotifFilterEmails" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer bg-transparent">
+              Email Reminders
+            </button>
+          </div>
+          <button type="button" id="adminMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent">
+            Mark all read
+          </button>
+        </div>
+
+        <!-- Dynamic Notification Feed -->
+        <div id="adminNotificationFeed" class="mt-3 space-y-3 overflow-y-auto max-h-[calc(100vh-250px)] pr-1">
+          <div class="p-3 bg-[#faf7f2] rounded-xl border border-[#ded5c6] text-xs space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-[#2c332d] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">forward_to_inbox</span>
+                <span>Automated Email Dispatch</span>
+              </span>
+              <span class="text-[10px] text-[#74796e]">Just now</span>
+            </div>
+            <p class="text-[#576058]">30-minute pre-class alert dispatched to registered onboarding faculty email addresses.</p>
+          </div>
+          <div class="p-3 bg-[#f0f6f2] rounded-xl border border-[#cde0d3] text-xs space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-[#2d4d37] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">sync_alt</span>
+                <span>Reschedule Requests Live</span>
+              </span>
+              <span class="text-[10px] text-[#4a7c59] font-semibold">Active</span>
+            </div>
+            <p class="text-[#3b6347]">Faculty change requests are synchronized in real time with interactive conflict checks.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="pt-4 border-t border-[#e5dfd5] text-center">
+        <span class="text-[11px] text-[#68736a] font-medium">NMC Gateway Node • ID-990 Connected</span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Floating Candy Dock Navigation (Active Requests, Working Settings) -->
+  <aside class="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 pointer-events-none select-none">
+    <nav class="pointer-events-auto dock-3d bg-white/95 border border-[#ded5c6] shadow-[0_8px_32px_rgba(44,51,45,0.14)] px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-2 select-none backdrop-blur-xl max-w-[96vw] overflow-x-auto">
+      <a class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap no-underline" href="admin.html#dashboard">
+        <span class="material-symbols-outlined text-[18px]">grid_view</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap no-underline" href="admin.html#calendar">
+        <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+        <span>Calendar</span>
+      </a>
+      <a class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap no-underline" href="admin.html#faculty">
+        <span class="material-symbols-outlined text-[18px]">group</span>
+        <span>Faculty</span>
+      </a>
+      <a class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap no-underline" href="admin.html#workload">
+        <span class="material-symbols-outlined text-[18px]">work_history</span>
+        <span>Workload Analytics</span>
+      </a>
+      <a class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap no-underline" href="admin.html#onboarding">
+        <span class="material-symbols-outlined text-[18px]">person_add</span>
+        <span>Faculty Onboarding</span>
+      </a>
+      <a aria-current="page" class="flex items-center gap-1.5 sm:gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold btn-3d-primary text-white shadow-xs transition-all whitespace-nowrap no-underline" href="requests.html">
+        <span class="material-symbols-outlined text-[18px]">sync_alt</span>
+        <span>Requests</span>
+      </a>
+      <button type="button" id="requestsDockSettingsBtn" class="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] transition-all whitespace-nowrap border-none bg-transparent cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">settings</span>
+        <span>Settings</span>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Interactive JavaScript Logic -->
+  <script type="module">
+    import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, openRescheduleApprovalModal } from './js/requestsView.js';
+
+    // Toast notification helper
+    function showToast(msg, type = 'success') {
+      let toast = document.getElementById('requestsPageToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'requestsPageToast';
+        toast.className = 'fixed bottom-20 right-6 z-[120] bg-[#2d4d37] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all transform translate-y-10 opacity-0 pointer-events-none';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span class="material-symbols-outlined text-[16px] text-[#8ecf9e]">${type === 'success' ? 'check_circle' : 'error'}</span><span>${msg}</span>`;
+      toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3200);
+    }
+
+    const requestsState = { filter: 'all', batch: 'all', searchQuery: '' };
+    const container = document.getElementById('requestsMainContainer');
+
+    const controller = {
+      currentActiveRequestId: null,
+      showToast,
+      openDeclineModal(req) {
+        this.currentActiveRequestId = typeof req === 'object' ? req.id : req;
+        const declineModal = document.getElementById('declineConfirmModal');
+        const facultyTargetEl = document.getElementById('declineFacultyTarget');
+        const facultySubEl = document.getElementById('declineFacultySub');
+        const sessionTimeEl = document.getElementById('declineSessionTime');
+
+        const requests = getStoredRequests();
+        const r = requests.find(x => x.id === this.currentActiveRequestId) || (typeof req === 'object' ? req : {});
+
+        if (facultyTargetEl) facultyTargetEl.textContent = r.facultyName || r.faculty || 'Faculty';
+        if (facultySubEl) facultySubEl.textContent = `${r.subject || ''} - ${r.batch || ''}`;
+        if (sessionTimeEl) sessionTimeEl.textContent = r.originalSlot || r.currentSlot || '';
+
+        if (declineModal) {
+          declineModal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+      },
+      openRescheduleModal(req) {
+        this.currentActiveRequestId = typeof req === 'string' ? req : req.id;
+        openRescheduleApprovalModal(req, this);
+      },
+      openApproveCancellationModal(req) {
+        const id = typeof req === 'object' ? req.id : req;
+        this.currentActiveRequestId = id;
+        const approveCancelModal = document.getElementById('approveCancellationModal');
+        const requests = getStoredRequests();
+        const r = requests.find(x => x.id === id) || (typeof req === 'object' ? req : {});
+        const targetEl = document.getElementById('approveCancelFacultyTarget');
+        const subEl = document.getElementById('approveCancelFacultySub');
+        const slotEl = document.getElementById('approveCancelSlotText');
+
+        if (targetEl) targetEl.textContent = r.faculty || r.facultyName || 'Faculty';
+        if (subEl) subEl.textContent = `${r.subject || ''} • ${r.batch || ''}`;
+        if (slotEl) slotEl.textContent = r.currentSlot || r.originalSlot || '';
+
+        if (approveCancelModal) {
+          approveCancelModal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+      },
+      openApproveCancelModal(req) {
+        this.openApproveCancellationModal(req);
+      },
+      openRejectCancellationModal(req) {
+        const id = typeof req === 'object' ? req.id : req;
+        this.currentActiveRequestId = id;
+        const rejectCancelModal = document.getElementById('rejectCancellationModal');
+        const requests = getStoredRequests();
+        const r = requests.find(x => x.id === id) || (typeof req === 'object' ? req : {});
+        const targetEl = document.getElementById('rejectCancelFacultyTarget');
+        const subEl = document.getElementById('rejectCancelFacultySub');
+        const slotEl = document.getElementById('rejectCancelSlotText');
+
+        if (targetEl) targetEl.textContent = r.faculty || r.facultyName || 'Faculty';
+        if (subEl) subEl.textContent = `${r.subject || ''} • ${r.batch || ''}`;
+        if (slotEl) slotEl.textContent = r.currentSlot || r.originalSlot || '';
+
+        if (rejectCancelModal) {
+          rejectCancelModal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+      },
+      openRejectCancelModal(req) {
+        this.openRejectCancellationModal(req);
+      }
+    };
+
+    // Header Dean Profile Dropdown
+    const deanBtn = document.getElementById('adminDeanProfileBtn');
+    const deanDropdown = document.getElementById('adminDeanDropdown');
+    if (deanBtn && deanDropdown) {
+      deanBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deanDropdown.classList.toggle('hidden');
+      });
+      document.addEventListener('click', (e) => {
+        if (!deanBtn.contains(e.target) && !deanDropdown.contains(e.target)) {
+          deanDropdown.classList.add('hidden');
+        }
+      });
+    }
+
+    // Header Batch Selector Dropdown
+    const batchPill = document.getElementById('adminBatchPill');
+    const batchDropdown = document.getElementById('adminBatchDropdown');
+    const batchLabel = document.getElementById('adminBatchLabel');
+    if (batchPill && batchDropdown) {
+      batchPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        batchDropdown.classList.toggle('hidden');
+      });
+      document.addEventListener('click', (e) => {
+        if (!batchPill.contains(e.target) && !batchDropdown.contains(e.target)) {
+          batchDropdown.classList.add('hidden');
+        }
+      });
+
+      const batchOptions = batchDropdown.querySelectorAll('.batch-option');
+      batchOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+          const val = opt.getAttribute('data-batch') || 'all';
+          requestsState.batch = val;
+          if (batchLabel) {
+            batchLabel.textContent = val === 'all' ? 'All Batches (Combined)' : val;
+          }
+          batchDropdown.classList.add('hidden');
+          renderRequestsView(container, requestsState, controller);
+        });
+      });
+    }
+
+    // Header Search Input live filtering
+    const searchInput = document.getElementById('adminSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        requestsState.searchQuery = e.target.value.toLowerCase().trim();
+        renderRequestsView(container, requestsState, controller);
+      });
+    }
+
+    // Settings Modal Handling (Open from Bottom Candy Dock or Dean Profile Dropdown)
+    const adminSettingsModal = document.getElementById('adminSettingsModal');
+    const closeAdminSettingsBtn = document.getElementById('closeAdminSettingsBtn');
+    const requestsDockSettingsBtn = document.getElementById('requestsDockSettingsBtn');
+    const deanMenuSettingsBtn = document.getElementById('deanMenuSettingsBtn');
+
+    const openSettingsModal = () => {
+      if (deanDropdown) deanDropdown.classList.add('hidden');
+      if (adminSettingsModal) {
+        adminSettingsModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
+    const closeSettingsModal = () => {
+      if (adminSettingsModal) {
+        adminSettingsModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (requestsDockSettingsBtn) requestsDockSettingsBtn.addEventListener('click', openSettingsModal);
+    if (deanMenuSettingsBtn) deanMenuSettingsBtn.addEventListener('click', openSettingsModal);
+    if (closeAdminSettingsBtn) closeAdminSettingsBtn.addEventListener('click', closeSettingsModal);
+
+    // Settings Tabs switching
+    const tabSettingsEmailBtn = document.getElementById('tabSettingsEmailBtn');
+    const tabSettingsSheetBtn = document.getElementById('tabSettingsSheetBtn');
+    const settingsTabContentEmail = document.getElementById('settingsTabContentEmail');
+    const settingsTabContentSheet = document.getElementById('settingsTabContentSheet');
+
+    if (tabSettingsEmailBtn && tabSettingsSheetBtn) {
+      tabSettingsEmailBtn.addEventListener('click', () => {
+        tabSettingsEmailBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold btn-3d-primary text-white cursor-pointer border-none flex items-center gap-1.5';
+        tabSettingsSheetBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent flex items-center gap-1.5';
+        settingsTabContentEmail.classList.remove('hidden');
+        settingsTabContentSheet.classList.add('hidden');
+      });
+      tabSettingsSheetBtn.addEventListener('click', () => {
+        tabSettingsSheetBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold btn-3d-primary text-white cursor-pointer border-none flex items-center gap-1.5';
+        tabSettingsEmailBtn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent flex items-center gap-1.5';
+        settingsTabContentSheet.classList.remove('hidden');
+        settingsTabContentEmail.classList.add('hidden');
+      });
+    }
+
+    // Lead preset buttons in settings
+    const leadPresetButtons = document.querySelectorAll('.btn-lead-preset');
+    const leadNumInput = document.getElementById('settingLeadDurationNum');
+    const leadUnitSelect = document.getElementById('settingLeadDurationUnit');
+    const leadSummaryBadge = document.getElementById('settingLeadSummaryBadge');
+
+    leadPresetButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        leadPresetButtons.forEach(b => {
+          b.classList.remove('active', 'bg-[#4a7c59]', 'text-white', 'border-[#3d6b4b]', 'shadow-xs');
+          b.classList.add('bg-[#f4efe6]', 'text-[#2c332d]', 'border-[#ded5c6]');
+        });
+        this.classList.add('active', 'bg-[#4a7c59]', 'text-white', 'border-[#3d6b4b]', 'shadow-xs');
+        this.classList.remove('bg-[#f4efe6]', 'text-[#2c332d]', 'border-[#ded5c6]');
+
+        const val = this.getAttribute('data-val');
+        const unit = this.getAttribute('data-unit');
+        if (leadNumInput) leadNumInput.value = val;
+        if (leadUnitSelect) leadUnitSelect.value = unit;
+        if (leadSummaryBadge) leadSummaryBadge.textContent = `${val} ${unit === 'hours' ? (val === '1' ? 'Hour' : 'Hours') : 'Minutes'} Prior`;
+      });
+    });
+
+    // Quick domain preset buttons
+    const domainButtons = document.querySelectorAll('.btn-domain-preset');
+    const senderEmailInput = document.getElementById('settingSenderEmail');
+    domainButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const domain = this.getAttribute('data-domain');
+        if (senderEmailInput) {
+          const current = senderEmailInput.value.split('@')[0] || 'academic-reminders';
+          senderEmailInput.value = `${current}${domain}`;
+        }
+      });
+    });
+
+    // Save Settings
+    const btnSaveEmailSettings = document.getElementById('btnSaveEmailSettings');
+    if (btnSaveEmailSettings) {
+      btnSaveEmailSettings.addEventListener('click', () => {
+        const sender = senderEmailInput ? senderEmailInput.value.trim() : 'academic-reminders@pwmeded.edu.in';
+        const num = leadNumInput ? leadNumInput.value : '30';
+        const unit = leadUnitSelect ? leadUnitSelect.value : 'minutes';
+        const enabled = document.getElementById('settingAutoReminderToggle')?.checked ?? true;
+
+        localStorage.setItem('pw_meded_email_settings', JSON.stringify({
+          senderEmail: sender,
+          leadDuration: `${num} ${unit}`,
+          enabled: enabled,
+          updatedAt: new Date().toISOString()
+        }));
+
+        closeSettingsModal();
+        showToast('Academic Directorate Settings saved successfully!');
+      });
+    }
+
+    // Email Preview Modal
+    const emailPreviewModal = document.getElementById('emailPreviewModal');
+    const btnPreviewEmailTheme = document.getElementById('btnPreviewEmailTheme');
+    const closeEmailPreviewBtn = document.getElementById('closeEmailPreviewBtn');
+    const closeEmailPreviewBottomBtn = document.getElementById('closeEmailPreviewBottomBtn');
+    const emailPreviewContainer = document.getElementById('emailPreviewContainer');
+
+    if (btnPreviewEmailTheme) {
+      btnPreviewEmailTheme.addEventListener('click', () => {
+        if (emailPreviewContainer) {
+          emailPreviewContainer.innerHTML = `
+            <div style="font-family: 'Reddit Sans', -apple-system, sans-serif; max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #ded5c6; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(44,51,45,0.08);">
+              <div style="background: linear-gradient(135deg, #2d4d37 0%, #4a7c59 100%); padding: 24px; color: #ffffff;">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; opacity: 0.9;">PW MedEd • Academic Directorate</div>
+                <div style="font-size: 20px; font-weight: 800; font-family: 'Literata', serif; margin-top: 6px;">Pre-Class Automated Briefing</div>
+              </div>
+              <div style="padding: 24px;">
+                <p style="font-size: 14px; color: #2c332d; line-height: 1.6; margin: 0 0 16px;">Dear <strong>Dr. Rajesh Jambhulkar</strong>,</p>
+                <p style="font-size: 13px; color: #576058; line-height: 1.6; margin: 0 0 20px;">This is an automated confirmation from the Academic Directorate for your upcoming scheduled lecture:</p>
+                <div style="background: #fbf9f5; border: 1px solid #ded5c6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                  <div style="font-size: 15px; font-weight: 700; color: #2d4d37;">Enzymes &amp; Catalytic Mechanisms</div>
+                  <div style="font-size: 12px; color: #68736a; margin-top: 4px;">Biochemistry • Prarambh 2026 Batch</div>
+                  <div style="font-size: 13px; font-weight: 600; color: #2c332d; margin-top: 10px;">📅 Wednesday, Oct 21 • 7:00 PM – 9:00 PM (Studio 04)</div>
+                </div>
+                <div style="text-align: center; margin-top: 24px;">
+                  <span style="display: inline-block; background: #4a7c59; color: #ffffff; font-weight: 700; font-size: 12px; padding: 10px 24px; border-radius: 9999px;">Open PW MedEd Faculty Portal</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        if (emailPreviewModal) emailPreviewModal.classList.remove('hidden');
+      });
+    }
+
+    const closeEmailPreview = () => { if (emailPreviewModal) emailPreviewModal.classList.add('hidden'); };
+    if (closeEmailPreviewBtn) closeEmailPreviewBtn.addEventListener('click', closeEmailPreview);
+    if (closeEmailPreviewBottomBtn) closeEmailPreviewBottomBtn.addEventListener('click', closeEmailPreview);
+
+    // Notification Drawer
+    const notificationModal = document.getElementById('notificationModal');
+    const notificationDrawer = document.getElementById('notificationDrawer');
+    const notificationBackdrop = document.getElementById('notificationBackdrop');
+    const openNotificationBtn = document.getElementById('openNotificationBtn');
+    const closeNotificationBtn = document.getElementById('closeNotificationBtn');
+    const adminMarkAllReadBtn = document.getElementById('adminMarkAllReadBtn');
+
+    const openNotificationDrawer = () => {
+      if (notificationModal && notificationDrawer && notificationBackdrop) {
+        notificationModal.classList.remove('hidden', 'pointer-events-none');
+        setTimeout(() => {
+          notificationBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+          notificationDrawer.classList.remove('translate-x-full');
+        }, 10);
+      }
+    };
+
+    const closeNotificationDrawer = () => {
+      if (notificationModal && notificationDrawer && notificationBackdrop) {
+        notificationBackdrop.classList.add('opacity-0', 'pointer-events-none');
+        notificationDrawer.classList.add('translate-x-full');
+        setTimeout(() => {
+          notificationModal.classList.add('hidden', 'pointer-events-none');
+        }, 300);
+      }
+    };
+
+    if (openNotificationBtn) openNotificationBtn.addEventListener('click', openNotificationDrawer);
+    if (closeNotificationBtn) closeNotificationBtn.addEventListener('click', closeNotificationDrawer);
+    if (notificationBackdrop) notificationBackdrop.addEventListener('click', closeNotificationDrawer);
+    if (adminMarkAllReadBtn) {
+      adminMarkAllReadBtn.addEventListener('click', () => {
+        const dot = document.getElementById('adminNotifDot');
+        const pulse = document.getElementById('adminNotifPulse');
+        if (dot) dot.classList.add('hidden');
+        if (pulse) pulse.classList.add('hidden');
+        showToast('All notifications marked as read');
+      });
+    }
+
+    // Modal Action Bindings
+    // 1. Decline Modal
+    const declineModal = document.getElementById('declineConfirmModal');
+    const declineBackdrop = document.getElementById('declineModalBackdrop');
+    const closeDeclineIconBtn = document.getElementById('closeDeclineIconBtn');
+    const declineNoBtn = document.getElementById('declineNoBtn');
+    const declineYesBtn = document.getElementById('declineYesBtn');
+
+    const closeDeclineModal = () => {
+      if (declineModal) {
+        declineModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeDeclineIconBtn) closeDeclineIconBtn.addEventListener('click', closeDeclineModal);
+    if (declineNoBtn) declineNoBtn.addEventListener('click', closeDeclineModal);
+    if (declineBackdrop) declineBackdrop.addEventListener('click', closeDeclineModal);
+
+    if (declineYesBtn) {
+      declineYesBtn.addEventListener('click', () => {
+        declineYesBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Cancelling...';
+        declineYesBtn.disabled = true;
+
+        setTimeout(() => {
+          closeDeclineModal();
+          declineYesBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Yes';
+          declineYesBtn.disabled = false;
+
+          if (controller.currentActiveRequestId) {
+            updateRequestStatus(controller.currentActiveRequestId, 'declined');
+          }
+          if (container) {
+            renderRequestsView(container, requestsState, controller);
+          }
+          showToast('Request declined. Slot vacated & faculty notified.', 'error');
+        }, 400);
+      });
+    }
+
+    // 2. Reschedule Modal
+    const rescheduleModal = document.getElementById('rescheduleModal');
+    const rescheduleBackdrop = document.getElementById('modalBackdrop');
+    const closeRescheduleIconBtn = document.getElementById('closeModalIconBtn');
+    const rescheduleCancelBtn = document.getElementById('rescheduleCancelBtn');
+    const rescheduleDeclineBtn = document.getElementById('closeModalBtn');
+    const confirmApproveBtn = document.getElementById('confirmApproveBtn');
+
+    const closeRescheduleModal = () => {
+      if (rescheduleModal) {
+        rescheduleModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeRescheduleIconBtn) closeRescheduleIconBtn.addEventListener('click', closeRescheduleModal);
+    if (rescheduleCancelBtn) rescheduleCancelBtn.addEventListener('click', closeRescheduleModal);
+    if (rescheduleBackdrop) rescheduleBackdrop.addEventListener('click', closeRescheduleModal);
+
+    if (rescheduleDeclineBtn) {
+      rescheduleDeclineBtn.addEventListener('click', () => {
+        closeRescheduleModal();
+        if (controller.currentActiveRequestId) {
+          controller.openDeclineModal({ id: controller.currentActiveRequestId });
+        }
+      });
+    }
+
+    if (confirmApproveBtn) {
+      confirmApproveBtn.addEventListener('click', () => {
+        confirmApproveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Reschedule Approved!';
+        confirmApproveBtn.classList.remove('bg-[#4a7c59]');
+        confirmApproveBtn.classList.add('bg-[#3d6749]');
+
+        setTimeout(() => {
+          closeRescheduleModal();
+          confirmApproveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span><span>Confirm Reschedule &amp; Approve</span>';
+          confirmApproveBtn.classList.add('bg-[#4a7c59]');
+          confirmApproveBtn.classList.remove('bg-[#3d6749]');
+
+          if (controller.currentActiveRequestId) {
+            updateRequestStatus(controller.currentActiveRequestId, 'approved');
+          }
+          if (container) {
+            renderRequestsView(container, requestsState, controller);
+          }
+          showToast('Reschedule approved! New slot locked & students updated.');
+        }, 400);
+      });
+    }
+
+    // 3. Alternative Slot Modal
+    const altSlotModal = document.getElementById('altSlotModal');
+    const altSlotBackdrop = document.getElementById('altSlotBackdrop');
+    const closeAltSlotBtn = document.getElementById('closeAltSlotBtn');
+    const mon19SlotTrigger = document.getElementById('mon19SlotTrigger');
+    const scheduleAltSlotBtn = document.getElementById('scheduleAltSlotBtn');
+    const altDurButtons = document.querySelectorAll('.btn-alt-dur');
+
+    const openAltSlotModal = () => { if (altSlotModal) altSlotModal.classList.remove('hidden'); };
+    const closeAltSlotModal = () => { if (altSlotModal) altSlotModal.classList.add('hidden'); };
+
+    if (mon19SlotTrigger) mon19SlotTrigger.addEventListener('click', openAltSlotModal);
+    if (closeAltSlotBtn) closeAltSlotBtn.addEventListener('click', closeAltSlotModal);
+    if (altSlotBackdrop) altSlotBackdrop.addEventListener('click', closeAltSlotModal);
+
+    altDurButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        altDurButtons.forEach(b => {
+          b.classList.remove('active', 'bg-[#4a7c59]', 'text-white', 'font-bold', 'shadow-xs', 'border-[#4a7c59]');
+          b.classList.add('bg-white', 'text-[#2e3230]', 'font-semibold', 'border-[#c4c8bc]');
+        });
+        this.classList.add('active', 'bg-[#4a7c59]', 'text-white', 'font-bold', 'shadow-xs', 'border-[#4a7c59]');
+        this.classList.remove('bg-white', 'text-[#2e3230]', 'font-semibold', 'border-[#c4c8bc]');
+      });
+    });
+
+    if (scheduleAltSlotBtn) {
+      scheduleAltSlotBtn.addEventListener('click', () => {
+        const propText = document.getElementById('rescheduleProposedSlotText');
+        if (propText) propText.textContent = 'Mon, 19 Oct • 5:00 PM – 7:00 PM';
+        closeAltSlotModal();
+        showToast('Selected Mon, 19 Oct (5:00 PM – 7:00 PM) as alternative proposed slot');
+      });
+    }
+
+    // 4. Approve Cancellation Modal
+    const approveCancelModal = document.getElementById('approveCancellationModal');
+    const approveCancelBackdrop = document.getElementById('approveCancellationModalBackdrop');
+    const closeApproveCancelIconBtn = document.getElementById('closeApproveCancellationIconBtn');
+    const approveCancelDismissBtn = document.getElementById('approveCancelDismissBtn');
+    const confirmApproveCancellationBtn = document.getElementById('confirmApproveCancellationBtn');
+
+    const closeApproveCancelModal = () => {
+      if (approveCancelModal) {
+        approveCancelModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeApproveCancelIconBtn) closeApproveCancelIconBtn.addEventListener('click', closeApproveCancelModal);
+    if (approveCancelDismissBtn) approveCancelDismissBtn.addEventListener('click', closeApproveCancelModal);
+    if (approveCancelBackdrop) approveCancelBackdrop.addEventListener('click', closeApproveCancelModal);
+
+    if (confirmApproveCancellationBtn) {
+      confirmApproveCancellationBtn.addEventListener('click', () => {
+        confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+        confirmApproveCancellationBtn.disabled = true;
+
+        setTimeout(() => {
+          closeApproveCancelModal();
+          confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Approval';
+          confirmApproveCancellationBtn.disabled = false;
+
+          if (controller.currentActiveRequestId) {
+            updateRequestStatus(controller.currentActiveRequestId, 'approved');
+          }
+          if (container) {
+            renderRequestsView(container, requestsState, controller);
+          }
+          showToast('Cancellation approved. Slot vacated & substitute mapped.');
+        }, 400);
+      });
+    }
+
+    // 5. Reject Cancellation Modal
+    const rejectCancelModal = document.getElementById('rejectCancellationModal');
+    const rejectCancelBackdrop = document.getElementById('rejectModalBackdrop');
+    const closeRejectModalIconBtn = document.getElementById('closeRejectModalIconBtn');
+    const rejectCancelDismissBtn = document.getElementById('rejectCancelDismissBtn');
+    const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+    const reasonTextarea = document.getElementById('rejectionReasonText');
+    const quickReasonButtons = document.querySelectorAll('.btn-quick-reason');
+
+    const closeRejectCancelModal = () => {
+      if (rejectCancelModal) {
+        rejectCancelModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeRejectModalIconBtn) closeRejectModalIconBtn.addEventListener('click', closeRejectCancelModal);
+    if (rejectCancelDismissBtn) rejectCancelDismissBtn.addEventListener('click', closeRejectCancelModal);
+    if (rejectCancelBackdrop) rejectCancelBackdrop.addEventListener('click', closeRejectCancelModal);
+
+    quickReasonButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const reason = this.getAttribute('data-reason');
+        if (reasonTextarea) {
+          if (reason) reasonTextarea.value = reason;
+          else reasonTextarea.focus();
+        }
+      });
+    });
+
+    if (confirmRejectBtn) {
+      confirmRejectBtn.addEventListener('click', () => {
+        confirmRejectBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cancel</span> Cancellation Rejected';
+        confirmRejectBtn.disabled = true;
+
+        setTimeout(() => {
+          closeRejectCancelModal();
+          confirmRejectBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cancel</span> Confirm Rejection';
+          confirmRejectBtn.disabled = false;
+
+          if (controller.currentActiveRequestId) {
+            updateRequestStatus(controller.currentActiveRequestId, 'declined');
+          }
+          if (container) {
+            renderRequestsView(container, requestsState, controller);
+          }
+          showToast('Cancellation request rejected. Notice dispatched.', 'error');
+        }, 400);
+      });
+    }
+
+    // Escape Key Handler
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (altSlotModal && !altSlotModal.classList.contains('hidden')) closeAltSlotModal();
+        else if (declineModal && !declineModal.classList.contains('hidden')) closeDeclineModal();
+        else if (approveCancelModal && !approveCancelModal.classList.contains('hidden')) closeApproveCancelModal();
+        else if (rejectCancelModal && !rejectCancelModal.classList.contains('hidden')) closeRejectCancelModal();
+        else if (rescheduleModal && !rescheduleModal.classList.contains('hidden')) closeRescheduleModal();
+        else if (adminSettingsModal && !adminSettingsModal.classList.contains('hidden')) closeSettingsModal();
+        else if (emailPreviewModal && !emailPreviewModal.classList.contains('hidden')) closeEmailPreview();
+        else if (notificationModal && !notificationModal.classList.contains('hidden')) closeNotificationDrawer();
+        else if (deanDropdown && !deanDropdown.classList.contains('hidden')) deanDropdown.classList.add('hidden');
+        else if (batchDropdown && !batchDropdown.classList.contains('hidden')) batchDropdown.classList.add('hidden');
+      }
+    });
+
+    // Initial Mount
+    renderRequestsView(container, requestsState, controller);
+  </script>
+</body>
+</html>

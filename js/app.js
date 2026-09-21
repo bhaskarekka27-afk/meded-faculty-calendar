@@ -255,10 +255,6 @@ class AppController {
       this.closeEventModal();
     });
 
-    // Export entire filtered schedule
-    document.getElementById('export-all-ics-btn')?.addEventListener('click', () => {
-      this.exportCurrentScheduleIcs();
-    });
 
     // Close modals on escape or backdrop click
     window.addEventListener('keydown', (e) => {
@@ -707,13 +703,7 @@ class AppController {
         </div>
 
         <div class="modal-actions-footer">
-          <a href="${generateGoogleCalendarUrl(ev)}" target="_blank" rel="noopener" class="btn btn-primary">
-            <i data-lucide="calendar-plus"></i> Add to Google Calendar
-          </a>
-          <button class="btn btn-secondary" id="modal-download-ics">
-            <i data-lucide="download"></i> Download .ICS
-          </button>
-          <button class="btn btn-secondary" id="modal-share-btn">
+          <button class="btn btn-secondary w-full" id="modal-share-btn">
             <i data-lucide="share-2"></i> Copy Details
           </button>
         </div>
@@ -728,12 +718,6 @@ class AppController {
     this.refreshIcons();
 
     // Modal action listeners
-    modalBody.querySelector('#modal-download-ics')?.addEventListener('click', () => {
-      const ics = generateIcsContent(ev);
-      const safeName = (ev.chapter || ev.topic || 'Class').replace(/[^a-zA-Z0-9]/g, '_');
-      downloadIcsFile(`${safeName}_Lecture.ics`, ics);
-      this.showToast('Lecture .ics downloaded!');
-    });
 
     modalBody.querySelector('#modal-share-btn')?.addEventListener('click', () => {
       const text = `${ev.batchName}\n${ev.subject} by ${ev.faculty}\nDate: ${ev.dateRaw} (${ev.timings})\nChapter: ${ev.chapter}\nTopic: ${ev.topic}`;

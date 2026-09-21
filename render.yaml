@@ -16,3 +16,6 @@ services:
       - type: rewrite
         source: /timeline
         destination: /timeline.html
+      - type: rewrite
+        source: /requests
+        destination: /requests.html

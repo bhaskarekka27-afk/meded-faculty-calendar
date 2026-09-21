@@ -174,9 +174,6 @@ export function renderTableView(container, events, options = {}, onSelectEvent) 
               <button class="btn-icon-sm row-view-btn" data-id="${ev.id}" title="View Details">
                 <i data-lucide="eye"></i>
               </button>
-              <a href="${generateGoogleCalendarUrl(ev)}" target="_blank" rel="noopener" class="btn-icon-sm" title="Add to Google Calendar">
-                <i data-lucide="calendar-plus"></i>
-              </a>
             </div>
           </td>
         </tr>

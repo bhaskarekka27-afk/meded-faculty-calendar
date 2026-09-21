@@ -106,7 +106,8 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         faculty: resolve(__dirname, 'faculty.html'),
         week: resolve(__dirname, 'week.html'),
-        timeline: resolve(__dirname, 'timeline.html')
+        timeline: resolve(__dirname, 'timeline.html'),
+        requests: resolve(__dirname, 'requests.html')
       }
     }
   }

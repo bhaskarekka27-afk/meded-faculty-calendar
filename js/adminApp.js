@@ -9,6 +9,7 @@ import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
 import { WorkloadManager } from './workloadData.js';
 import { renderWorkloadView } from './workloadView.js';
+import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal } from './requestsView.js';
 
 class AdminDashboardController {
   constructor() {
@@ -29,7 +30,7 @@ class AdminDashboardController {
     this.searchQuery = '';
     
     // View state
-    this.mainTab = 'calendar'; // 'calendar' | 'dashboard' | 'faculty' | 'onboarding'
+    this.mainTab = 'calendar'; // 'calendar' | 'dashboard' | 'faculty' | 'onboarding' | 'workload'
     this.calendarSubView = 'month'; // 'month' | 'week' | 'timeline'
     this.timelineMode = 'stream'; // 'stream' | 'table'
 
@@ -49,7 +50,12 @@ class AdminDashboardController {
       this.mainTab = 'workload';
     } else if (urlParams.get('tab') === 'onboarding' || window.location.hash === '#onboarding' || path.includes('onboard')) {
       this.mainTab = 'onboarding';
+    } else if (urlParams.get('tab') === 'requests' || window.location.hash === '#requests' || path.includes('requests')) {
+      this.mainTab = 'requests';
     }
+
+    // Requests review filter state
+    this.requestsState = { filter: 'all', batch: 'all' };
 
     // Faculty Highlights Card State (Day | Week | Month)
     this.facultyHighlightScope = 'month'; // 'day' | 'week' | 'month'
@@ -98,7 +104,44 @@ class AdminDashboardController {
     this.renderAdminNotifications();
     this.startAutomatedReminderEngine();
     this.autoAdjustDateToActiveBatch();
+    this.setupHashListener();
     this.renderAll();
+  }
+
+  setupHashListener() {
+    window.addEventListener('hashchange', () => {
+      this.handleHashChange();
+    });
+    if (window.location.hash) {
+      this.handleHashChange();
+    }
+  }
+
+  handleHashChange() {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === '#requests') {
+      window.location.href = 'requests.html';
+      return;
+    } else if (hash === '#workload') {
+      this.mainTab = 'workload';
+    } else if (hash === '#onboarding') {
+      this.mainTab = 'onboarding';
+    } else if (hash === '#faculty') {
+      this.mainTab = 'faculty';
+    } else if (hash === '#dashboard') {
+      this.mainTab = 'dashboard';
+    } else if (hash === '#week') {
+      this.mainTab = 'calendar';
+      this.calendarSubView = 'week';
+    } else if (hash === '#timeline' || hash === '#agenda') {
+      this.mainTab = 'calendar';
+      this.calendarSubView = 'timeline';
+    } else if (hash === '#calendar' || !hash) {
+      this.mainTab = 'calendar';
+      this.calendarSubView = 'month';
+    }
+    this.updateDockState(this.mainTab);
+    this.renderMainContent();
   }
 
   autoAdjustDateToActiveBatch() {
@@ -264,6 +307,11 @@ class AdminDashboardController {
       this.updateDockState('onboarding');
       window.location.hash = 'onboarding';
       this.renderMainContent();
+    });
+
+    document.getElementById('deanMenuRequestsBtn')?.addEventListener('click', () => {
+      deanDropdown?.classList.add('hidden');
+      window.location.href = 'requests.html';
     });
 
     document.getElementById('deanMenuSettingsBtn')?.addEventListener('click', () => {
@@ -567,6 +615,58 @@ class AdminDashboardController {
       this.updateMonthTitle();
       this.updateSummaryCards();
       this.renderMainContent();
+    });
+  }
+
+  // --- 2b. Bottom Floating Dock Navigation Controller ---
+  setupDockNavigation() {
+    const dockItems = document.querySelectorAll('.dock-nav-item');
+    dockItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tab = item.getAttribute('data-dock');
+        if (!tab) return;
+
+        if (tab === 'requests') {
+          window.location.href = 'requests.html';
+          return;
+        }
+
+        if (tab === 'settings') {
+          this.openAdminSettingsModal('email');
+          return;
+        }
+
+        this.mainTab = tab;
+        this.updateDockState(tab);
+
+        // Update URL hash for direct bookmarking
+        if (tab === 'calendar') {
+          window.history.replaceState(null, '', window.location.pathname);
+        } else {
+          window.location.hash = tab;
+        }
+
+        this.renderMainContent();
+      });
+    });
+
+    this.updateDockState(this.mainTab);
+  }
+
+  updateDockState(activeTab) {
+    const dockItems = document.querySelectorAll('.dock-nav-item');
+    dockItems.forEach(item => {
+      const tab = item.getAttribute('data-dock');
+      const isCurrent = tab === activeTab;
+
+      if (isCurrent) {
+        item.classList.remove('text-[#576058]', 'hover:text-[#2c332d]', 'hover:bg-[#f4efe6]', 'bg-transparent');
+        item.classList.add('btn-3d-primary', 'text-white', 'font-bold');
+      } else {
+        item.classList.remove('btn-3d-primary', 'text-white', 'font-bold');
+        item.classList.add('text-[#576058]', 'hover:text-[#2c332d]', 'hover:bg-[#f4efe6]', 'bg-transparent', 'font-semibold');
+      }
     });
   }
 
@@ -1255,6 +1355,7 @@ class AdminDashboardController {
   // --- 5. Main Content Dispatcher ---
   renderMainContent() {
     this.updateViewButtons?.();
+    this.updateSubjectFilterButtons?.();
     const calendarSection = document.getElementById('viewSectionCalendar');
     const weekSection = document.getElementById('viewSectionWeek');
     const timelineSection = document.getElementById('viewSectionTimeline');
@@ -1262,6 +1363,7 @@ class AdminDashboardController {
     const facultySection = document.getElementById('viewSectionFaculty');
     const onboardingSection = document.getElementById('viewSectionOnboarding');
     const workloadSection = document.getElementById('viewSectionWorkload');
+    const requestsSection = document.getElementById('viewSectionRequests');
     const actionControls = document.getElementById('adminActionControlsBar');
     const summaryCards = document.getElementById('adminSummaryCardsContainer');
 
@@ -1273,11 +1375,13 @@ class AdminDashboardController {
     facultySection?.classList.add('hidden');
     onboardingSection?.classList.add('hidden');
     workloadSection?.classList.add('hidden');
+    requestsSection?.classList.add('hidden');
     summaryCards?.classList.remove('hidden');
 
     if (this.mainTab === 'calendar') {
       actionControls?.classList.remove('hidden');
       summaryCards?.classList.remove('hidden');
+      this.updateSummaryCards();
 
       if (this.calendarSubView === 'month') {
         calendarSection?.classList.remove('hidden');
@@ -1310,7 +1414,292 @@ class AdminDashboardController {
       summaryCards?.classList.add('hidden');
       this.initOnboardingHandlers();
       this.renderOnboardingList();
+    } else if (this.mainTab === 'requests') {
+      requestsSection?.classList.remove('hidden');
+      actionControls?.classList.add('hidden');
+      summaryCards?.classList.add('hidden');
+      this.setupRequestsHandlers();
+      renderRequestsView(requestsSection, this.requestsState, this);
     }
+  }
+
+  // --- Requests & Approvals View Handlers (Dynamic with zero dummy data) ---
+  setupRequestsHandlers() {
+    const requestsSection = document.getElementById('viewSectionRequests');
+
+    this.openDeclineModal = (data) => {
+      this.currentActiveRequestId = data?.id;
+      const faculty = data?.faculty || 'Faculty Member';
+      const subject = data?.subject || 'Curriculum Subject';
+      const session = data?.session || 'Scheduled Slot';
+      const batch = data?.batch || 'Prarambh 2026';
+
+      const facultyTargetEl = document.getElementById('declineFacultyTarget');
+      const facultySubEl = document.getElementById('declineFacultySub');
+      const sessionTimeEl = document.getElementById('declineSessionTime');
+
+      if (facultyTargetEl) facultyTargetEl.textContent = faculty;
+      if (facultySubEl) facultySubEl.textContent = `${subject} - ${batch}`;
+      if (sessionTimeEl) sessionTimeEl.textContent = session;
+
+      const declineModal = document.getElementById('declineConfirmModal');
+      if (declineModal) {
+        declineModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
+    this.openRescheduleModal = (requestId) => {
+      this.currentActiveRequestId = requestId;
+      openRescheduleApprovalModal(requestId, this);
+    };
+
+    this.openApproveCancellationModal = (requestId) => {
+      this.currentActiveRequestId = requestId;
+      const approveCancelModal = document.getElementById('approveCancellationModal');
+      if (approveCancelModal) {
+        approveCancelModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
+    this.openRejectCancellationModal = (requestId) => {
+      this.currentActiveRequestId = requestId;
+      const rejectCancelModal = document.getElementById('rejectCancellationModal');
+      if (rejectCancelModal) {
+        rejectCancelModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
+    if (this._requestsModalsBound) return;
+    this._requestsModalsBound = true;
+
+    // Modals references & close handlers
+    const declineModal = document.getElementById('declineConfirmModal');
+    const declineBackdrop = document.getElementById('declineModalBackdrop');
+    const closeDeclineIconBtn = document.getElementById('closeDeclineIconBtn');
+    const declineNoBtn = document.getElementById('declineNoBtn');
+    const declineYesBtn = document.getElementById('declineYesBtn');
+
+    const closeDeclineModal = () => {
+      if (declineModal) {
+        declineModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeDeclineIconBtn) closeDeclineIconBtn.addEventListener('click', closeDeclineModal);
+    if (declineNoBtn) declineNoBtn.addEventListener('click', closeDeclineModal);
+    if (declineBackdrop) declineBackdrop.addEventListener('click', closeDeclineModal);
+
+    if (declineYesBtn) {
+      declineYesBtn.addEventListener('click', () => {
+        declineYesBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Cancelling...';
+        declineYesBtn.disabled = true;
+
+        setTimeout(() => {
+          closeDeclineModal();
+          declineYesBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Yes';
+          declineYesBtn.disabled = false;
+
+          if (this.currentActiveRequestId) {
+            updateRequestStatus(this.currentActiveRequestId, 'declined');
+          }
+          if (requestsSection) {
+            renderRequestsView(requestsSection, this.requestsState, this);
+          }
+          this.showToast('Request declined. Slot vacated & faculty notified.', 'error');
+        }, 400);
+      });
+    }
+
+    // Reschedule Modal
+    const rescheduleModal = document.getElementById('rescheduleModal');
+    const rescheduleBackdrop = document.getElementById('modalBackdrop');
+    const closeRescheduleIconBtn = document.getElementById('closeModalIconBtn');
+    const rescheduleCancelBtn = document.getElementById('rescheduleCancelBtn');
+    const rescheduleDeclineBtn = document.getElementById('closeModalBtn');
+    const confirmApproveBtn = document.getElementById('confirmApproveBtn');
+
+    const closeRescheduleModal = () => {
+      if (rescheduleModal) {
+        rescheduleModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeRescheduleIconBtn) closeRescheduleIconBtn.addEventListener('click', closeRescheduleModal);
+    if (rescheduleCancelBtn) rescheduleCancelBtn.addEventListener('click', closeRescheduleModal);
+    if (rescheduleBackdrop) rescheduleBackdrop.addEventListener('click', closeRescheduleModal);
+
+    if (rescheduleDeclineBtn) {
+      rescheduleDeclineBtn.addEventListener('click', () => {
+        closeRescheduleModal();
+        if (this.currentActiveRequestId) {
+          this.openDeclineModal({ id: this.currentActiveRequestId });
+        }
+      });
+    }
+
+    if (confirmApproveBtn) {
+      confirmApproveBtn.addEventListener('click', () => {
+        confirmApproveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> Reschedule Approved!';
+        confirmApproveBtn.classList.remove('bg-[#4a7c59]');
+        confirmApproveBtn.classList.add('bg-[#3d6749]');
+
+        setTimeout(() => {
+          closeRescheduleModal();
+          confirmApproveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span><span>Confirm Reschedule &amp; Approve</span>';
+          confirmApproveBtn.classList.add('bg-[#4a7c59]');
+          confirmApproveBtn.classList.remove('bg-[#3d6749]');
+
+          if (this.currentActiveRequestId) {
+            updateRequestStatus(this.currentActiveRequestId, 'approved');
+          }
+          if (requestsSection) {
+            renderRequestsView(requestsSection, this.requestsState, this);
+          }
+          this.showToast('Reschedule approved! New slot locked & students updated.');
+        }, 400);
+      });
+    }
+
+    // Alternative Slot Modal
+    const altSlotModal = document.getElementById('altSlotModal');
+    const altSlotBackdrop = document.getElementById('altSlotBackdrop');
+    const closeAltSlotBtn = document.getElementById('closeAltSlotBtn');
+    const mon19SlotTrigger = document.getElementById('mon19SlotTrigger');
+    const scheduleAltSlotBtn = document.getElementById('scheduleAltSlotBtn');
+    const altDurButtons = document.querySelectorAll('.btn-alt-dur');
+
+    const openAltSlotModal = () => { if (altSlotModal) altSlotModal.classList.remove('hidden'); };
+    const closeAltSlotModal = () => { if (altSlotModal) altSlotModal.classList.add('hidden'); };
+
+    if (mon19SlotTrigger) mon19SlotTrigger.addEventListener('click', openAltSlotModal);
+    if (closeAltSlotBtn) closeAltSlotBtn.addEventListener('click', closeAltSlotModal);
+    if (altSlotBackdrop) altSlotBackdrop.addEventListener('click', closeAltSlotModal);
+
+    altDurButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        altDurButtons.forEach(b => {
+          b.classList.remove('active', 'bg-[#4a7c59]', 'text-white', 'font-bold', 'shadow-xs', 'border-[#4a7c59]');
+          b.classList.add('bg-white', 'text-[#2e3230]', 'font-semibold', 'border-[#c4c8bc]');
+        });
+        this.classList.add('active', 'bg-[#4a7c59]', 'text-white', 'font-bold', 'shadow-xs', 'border-[#4a7c59]');
+        this.classList.remove('bg-white', 'text-[#2e3230]', 'font-semibold', 'border-[#c4c8bc]');
+      });
+    });
+
+    if (scheduleAltSlotBtn) {
+      scheduleAltSlotBtn.addEventListener('click', () => {
+        const propText = document.getElementById('rescheduleProposedSlotText');
+        if (propText) propText.textContent = 'Mon, 19 Oct • 5:00 PM – 7:00 PM';
+        closeAltSlotModal();
+        this.showToast('Selected Mon, 19 Oct (5:00 PM – 7:00 PM) as alternative proposed slot');
+      });
+    }
+
+    // Approve Cancellation Modal
+    const approveCancelModal = document.getElementById('approveCancellationModal');
+    const approveCancelBackdrop = document.getElementById('approveCancellationModalBackdrop');
+    const closeApproveCancelIconBtn = document.getElementById('closeApproveCancellationIconBtn');
+    const approveCancelDismissBtn = document.getElementById('approveCancelDismissBtn');
+    const confirmApproveCancellationBtn = document.getElementById('confirmApproveCancellationBtn');
+
+    const closeApproveCancelModal = () => {
+      if (approveCancelModal) {
+        approveCancelModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeApproveCancelIconBtn) closeApproveCancelIconBtn.addEventListener('click', closeApproveCancelModal);
+    if (approveCancelDismissBtn) approveCancelDismissBtn.addEventListener('click', closeApproveCancelModal);
+    if (approveCancelBackdrop) approveCancelBackdrop.addEventListener('click', closeApproveCancelModal);
+
+    if (confirmApproveCancellationBtn) {
+      confirmApproveCancellationBtn.addEventListener('click', () => {
+        confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+        confirmApproveCancellationBtn.disabled = true;
+
+        setTimeout(() => {
+          closeApproveCancelModal();
+          confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Approval';
+          confirmApproveCancellationBtn.disabled = false;
+
+          if (this.currentActiveRequestId) {
+            updateRequestStatus(this.currentActiveRequestId, 'approved');
+          }
+          if (requestsSection) {
+            renderRequestsView(requestsSection, this.requestsState, this);
+          }
+          this.showToast('Cancellation approved. Slot vacated & substitute mapped.');
+        }, 400);
+      });
+    }
+
+    // Reject Cancellation Modal
+    const rejectCancelModal = document.getElementById('rejectCancellationModal');
+    const rejectCancelBackdrop = document.getElementById('rejectModalBackdrop');
+    const closeRejectModalIconBtn = document.getElementById('closeRejectModalIconBtn');
+    const rejectCancelDismissBtn = document.getElementById('rejectCancelDismissBtn');
+    const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+    const reasonTextarea = document.getElementById('rejectionReasonText');
+    const quickReasonButtons = document.querySelectorAll('.btn-quick-reason');
+
+    const closeRejectCancelModal = () => {
+      if (rejectCancelModal) {
+        rejectCancelModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    };
+
+    if (closeRejectModalIconBtn) closeRejectModalIconBtn.addEventListener('click', closeRejectCancelModal);
+    if (rejectCancelDismissBtn) rejectCancelDismissBtn.addEventListener('click', closeRejectCancelModal);
+    if (rejectCancelBackdrop) rejectCancelBackdrop.addEventListener('click', closeRejectCancelModal);
+
+    quickReasonButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const reason = this.getAttribute('data-reason');
+        if (reasonTextarea) {
+          if (reason) reasonTextarea.value = reason;
+          else reasonTextarea.focus();
+        }
+      });
+    });
+
+    if (confirmRejectBtn) {
+      confirmRejectBtn.addEventListener('click', () => {
+        confirmRejectBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cancel</span> Cancellation Rejected';
+        confirmRejectBtn.disabled = true;
+
+        setTimeout(() => {
+          closeRejectCancelModal();
+          confirmRejectBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">cancel</span> Confirm Rejection';
+          confirmRejectBtn.disabled = false;
+
+          if (this.currentActiveRequestId) {
+            updateRequestStatus(this.currentActiveRequestId, 'declined');
+          }
+          if (requestsSection) {
+            renderRequestsView(requestsSection, this.requestsState, this);
+          }
+          this.showToast('Cancellation request rejected. Notice dispatched.', 'error');
+        }, 400);
+      });
+    }
+
+    // Escape Key Handler
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (altSlotModal && !altSlotModal.classList.contains('hidden')) closeAltSlotModal();
+        else if (declineModal && !declineModal.classList.contains('hidden')) closeDeclineModal();
+        else if (approveCancelModal && !approveCancelModal.classList.contains('hidden')) closeApproveCancelModal();
+        else if (rejectCancelModal && !rejectCancelModal.classList.contains('hidden')) closeRejectCancelModal();
+        else if (rescheduleModal && !rescheduleModal.classList.contains('hidden')) closeRescheduleModal();
+      }
+    });
   }
 
   // --- 6. Month Calendar Grid View ---
@@ -1557,6 +1946,14 @@ class AdminDashboardController {
     return (clean.slice(0, 2) || 'DR').toUpperCase();
   }
 
+  getWeekNumber(d = new Date()) {
+    const date = new Date(d.getTime());
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    const week1 = new Date(date.getFullYear(), 0, 4);
+    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  }
+
   // --- 7. Dedicated Weekly Timetable Screen ---
   renderWeekView() {
     const container = document.getElementById('viewSectionWeek');
@@ -1576,6 +1973,7 @@ class AdminDashboardController {
     saturday.setDate(sunday.getDate() + 6);
     saturday.setHours(23, 59, 59, 999);
 
+    const weekNum = this.getWeekNumber(sunday);
     const weekDays = [];
     const weekClasses = [];
 
@@ -1623,7 +2021,7 @@ class AdminDashboardController {
           <div>
             <div class="flex items-center gap-2 flex-wrap">
               <h3 class="font-headline font-bold text-xl text-[#2c332d]">Weekly Timetable Matrix</h3>
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Term 1 • Week 4 of 16</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Term 1 • Week ${weekNum} of 52</span>
               <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc] badge-3d">CBME Aligned</span>
             </div>
             <p class="text-xs text-[#576058] mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1648,10 +2046,6 @@ class AdminDashboardController {
               Next <span class="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>
           </div>
-
-          <button id="weekExportIcsBtn" class="btn-3d-primary px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">calendar_add_on</span> Export Week (.ics)
-          </button>
         </div>
       </div>
 
@@ -1799,15 +2193,16 @@ class AdminDashboardController {
           const durationStr = (ev.duration || '2h').replace(/hours?/i, 'h').trim();
 
           html += `
-            <div class="bg-white border border-[#d8e5dc] hover:border-[#4a7c59] rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group" data-event-id="${ev.id}">
-              <!-- Top Subject & Venue Row -->
+            <div class="bg-white border border-[#d8e5dc] hover:border-[#4a7c59] rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group overflow-hidden max-w-full" data-event-id="${ev.id}">
+              <div class="min-w-0">
+                <!-- Top Subject & Venue Row -->
                 <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1 flex-wrap">
-                  <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d">
+                  <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d max-w-[95px]">
                     ${ev.subject || 'Lecture'}
                   </span>
-                  <div class="flex items-center gap-1 shrink-0">
+                  <div class="flex items-center gap-1 flex-wrap shrink-0">
                     ${renderBatchBadge(ev.batchName)}
-                    ${renderPlatformBadges(ev, { compact: false })}
+                    ${renderPlatformBadges(ev, { compact: true })}
                   </div>
                 </div>
                 <h4 class="text-xs font-bold text-[#2c332d] leading-snug font-headline group-hover:text-[#4a7c59] transition-colors line-clamp-2" title="${ev.chapter || 'Chapter'}">
@@ -1969,16 +2364,6 @@ class AdminDashboardController {
       this.renderWeekView();
     });
 
-    container.querySelector('#weekExportIcsBtn')?.addEventListener('click', () => {
-      if (weekClasses.length === 0) {
-        this.showToast('No classes scheduled in this week to export.', 'error');
-        return;
-      }
-      const ics = generateIcsContent(weekClasses, `${batch.name} - Week of ${sunday.toLocaleDateString()}`);
-      downloadIcsFile(`Weekly_Schedule_${sunday.toISOString().slice(0, 10)}.ics`, ics);
-      this.showToast(`Exported ${weekClasses.length} lectures as .ics!`);
-    });
-
     container.querySelectorAll('.week-class-card, .week-card-detail-btn, .week-table-row, .week-row-detail-btn').forEach(el => {
       el.addEventListener('click', () => {
         const evId = el.getAttribute('data-event-id');
@@ -2045,10 +2430,6 @@ class AdminDashboardController {
               <span class="material-symbols-outlined text-[16px]">table_rows</span> Table View
             </button>
           </div>
-
-          <button id="timelineExportAllIcsBtn" class="btn-3d-primary px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">download</span> Export All (.ics)
-          </button>
         </div>
       </div>
 
@@ -2189,13 +2570,14 @@ class AdminDashboardController {
             </div>
 
             <!-- Main Milestone Card -->
-            <div class="w-full bg-white border border-[#ded5c6] hover:border-[#4a7c59] rounded-2xl p-4 sm:p-5 timeline-card-3d cursor-pointer" data-event-id="${ev.id}">
+            <div class="w-full bg-white border border-[#ded5c6] hover:border-[#4a7c59] rounded-2xl p-4 sm:p-5 timeline-card-3d cursor-pointer shadow-xs hover:shadow-md transition-all" data-event-id="${ev.id}">
+              <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} badge-3d">
                     ${ev.subject || 'Lecture'}
                   </span>
                   ${renderBatchBadge(ev.batchName)}
-                  ${renderPlatformBadges(ev, { compact: false })}
+                  ${renderPlatformBadges(ev, { compact: true })}
                   <span class="text-xs font-bold text-[#2c332d]">${ev.dateRaw || ev.isoDate}</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -2211,7 +2593,7 @@ class AdminDashboardController {
 
               <div class="mt-4 pt-3 border-t border-[#f0ece4] flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-full bg-[#f4ece1] border border-[#ded5c6] shadow-xs flex items-center justify-center text-[9px] font-bold text-[#705c30]">
+                  <div class="w-7 h-7 rounded-full bg-[#f4ece1] border border-[#ded5c6] shadow-xs flex items-center justify-center text-[10px] font-bold text-[#705c30]">
                     ${initials}
                   </div>
                   <div>
@@ -2220,7 +2602,7 @@ class AdminDashboardController {
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" onclick="event.stopPropagation();">
                   <button class="btn-3d-primary px-3.5 py-1.5 rounded-xl text-white font-bold text-xs timeline-stream-detail-btn cursor-pointer" data-event-id="${ev.id}">
                     View Details
                   </button>
@@ -2353,17 +2735,6 @@ class AdminDashboardController {
     container.querySelector('#btnTimelineTableMode')?.addEventListener('click', () => {
       this.timelineMode = 'table';
       this.renderTimelineTableView();
-    });
-
-    // Export entire timeline as ICS
-    container.querySelector('#timelineExportAllIcsBtn')?.addEventListener('click', () => {
-      if (classes.length === 0) {
-        this.showToast('No classes available in this timeline to export.', 'error');
-        return;
-      }
-      const ics = generateIcsContent(classes, `${batch.name} Complete Timeline`);
-      downloadIcsFile(`${batch.name.replace(/\s+/g, '_')}_Timeline.ics`, ics);
-      this.showToast(`Exported all ${classes.length} lectures as .ics!`);
     });
 
     // Click on rows/cards to open details
@@ -4007,12 +4378,9 @@ class AdminDashboardController {
             </div>
           ` : ''}
 
-          <div class="flex gap-2 pt-1">
-            <button class="btn-3d-primary flex-1 py-2 rounded-xl text-white font-bold text-xs cursor-pointer btn-filter-fac-in-cal" data-faculty="${fac.name}">
+          <div class="pt-1">
+            <button class="btn-3d-primary w-full py-2 rounded-xl text-white font-bold text-xs cursor-pointer btn-filter-fac-in-cal" data-faculty="${fac.name}">
               View Schedule
-            </button>
-            <button class="btn-3d-secondary px-3 py-2 rounded-xl font-bold text-xs cursor-pointer btn-export-fac-ics" data-faculty="${fac.name}">
-              <span class="material-symbols-outlined text-[15px]">download</span>
             </button>
           </div>
         </div>
@@ -4052,17 +4420,6 @@ class AdminDashboardController {
       });
     });
 
-    container.querySelectorAll('.btn-export-fac-ics').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const facName = btn.getAttribute('data-faculty');
-        const facClasses = classes.filter(e => e.faculty === facName);
-        if (facClasses.length > 0) {
-          const ics = generateIcsContent(facClasses, `${facName} Schedule`);
-          downloadIcsFile(`${facName.replace(/\s+/g, '_')}_Schedule.ics`, ics);
-          this.showToast(`Exported ${facClasses.length} lectures for ${facName}!`);
-        }
-      });
-    });
   }
 
   // --- 10b. Faculty Onboarding View Handler ---
@@ -4580,39 +4937,7 @@ class AdminDashboardController {
     });
   }
 
-  // --- 11. Bottom Floating Candy Dock ---
-  setupDockNavigation() {
-    const dockItems = document.querySelectorAll('.dock-nav-item');
-    dockItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const tab = item.getAttribute('data-dock');
-        
-        if (tab === 'settings') {
-          this.openAdminSettingsModal('email');
-          return;
-        }
 
-        this.mainTab = tab;
-        this.updateDockState(tab);
-        window.location.hash = tab === 'calendar' ? '' : tab;
-        this.renderMainContent();
-      });
-    });
-
-    this.updateDockState(this.mainTab);
-  }
-
-  updateDockState(tab) {
-    document.querySelectorAll('.dock-nav-item').forEach(i => {
-      const t = i.getAttribute('data-dock');
-      if (t === tab) {
-        i.className = 'dock-nav-item flex items-center gap-2 px-4 py-1.5 rounded-xl btn-3d-primary text-white text-xs font-bold transition-all cursor-pointer border-none';
-      } else {
-        i.className = 'dock-nav-item flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] text-xs font-semibold transition-all cursor-pointer border-none bg-transparent';
-      }
-    });
-  }
 
   // --- 12. Notification Drawer & Real-time Alerts ---
   setupNotificationDrawer() {
@@ -5512,16 +5837,6 @@ class AdminDashboardController {
       platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
     }
 
-    const gcalBtn = document.getElementById('modalDetailGCalBtn');
-    if (gcalBtn) gcalBtn.href = generateGoogleCalendarUrl(ev);
-
-    const icsBtn = document.getElementById('modalDetailIcsBtn');
-    if (icsBtn) {
-      icsBtn.onclick = () => {
-        const ics = generateIcsContent(ev);
-        downloadIcsFile(`${(ev.chapter || 'Lecture').replace(/\s+/g, '_')}.ics`, ics);
-      };
-    }
 
     modal.classList.remove('hidden');
   }
@@ -5545,8 +5860,16 @@ class AdminDashboardController {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.adminApp = new AdminDashboardController();
-});
+function initAdminApp() {
+  if (!window.adminApp) {
+    window.adminApp = new AdminDashboardController();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAdminApp);
+} else {
+  initAdminApp();
+}
 
 export { AdminDashboardController };

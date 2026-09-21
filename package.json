@@ -11,5 +11,8 @@
   },
   "dependencies": {
     "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.0"
   }
 }

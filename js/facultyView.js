@@ -110,11 +110,8 @@ export function renderFacultyView(container, allEvents, onFilterFaculty, onSelec
           ` : ''}
 
           <div class="faculty-card-actions">
-            <button class="btn btn-primary btn-sm btn-filter-fac" data-name="${escapeHtml(fac.name)}">
+            <button class="btn btn-primary btn-sm btn-filter-fac w-full" data-name="${escapeHtml(fac.name)}">
               <i data-lucide="filter"></i> View Schedule (${fac.classes.length})
-            </button>
-            <button class="btn btn-secondary btn-sm btn-download-fac-ics" data-name="${escapeHtml(fac.name)}" title="Download Calendar for ${escapeHtml(fac.name)}">
-              <i data-lucide="calendar-download"></i> .ICS
             </button>
           </div>
         </div>
@@ -137,17 +134,6 @@ export function renderFacultyView(container, allEvents, onFilterFaculty, onSelec
     });
   });
 
-  // ICS download listener
-  container.querySelectorAll('.btn-download-fac-ics').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const name = btn.getAttribute('data-name');
-      const facData = facultyList.find(f => f.name === name);
-      if (facData && facData.classes.length > 0) {
-        const icsContent = generateIcsContent(facData.classes, `${name} Schedule`);
-        downloadIcsFile(`${name.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule.ics`, icsContent);
-      }
-    });
-  });
 
   // Next class click listener
   container.querySelectorAll('.faculty-next-class-box').forEach(box => {

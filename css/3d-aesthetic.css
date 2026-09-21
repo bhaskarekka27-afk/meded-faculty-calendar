@@ -13,6 +13,10 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, span, p, di
   font-family: 'Material Symbols Outlined' !important;
 }
 
+.hidden {
+  display: none !important;
+}
+
 :root {
   /* 3D Shadows & Layered Depths */
   --shadow-3d-ambient: 0 1px 2px rgba(44, 51, 45, 0.04);
@@ -107,10 +111,22 @@ body {
   border: 1px solid rgba(222, 213, 198, 0.9) !important;
   box-shadow: var(--shadow-3d-float) !important;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+  white-space: nowrap !important;
+  max-width: calc(100vw - 24px) !important;
 }
 
 .dock-3d:hover {
   box-shadow: 0 24px 50px -8px rgba(35, 45, 38, 0.24), 0 10px 22px -3px rgba(35, 45, 38, 0.12), inset 0 1px 1px #ffffff !important;
+}
+
+.dock-nav-item {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.dock-nav-item span {
+  white-space: nowrap !important;
+  display: inline-block !important;
 }
 
 /* 3D Filter Pills */
