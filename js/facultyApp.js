@@ -32,7 +32,7 @@ export class FacultyDashboardController {
     this.loggedInFaculty = 'Dr. Rajesh Jambhulkar';
     this.loggedInSubject = 'Biochemistry';
 
-    // Calendar state - defaults to October 2026 where lecture data exists
+    // Calendar state - always defaults to the current real-time month & year
     const _now = new Date();
     this.currentYear = _now.getFullYear();
     this.currentMonth = _now.getMonth();
@@ -44,9 +44,9 @@ export class FacultyDashboardController {
     // Today's real date, in the user's own timezone. Single source of truth.
     this.todayIso = todayIso();
 
-    // Mobile responsive view state
+    // Mobile responsive view state - always defaults to current month & today's date
     this.mobileView = 'month'; // 'month', 'week', 'agenda'
-    this.mobileSelectedDateIso = todayIso();
+    this.mobileSelectedDateIso = this.todayIso;
 
     this.init();
   }
@@ -61,9 +61,15 @@ export class FacultyDashboardController {
     this.populateMobileFacultySwitcher();
     this.setupFacultyNotificationDrawer();
     this.setupFacultyEmailPreviewModal();
-    // Start on today's month, but fall forward to the nearest month that has
-    // classes so the first paint is never an empty grid.
-    this.syncPeriodToFilters();
+    
+    // Always show current month calendar by default on faculty login on both web and mobile view
+    const now = new Date();
+    this.currentYear = now.getFullYear();
+    this.currentMonth = now.getMonth();
+    this.currentWeekStart = startOfWeek(now);
+    this.todayIso = todayIso();
+    this.mobileSelectedDateIso = this.todayIso;
+
     this.render();
     this.renderFacultyNotifications();
   }
@@ -682,7 +688,6 @@ export class FacultyDashboardController {
       this.render();
     } else {
       this.tabTotal?.classList.add('tab-active-glow');
-      this.syncPeriodToFilters();
       this.render();
     }
   }
@@ -2067,7 +2072,10 @@ export class FacultyDashboardController {
     const liveLegend = document.getElementById('mobileLegendLiveCount');
     if (liveLegend) liveLegend.textContent = `Live Class (${monthClassCount})`;
     const todayLegend = document.getElementById('mobileLegendTodayText');
-    if (todayLegend) todayLegend.textContent = `Today (15 Oct)`;
+    if (todayLegend) {
+      const d = new Date();
+      todayLegend.textContent = `Today (${d.getDate()} ${d.toLocaleString('en-US', { month: 'short' })})`;
+    }
 
     // Prev month padding
     for (let i = firstDay - 1; i >= 0; i--) {

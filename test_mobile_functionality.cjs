@@ -142,7 +142,7 @@ import('./js/facultyApp.js').then(async ({ FacultyDashboardController }) => {
   // Test 1: Initialization of mobile state
   console.log('Test 1: Mobile Initial State');
   assert.strictEqual(ctrl.mobileView, 'month', 'Initial mobileView should be "month"');
-  assert.strictEqual(ctrl.mobileSelectedDateIso, '2026-10-17', 'Initial mobileSelectedDateIso should be "2026-10-17"');
+  assert.strictEqual(ctrl.mobileSelectedDateIso, ctrl.todayIso, 'Initial mobileSelectedDateIso should be current date');
   console.log('✅ Mobile initial state verified.');
 
   // Test 2: Active Batch Switcher Dropdown Populated
