@@ -77,14 +77,18 @@ export class FacultyDashboardController {
             if (matchedFaculty) {
               this.currentFaculty = matchedFaculty.name;
               this.facultySubject = matchedFaculty.dept || 'Biochemistry';
+              this.loggedInFaculty = matchedFaculty.name;
+              this.loggedInSubject = matchedFaculty.dept || 'Biochemistry';
               return;
             }
           }
           if (user.name && user.name.trim()) {
             this.currentFaculty = user.name.trim();
+            this.loggedInFaculty = user.name.trim();
           }
           if (user.subject && user.subject.trim()) {
             this.facultySubject = user.subject.trim();
+            this.loggedInSubject = user.subject.trim();
           }
         }
       }
@@ -341,19 +345,31 @@ export class FacultyDashboardController {
     }
 
     if (isAll) {
-      // Show all batch classes by default when All Batches is selected
-      this.currentFaculty = 'All Faculty';
-      this.facultySubject = 'Combined Curriculum';
+      // Preserve logged-in faculty identity when All Batches is selected
+      if (this.loggedInFaculty) {
+        this.currentFaculty = this.loggedInFaculty;
+        this.facultySubject = this.loggedInSubject || this.facultySubject;
+      } else if (!this.currentFaculty) {
+        this.currentFaculty = 'All Faculty';
+        this.facultySubject = 'Combined Curriculum';
+      }
       this.updateFacultyProfileUI();
     } else {
-      // If current faculty is 'All Faculty' or has 0 classes in this new batch, auto-select first available faculty
-      const facultyInNewBatch = batchClasses.filter(e => e.eventType === 'class' && e.faculty && this.currentFaculty && this.currentFaculty !== 'All Faculty' && e.faculty.toLowerCase().includes(this.currentFaculty.toLowerCase()));
-      if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || facultyInNewBatch.length === 0) {
-        const firstFac = batchClasses.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off'));
-        if (firstFac && firstFac.faculty) {
-          this.currentFaculty = firstFac.faculty.trim();
-          this.facultySubject = firstFac.subject || 'Faculty';
-          this.updateFacultyProfileUI();
+      // If logged-in faculty is present, keep their profile
+      if (this.loggedInFaculty) {
+        this.currentFaculty = this.loggedInFaculty;
+        this.facultySubject = this.loggedInSubject || this.facultySubject;
+        this.updateFacultyProfileUI();
+      } else {
+        // If current faculty is 'All Faculty' or has 0 classes in this new batch, auto-select first available faculty
+        const facultyInNewBatch = batchClasses.filter(e => e.eventType === 'class' && e.faculty && this.currentFaculty && this.currentFaculty !== 'All Faculty' && e.faculty.toLowerCase().includes(this.currentFaculty.toLowerCase()));
+        if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || facultyInNewBatch.length === 0) {
+          const firstFac = batchClasses.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off'));
+          if (firstFac && firstFac.faculty) {
+            this.currentFaculty = firstFac.faculty.trim();
+            this.facultySubject = firstFac.subject || 'Faculty';
+            this.updateFacultyProfileUI();
+          }
         }
       }
     }
