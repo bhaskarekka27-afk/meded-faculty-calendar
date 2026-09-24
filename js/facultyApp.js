@@ -1313,14 +1313,29 @@ export class FacultyDashboardController {
     const modalDetailFaculty = document.getElementById('modalDetailFaculty');
     const modalDetailTopic = document.getElementById('modalDetailTopic');
 
+    // Format Date & Day nicely
+    let formattedDate = ev.dateRaw || ev.isoDate || 'Scheduled Date';
+    if (ev.isoDate) {
+      try {
+        const [y, m, d] = ev.isoDate.split('-').map(Number);
+        if (y && m && d) {
+          const dateObj = new Date(y, m - 1, d);
+          const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          formattedDate = `${fullDays[dateObj.getDay()]}, ${fullMonths[dateObj.getMonth()]} ${d}, ${y}`;
+        }
+      } catch (e) {}
+    }
+
     if (modalSubjectBadge) modalSubjectBadge.textContent = ev.subject || 'Clinical Lecture';
     if (modalDetailTitle) modalDetailTitle.textContent = ev.topic || ev.chapter || 'Lecture Session';
     if (modalDetailBatch) {
       modalDetailBatch.innerHTML = `${renderBatchBadge(ev.batchName || 'PW MedEd Batch')} ${renderPlatformBadges(ev, { size: 'sm' })} ${ev.chapter ? `• ${ev.chapter}` : ''}`;
       modalDetailBatch.className = 'inline-flex items-center gap-1.5 flex-wrap';
     }
-    if (modalDetailDate) modalDetailDate.textContent = ev.dateRaw || ev.isoDate || 'Scheduled Date';
+    if (modalDetailDate) modalDetailDate.textContent = formattedDate;
     if (modalDetailTimings) modalDetailTimings.textContent = (ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ');
+    if (modalDetailDuration) modalDetailDuration.textContent = ev.duration ? `• ${ev.duration}` : '• 2 Hours';
     const facultyName = ev.faculty || this.currentFaculty;
     if (modalDetailFaculty) modalDetailFaculty.textContent = facultyName;
     if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
@@ -2639,78 +2654,71 @@ export class FacultyDashboardController {
   openMobileLectureDetail(ev) {
     if (!ev) return;
     this.currentMobileDetailEvent = ev;
-    const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026 Batch', platform: 'app' };
 
-    const modalBatch = document.getElementById('mobileModalBatchBadge');
-    const modalSubj = document.getElementById('mobileModalSubjectBadge');
-    const modalPlatform = document.getElementById('mobileModalPlatformBadge');
+    const modalSubjectBadge = document.getElementById('mobileModalSubjectBadge');
     const modalTopic = document.getElementById('mobileModalTopic');
-    const modalDesc = document.getElementById('mobileModalDescription');
-    const modalConcepts = document.getElementById('mobileModalConceptsContainer');
-    const modalConceptCount = document.getElementById('mobileModalConceptCount');
+    const modalBatch = document.getElementById('mobileModalBatch');
+    const modalPlatformText = document.getElementById('mobileModalPlatformText');
     const modalDate = document.getElementById('mobileModalDate');
     const modalTimings = document.getElementById('mobileModalTimings');
-    const modalStudio = document.getElementById('mobileModalStudio');
-    const modalAvatar = document.getElementById('mobileModalFacultyAvatar');
-    const modalFacName = document.getElementById('mobileModalFacultyName');
-    const modalFacRole = document.getElementById('mobileModalFacultyRole');
-    const modalDeck = document.getElementById('mobileModalDeckTitle');
+    const modalDuration = document.getElementById('mobileModalDuration');
+    const modalFaculty = document.getElementById('mobileModalFaculty');
+    const modalTopicText = document.getElementById('mobileModalTopicText');
+
+    if (modalSubjectBadge) modalSubjectBadge.textContent = ev.subject || this.facultySubject || 'Clinical Lecture';
+    if (modalTopic) modalTopic.textContent = ev.topic || ev.chapter || 'Lecture Session';
+    if (modalBatch) {
+      modalBatch.innerHTML = `${renderBatchBadge(ev.batchName || 'PW MedEd Batch')} ${renderPlatformBadges(ev, { size: 'sm' })} ${ev.chapter ? `• ${ev.chapter}` : ''}`;
+      modalBatch.className = 'inline-flex items-center gap-1.5 flex-wrap text-xs text-[#68736a]';
+    }
+
+    if (modalPlatformText) {
+      modalPlatformText.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
+
+    // Format Date & Day nicely
+    let formattedDate = ev.dateRaw || ev.isoDate || 'Scheduled Date';
+    if (ev.isoDate) {
+      try {
+        const [y, m, d] = ev.isoDate.split('-').map(Number);
+        if (y && m && d) {
+          const dateObj = new Date(y, m - 1, d);
+          const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          formattedDate = `${fullDays[dateObj.getDay()]}, ${fullMonths[dateObj.getMonth()]} ${d}, ${y}`;
+        }
+      } catch (e) {}
+    }
+
+    if (modalDate) modalDate.textContent = formattedDate;
+    if (modalTimings) modalTimings.textContent = (ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ');
+    if (modalDuration) modalDuration.textContent = ev.duration ? `• ${ev.duration}` : '• 2 Hours';
 
     const facultyName = ev.faculty || this.currentFaculty;
-    const initials = this.getFacultyInitials(facultyName);
-    const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
-
-    if (modalBatch) modalBatch.textContent = `${batchObj.name || 'Prarambh 2026'} • MBBS`;
-    if (modalSubj) modalSubj.textContent = ev.subject || this.facultySubject;
-    if (modalPlatform) {
-      modalPlatform.textContent = isYoutube ? 'YouTube Live Stream' : 'Live Interactive Stream';
-      modalPlatform.className = isYoutube ? 'text-[10px] font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1' : 'text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1';
-    }
-    if (modalTopic) modalTopic.textContent = ev.topic || 'Medical Lecture';
-    if (modalDesc) modalDesc.textContent = ev.description || `Comprehensive interactive clinical lecture covering ${ev.topic || 'key concepts'}, case discussions, and board exam focus points.`;
-
-    // Format Date
-    const [y, m, d] = (ev.isoDate || '').split('-').map(Number);
-    if (y && m && d) {
-      const dateObj = new Date(y, m - 1, d);
-      const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      if (modalDate) modalDate.textContent = `${fullDays[dateObj.getDay()]}, ${d} ${monthNames[m - 1]} ${y}`;
-    }
-    if (modalTimings) modalTimings.textContent = `${ev.timings || '7:00 PM – 9:00 PM'} (2.0 hrs)`;
-    if (modalStudio) modalStudio.textContent = ev.studio || 'Virtual Studio 3';
-
-    if (modalAvatar) modalAvatar.textContent = initials;
-    if (modalFacName) modalFacName.textContent = facultyName;
-    if (modalFacRole) modalFacRole.textContent = `Department of ${ev.subject || this.facultySubject}`;
-    if (modalDeck) modalDeck.textContent = `${(ev.subject || 'Lecture').replace(/\s+/g, '_')}_Deck_${ev.isoDate || '2026'}.pdf`;
-
-    // Key concepts
-    if (modalConcepts) {
-      const concepts = [
-        `Core principles & physiological mechanisms of ${ev.subject || 'lecture'}`,
-        `High-yield differential diagnostic markers and clinical signs`,
-        `Clinical correlation & USMLE/NEET-PG high frequency question patterns`,
-        `Interactive doubt resolution & live problem-solving scenarios`
-      ];
-      if (modalConceptCount) modalConceptCount.textContent = `${concepts.length} Modules`;
-
-      modalConcepts.innerHTML = concepts.map((c, i) => `
-        <div class="flex items-start gap-2">
-          <div class="w-4 h-4 rounded-full ${i === 3 ? 'bg-terra-amberBg text-terra-amber' : 'bg-terra-forestLight text-terra-forest'} flex items-center justify-center text-[10px] font-bold mt-0.5 shrink-0">${i + 1}</div>
-          <span class="leading-tight ${i === 3 ? 'font-medium text-terra-amber' : ''}">${c}</span>
-        </div>
-      `).join('');
-    }
+    if (modalFaculty) modalFaculty.textContent = facultyName;
+    if (modalTopicText) modalTopicText.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
 
     // Check permission for Reschedule & Cancellation option at faculty level
     const canRescheduleCancel = this.canFacultyRescheduleCancel(ev);
     const mobileReschedCancelRow = document.getElementById('mobileModalRescheduleCancelRow');
-    if (mobileReschedCancelRow) {
+    const mobileCloseSecondaryBtn = document.getElementById('mobileModalCloseSecondaryBtn');
+    const mobileFooter = document.getElementById('mobileModalFooter');
+
+    if (mobileReschedCancelRow && mobileCloseSecondaryBtn) {
       if (canRescheduleCancel) {
         mobileReschedCancelRow.classList.remove('hidden');
+        mobileCloseSecondaryBtn.className = 'btn-3d-primary px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer';
+        if (mobileFooter) {
+          mobileFooter.classList.remove('justify-center');
+          mobileFooter.classList.add('justify-between');
+        }
       } else {
         mobileReschedCancelRow.classList.add('hidden');
+        mobileCloseSecondaryBtn.className = 'btn-3d-primary w-full py-2.5 rounded-xl text-xs font-bold cursor-pointer text-center shadow-md';
+        if (mobileFooter) {
+          mobileFooter.classList.remove('justify-between');
+          mobileFooter.classList.add('justify-center');
+        }
       }
     }
 

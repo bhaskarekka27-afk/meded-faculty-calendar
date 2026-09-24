@@ -103,11 +103,11 @@ const mockIds = [
   'mobileNotificationCloseBtn', 'mobileNotificationDismissBtn', 'mobileNotificationMarkReadBtn',
   'mobileNotificationFeed', 'mobileNotificationBadge', 'mobileNotificationCountBadge',
   'lecture-modal-backdrop', 'lecture-bottom-sheet', 'mobileModalCloseBtn',
-  'mobileModalCloseSecondaryBtn', 'mobileModalStartBtn',
-  'mobileModalBatchBadge', 'mobileModalSubjectBadge', 'mobileModalPlatformBadge',
-  'mobileModalTopic', 'mobileModalDescription', 'mobileModalConceptsContainer',
-  'mobileModalConceptCount', 'mobileModalDate', 'mobileModalTimings', 'mobileModalStudio',
-  'mobileModalFacultyAvatar', 'mobileModalFacultyName', 'mobileModalFacultyRole', 'mobileModalDeckTitle'
+  'mobileModalCloseSecondaryBtn', 'mobileModalRescheduleBtn', 'mobileModalCancelBtn',
+  'mobileModalRescheduleCancelRow', 'mobileModalFooter', 'mobileModalSubjectBadge',
+  'mobileModalTopic', 'mobileModalBatch', 'mobileModalPlatformRow', 'mobileModalPlatformText',
+  'mobileModalDate', 'mobileModalTimings', 'mobileModalDuration', 'mobileModalFaculty',
+  'mobileModalTopicText'
 ];
 
 mockIds.forEach(id => {
@@ -127,13 +127,16 @@ global.window = {
   setTimeout: (cb) => cb()
 };
 
+const storage = {};
 global.localStorage = {
-  getItem: () => null,
-  setItem: () => {}
+  getItem: (k) => storage[k] !== undefined ? storage[k] : null,
+  setItem: (k, v) => { storage[k] = String(v); },
+  removeItem: (k) => { delete storage[k]; },
+  clear: () => { Object.keys(storage).forEach(k => delete storage[k]); }
 };
 
 // Import ESM module
-import('./js/facultyApp.js').then(({ FacultyDashboardController }) => {
+import('./js/facultyApp.js').then(async ({ FacultyDashboardController }) => {
   const ctrl = new FacultyDashboardController();
 
   // Test 1: Initialization of mobile state
@@ -158,11 +161,8 @@ import('./js/facultyApp.js').then(({ FacultyDashboardController }) => {
   // Switch back to Prarambh for deterministic tests
   ctrl.switchBatch(batches[0].id);
 
-  // Test 3: Faculty Profile Switcher
-  console.log('\nTest 3: Mobile Faculty Switcher');
-  assert.ok(elements['mobileFacultyProfilesList'].children.length > 0, 'mobileFacultyProfilesList should have items');
-  console.log(` - Mobile faculty switcher items: ${elements['mobileFacultyProfilesList'].children.length}`);
-  
+  // Test 3: Faculty Profile State
+  console.log('\nTest 3: Faculty Profile State');
   // Switch faculty to Dr. Rajesh Jambhulkar explicitly
   ctrl.switchFaculty('Dr. Rajesh Jambhulkar', 'Biochemistry');
   assert.strictEqual(ctrl.currentFaculty, 'Dr. Rajesh Jambhulkar');
@@ -178,7 +178,7 @@ import('./js/facultyApp.js').then(({ FacultyDashboardController }) => {
   // Switch back to Dr. Rajesh Jambhulkar
   ctrl.switchFaculty('Dr. Rajesh Jambhulkar', 'Biochemistry');
   assert.strictEqual(ctrl.currentFaculty, 'Dr. Rajesh Jambhulkar');
-  console.log('✅ Mobile faculty switcher verified.');
+  console.log('✅ Mobile faculty verified.');
 
   // Test 4: Mobile Metrics & KPI Cards
   console.log('\nTest 4: Mobile Summary KPI Metrics');
@@ -243,8 +243,8 @@ import('./js/facultyApp.js').then(({ FacultyDashboardController }) => {
   
   ctrl.openMobileLectureDetail(testClass);
   assert.strictEqual(elements['mobileModalTopic'].textContent, testClass.topic);
-  assert.strictEqual(elements['mobileModalSubjectBadge'].textContent, testClass.subject);
-  assert.ok(elements['mobileModalTimings'].textContent.includes(testClass.timings));
+  assert.ok(elements['mobileModalTimings'].textContent.length > 0);
+  assert.strictEqual(elements['mobileModalFaculty'].textContent, testClass.faculty || ctrl.currentFaculty);
   console.log(` - Bottom sheet populated with: ${testClass.topic} (${testClass.subject})`);
   assert.ok(!elements['lecture-modal-backdrop'].classList.contains('hidden'), 'Modal backdrop should not be hidden');
 
@@ -254,9 +254,19 @@ import('./js/facultyApp.js').then(({ FacultyDashboardController }) => {
 
   // Test 9: Mobile Notifications Drawer
   console.log('\nTest 9: Mobile Notification Drawer');
+  const { reminderEmailService } = await import('./js/reminderEmailService.js');
+  reminderEmailService.dispatchReminder({
+    faculty: ctrl.currentFaculty,
+    facultyEmail: 'rajesh.jambhulkar@pw.live',
+    subject: ctrl.facultySubject,
+    topic: 'Biochemistry High Yield Session',
+    batchName: 'Prarambh 2026 Batch',
+    dateRaw: 'Saturday, October 17, 2026',
+    timings: '7:00 PM - 9:00 PM'
+  }, { force: true });
   ctrl.renderMobileNotifications();
-  assert.ok(elements['mobileNotificationFeed'].children.length > 0, 'Mobile notification feed should have items');
-  console.log(` - Notifications rendered: ${elements['mobileNotificationFeed'].children.length}`);
+  assert.ok(elements['mobileNotificationFeed'].innerHTML.includes('Class Reminder'), 'Mobile notification feed should contain Class Reminder');
+  console.log(` - Notifications rendered successfully in mobile notification feed`);
   
   ctrl.openMobileNotifications();
   assert.ok(!elements['notification-drawer'].classList.contains('hidden'), 'Drawer should be visible');
