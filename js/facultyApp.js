@@ -2283,6 +2283,7 @@ export class FacultyDashboardController {
           </div>
         </div>
 
+        ${canRescheduleCancel ? `
         <!-- Action Row: Reschedule and Cancel Class -->
         <div class="pt-1 border-t border-terra-border/60 flex items-center gap-2">
           <button type="button" class="btn-reschedule flex-1 py-2 px-3 rounded-xl bg-terra-sand/70 hover:bg-terra-sand text-terra-charcoal font-bold text-xs border border-terra-border flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer">
@@ -2298,6 +2299,15 @@ export class FacultyDashboardController {
             <span>Cancel</span>
           </button>
         </div>
+        ` : `
+        <!-- View Details Only when Reschedule is disabled -->
+        <div class="pt-1 border-t border-terra-border/60 flex items-center justify-end">
+          <span class="text-[11px] font-bold text-terra-forest flex items-center gap-1">
+            <span>View Lecture Details</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          </span>
+        </div>
+        `}
       `;
 
       // Open detail modal when clicking card body
