@@ -153,24 +153,31 @@ body {
 
 /* 3D Calendar Grid Cell Class Cards */
 .class-card-clickable {
+  position: relative;
   box-shadow: 0 3px 10px -1px rgba(44, 51, 45, 0.06), 0 1px 3px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  will-change: transform, box-shadow;
+  transform-origin: center center;
 }
 
 .class-card-clickable:hover {
-  transform: translateY(-2.5px);
+  transform: translateY(-2px);
+  z-index: 25 !important;
   box-shadow: 0 10px 22px -3px rgba(74, 124, 89, 0.20), 0 3px 8px rgba(44, 51, 45, 0.05), inset 0 1px 0 #ffffff;
   border-color: #4a7c59 !important;
 }
 
 /* Week View Class Cards */
 .week-class-card {
+  position: relative;
   box-shadow: 0 3px 10px -1px rgba(44, 51, 45, 0.07), 0 1px 3px rgba(44, 51, 45, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease !important;
+  will-change: transform, box-shadow;
 }
 
 .week-class-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2.5px);
+  z-index: 25 !important;
   box-shadow: 0 12px 26px -4px rgba(74, 124, 89, 0.22), 0 4px 10px rgba(44, 51, 45, 0.06), inset 0 1px 0 #ffffff !important;
   border-color: #4a7c59 !important;
 }
@@ -284,7 +291,7 @@ body::-webkit-scrollbar,
   right: 0 !important;
   height: 1px !important;
   background-color: #ece5d8 !important;
-  z-index: 10 !important;
+  z-index: 1 !important;
   pointer-events: none !important;
 }
 

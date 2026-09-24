@@ -2077,7 +2077,7 @@ class AdminDashboardController {
         `;
 
         if (classEvents.length > 0) {
-          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pr-0.5 no-scrollbar">`;
+          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pt-1.5 pb-1 px-1 -mx-1 no-scrollbar">`;
           classEvents.forEach(ev => {
             const initial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').split(' ').map(w => w[0]).join('').slice(0, 2) : 'DR';
             const batchBadge = renderBatchBadge(ev.batchName);
