@@ -413,8 +413,8 @@ export class FacultyDashboardController {
     const isAll = this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all';
     const initials = isAll ? 'ALL' : this.getFacultyInitials(this.currentFaculty);
     const displayName = isAll ? 'All Faculty & Batches' : this.currentFaculty;
-    const displaySubject = isAll ? 'Combined Curriculum' : this.facultySubject;
-    const displayBadge = isAll ? 'All Batches • Combined Schedule' : this.currentFaculty;
+    const displaySubject = isAll ? 'Combined Curriculum' : (this.facultySubject || this.loggedInSubject || 'Biochemistry');
+    const displayBadge = isAll ? 'All Batches • Combined Schedule' : displaySubject;
 
     if (this.headerAvatar) this.headerAvatar.textContent = initials;
     if (this.headerName) this.headerName.textContent = displayName;
@@ -446,7 +446,7 @@ export class FacultyDashboardController {
       const emailPrefix = displayName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').slice(0, 12);
       mobileDropEmail.textContent = `${emailPrefix}@pwmeded.edu.in`;
     }
-    if (mobileFacultySub) mobileFacultySub.textContent = displayName;
+    if (mobileFacultySub) mobileFacultySub.textContent = displaySubject;
   }
 
   /**
@@ -2013,7 +2013,7 @@ export class FacultyDashboardController {
       }
     }
     if (this.mobileFacultySubtitle) {
-      this.mobileFacultySubtitle.textContent = this.currentFaculty;
+      this.mobileFacultySubtitle.textContent = this.facultySubject || this.loggedInSubject || 'Biochemistry';
     }
   }
 

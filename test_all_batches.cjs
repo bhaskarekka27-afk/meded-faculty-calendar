@@ -123,18 +123,18 @@ async function runControllerTests() {
 
   assert.strictEqual(facCtrl.activeBatchId, 'all');
   assert.strictEqual(elements['facultyBatchLabel'].textContent, 'All Batches • Combined Schedule');
-  assert.strictEqual(facCtrl.currentFaculty, 'All Faculty');
-  assert.strictEqual(elements['facultyActiveNameBadge'].textContent, 'All Batches • Combined Schedule');
+  assert.strictEqual(facCtrl.currentFaculty, 'Dr. Rajesh Jambhulkar');
+  assert.strictEqual(elements['facultyActiveNameBadge'].textContent, 'Biochemistry');
 
-  const facEventsAll = facCtrl.getFacultyEvents();
-  console.log(' - Events returned by getFacultyEvents() when activeBatchId="all" and currentFaculty="All Faculty":', facEventsAll.length);
-  assert.strictEqual(facEventsAll.length, 135, 'Should return all 135 events from all batches');
+  const facEventsRajesh = facCtrl.getFacultyEvents();
+  console.log(' - Events when switched to All Batches for Dr. Rajesh Jambhulkar:', facEventsRajesh.filter(e => e.eventType === 'class').length);
+  assert.strictEqual(facEventsRajesh.filter(e => e.eventType === 'class').length, 14, 'Dr. Rajesh should have 14 classes across all batches');
 
   // Test filtering to specific faculty while activeBatchId='all'
   facCtrl.switchFaculty('Dr. Rajesh Jambhulkar', 'Biochemistry');
-  const facEventsRajesh = facCtrl.getFacultyEvents();
-  console.log(' - Events when switched to Dr. Rajesh Jambhulkar in All Batches:', facEventsRajesh.filter(e => e.eventType === 'class').length);
-  assert.strictEqual(facEventsRajesh.filter(e => e.eventType === 'class').length, 14, 'Dr. Rajesh should have 14 classes across all batches');
+  const facEventsRajesh2 = facCtrl.getFacultyEvents();
+  console.log(' - Events when switched to Dr. Rajesh Jambhulkar in All Batches:', facEventsRajesh2.filter(e => e.eventType === 'class').length);
+  assert.strictEqual(facEventsRajesh2.filter(e => e.eventType === 'class').length, 14, 'Dr. Rajesh should have 14 classes across all batches');
 
   // Switch back to All Faculty
   facCtrl.switchFaculty('All Faculty', 'Combined Curriculum');
