@@ -5,6 +5,7 @@
 
 import { getSubjectColor } from './calendarView.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
+import { toLocalIso } from './dateUtils.js';
 
 export function renderTableView(container, events, options = {}, onSelectEvent) {
   const searchQuery = (options.searchQuery || '').trim();
@@ -255,7 +256,7 @@ function exportEventsToCSV(events) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `MedEd_Faculty_Schedule_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute('download', `MedEd_Faculty_Schedule_${toLocalIso(new Date())}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

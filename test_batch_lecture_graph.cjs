@@ -13,14 +13,26 @@ console.log('================================================================');
 console.log('🧪 Testing Batch-Level Lecture View Graph (Day / Week / Month)');
 console.log('================================================================\n');
 
-// Mock browser environment for controller
-global.window = {
-  location: { search: '', pathname: '', hash: '#dashboard' }
+global.toLocalIso = (d) => {
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
-global.document = {
-  getElementById: (id) => null,
-  querySelectorAll: (sel) => [],
-  querySelector: (sel) => null
+global.todayIso = () => '2026-10-15';
+global.startOfWeek = (d) => {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() - day);
+  dt.setHours(0,0,0,0);
+  return dt;
+};
+global.endOfWeek = (d) => {
+  const dt = global.startOfWeek(d);
+  dt.setDate(dt.getDate() + 6);
+  dt.setHours(23,59,59,999);
+  return dt;
 };
 
 // Import or require controller simulation

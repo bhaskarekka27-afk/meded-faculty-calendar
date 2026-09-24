@@ -18,6 +18,7 @@ import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from '
 import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
 import { addFacultyRequest } from './requestsView.js';
+import { toLocalIso, todayIso, parseIso, startOfWeek, isInMonth, nearestMonthWithEvents } from './dateUtils.js';
 
 export class FacultyDashboardController {
   constructor() {
@@ -30,19 +31,20 @@ export class FacultyDashboardController {
     this.facultySubject = 'Biochemistry';
 
     // Calendar state - defaults to October 2026 where lecture data exists
-    this.currentYear = 2026;
-    this.currentMonth = 9; // 0-indexed: 9 is October
-    this.currentWeekStart = new Date(2026, 9, 15); // Oct 15, 2026
+    const _now = new Date();
+    this.currentYear = _now.getFullYear();
+    this.currentMonth = _now.getMonth();
+    this.currentWeekStart = startOfWeek(_now);
     this.calendarView = 'month'; // 'month', 'week', 'timeline'
     this.activeFilterTab = 'total'; // 'today', 'upcoming', 'total'
     this.searchQuery = '';
 
-    // Simulated "Today" ISO matching academic schedule
-    this.todayIso = '2026-10-15';
+    // Today's real date, in the user's own timezone. Single source of truth.
+    this.todayIso = todayIso();
 
     // Mobile responsive view state
     this.mobileView = 'month'; // 'month', 'week', 'agenda'
-    this.mobileSelectedDateIso = '2026-10-17'; // default selected date matching screenshot
+    this.mobileSelectedDateIso = todayIso();
 
     this.init();
   }
@@ -57,6 +59,9 @@ export class FacultyDashboardController {
     this.populateMobileFacultySwitcher();
     this.setupFacultyNotificationDrawer();
     this.setupFacultyEmailPreviewModal();
+    // Start on today's month, but fall forward to the nearest month that has
+    // classes so the first paint is never an empty grid.
+    this.syncPeriodToFilters();
     this.render();
     this.renderFacultyNotifications();
   }
@@ -67,6 +72,14 @@ export class FacultyDashboardController {
       if (stored) {
         const user = JSON.parse(stored);
         if (user.role === 'faculty' || !user.role) {
+          if (user.email) {
+            const matchedFaculty = reminderEmailService.findFacultyByEmail(user.email);
+            if (matchedFaculty) {
+              this.currentFaculty = matchedFaculty.name;
+              this.facultySubject = matchedFaculty.dept || 'Biochemistry';
+              return;
+            }
+          }
           if (user.name && user.name.trim()) {
             this.currentFaculty = user.name.trim();
           }
@@ -179,16 +192,21 @@ export class FacultyDashboardController {
     this.prevPeriodBtn?.addEventListener('click', () => this.navigatePeriod(-1));
     this.nextPeriodBtn?.addEventListener('click', () => this.navigatePeriod(1));
     this.todayPeriodBtn?.addEventListener('click', () => {
-      this.currentYear = 2026;
-      this.currentMonth = 9; // October
-      this.currentWeekStart = new Date(2026, 9, 15);
+      const now = new Date();
+      this.todayIso = todayIso();
+      this.currentYear = now.getFullYear();
+      this.currentMonth = now.getMonth();
+      this.currentWeekStart = startOfWeek(now);
+      this.mobileSelectedDateIso = this.todayIso;
       this.render();
+      this.showToast?.(`Showing today (${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`);
     });
 
     // Search Input
     this.searchInput?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.toLowerCase().trim();
-      this.renderCurrentView();
+      this.syncPeriodToFilters();
+      this.render();
     });
 
 
@@ -306,15 +324,20 @@ export class FacultyDashboardController {
     }
 
     // Auto adjust calendar dates to the newly selected batch
-    const batchEvents = this.batchManager.getAllEvents(batchId);
-    const firstClass = batchEvents.find(e => e.eventType === 'class' && e.isoDate);
-    if (firstClass && firstClass.isoDate) {
-      const [y, m, d] = firstClass.isoDate.split('-').map(Number);
-      if (y && m) {
-        this.currentYear = y;
-        this.currentMonth = m - 1;
-        this.currentWeekStart = new Date(y, m - 1, d || 15);
+    const batchClasses = this.batchManager.getAllEvents(batchId)
+      .filter(e => e && e.eventType === 'class' && e.isoDate);
+    if (batchClasses.length > 0) {
+      const target = nearestMonthWithEvents(batchClasses, this.currentYear, this.currentMonth);
+      if (target) {
+        this.currentYear = target.year;
+        this.currentMonth = target.month;
       }
+      // Chronologically first class of that month, not whichever row came first.
+      const isos = batchClasses.map(e => e.isoDate).sort();
+      const inMonth = isos.filter(iso => isInMonth(iso, this.currentYear, this.currentMonth));
+      const anchorIso = inMonth[0] || isos[0];
+      this.currentWeekStart = startOfWeek(parseIso(anchorIso) || new Date(this.currentYear, this.currentMonth, 1));
+      this.mobileSelectedDateIso = anchorIso;
     }
 
     if (isAll) {
@@ -428,6 +451,53 @@ export class FacultyDashboardController {
    * When 'All Batches' and 'All Faculty' is selected, returns all events across all batches.
    * When a specific faculty is selected, filters to that faculty.
    */
+  /**
+   * Keep the visible period in sync with the active filters (faculty, batch,
+   * subject, search). Stays put when the current month still has matching
+   * classes; only moves when it would render blank. Returns the month it moved
+   * to, or null if it stayed.
+   */
+  syncPeriodToFilters() {
+    const classes = this.getFacultyEvents()
+      .filter(ev => ev && ev.eventType === 'class' && ev.isoDate)
+      .filter(ev => {
+        if (!this.searchQuery) return true;
+        return (ev.topic && ev.topic.toLowerCase().includes(this.searchQuery)) ||
+               (ev.chapter && ev.chapter.toLowerCase().includes(this.searchQuery)) ||
+               (ev.subject && ev.subject.toLowerCase().includes(this.searchQuery));
+      });
+
+    const target = nearestMonthWithEvents(classes, this.currentYear, this.currentMonth);
+    if (!target) return null;
+
+    this.currentYear = target.year;
+    this.currentMonth = target.month;
+
+    const inMonth = classes
+      .filter(ev => isInMonth(ev.isoDate, target.year, target.month))
+      .map(ev => ev.isoDate)
+      .sort();
+    const anchorIso = inMonth[0] || `${target.year}-${String(target.month + 1).padStart(2, '0')}-01`;
+    this.currentWeekStart = startOfWeek(parseIso(anchorIso) || new Date(target.year, target.month, 1));
+    this.mobileSelectedDateIso = anchorIso;
+    return target;
+  }
+
+  /** Human label for a {year, month} pair. */
+  formatMonthLabel(year, month) {
+    return new Date(year, month, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  /** Move the visible period onto the day that holds `iso`. */
+  goToIsoDate(iso) {
+    const d = parseIso(iso);
+    if (!d) return;
+    this.currentYear = d.getFullYear();
+    this.currentMonth = d.getMonth();
+    this.currentWeekStart = startOfWeek(d);
+    this.mobileSelectedDateIso = iso;
+  }
+
   getFacultyEvents() {
     const allBatchEvents = this.batchManager.getAllEvents(this.activeBatchId);
     if (this.activeBatchId === 'all' && (this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all')) {
@@ -479,8 +549,7 @@ export class FacultyDashboardController {
       rangeStartIso = weekDays[0].isoDate;
       rangeEndIso = weekDays[6].isoDate;
 
-      const realTodayIso = new Date().toISOString().split('T')[0];
-      isThisWeek = weekDays.some(d => d.isoDate === this.todayIso || d.isoDate === realTodayIso);
+      isThisWeek = weekDays.some(d => d.isoDate === this.todayIso);
       selectedWeekNum = this.getWeekNumber(weekDays[4].dateObj);
     } else {
       // Timeline
@@ -494,7 +563,8 @@ export class FacultyDashboardController {
       upcomingClasses = classesOnly.filter(ev => {
         return ev.isoDate >= this.todayIso && ev.isoDate <= rangeEndIso && ev.isoDate >= rangeStartIso;
       });
-      const isCurrentMonth = this.currentYear === 2026 && this.currentMonth === 9;
+      const _t = parseIso(this.todayIso) || new Date();
+      const isCurrentMonth = this.currentYear === _t.getFullYear() && this.currentMonth === _t.getMonth();
       if (this.upcomingScopeBadgeEl) {
         this.upcomingScopeBadgeEl.textContent = isCurrentMonth ? 'This Month' : `${new Date(this.currentYear, this.currentMonth, 1).toLocaleString('en-US', { month: 'short' })} ${this.currentYear}`;
       }
@@ -559,12 +629,22 @@ export class FacultyDashboardController {
 
     if (tabKey === 'today') {
       this.tabToday?.classList.add('tab-active-glow');
+      // Show the period that actually contains today, otherwise the timeline
+      // filters to today while the header still shows another month.
+      this.todayIso = todayIso();
+      this.goToIsoDate(this.todayIso);
       this.switchView('timeline');
     } else if (tabKey === 'upcoming') {
       this.tabUpcoming?.classList.add('tab-active-glow');
+      const next = this.getFacultyEvents()
+        .filter(ev => ev.eventType === 'class' && ev.isoDate && ev.isoDate >= this.todayIso)
+        .map(ev => ev.isoDate)
+        .sort()[0];
+      if (next) this.goToIsoDate(next);
       this.render();
     } else {
       this.tabTotal?.classList.add('tab-active-glow');
+      this.syncPeriodToFilters();
       this.render();
     }
   }
@@ -575,7 +655,12 @@ export class FacultyDashboardController {
     // Synchronize week anchor when switching views
     if (view === 'week') {
       if (this.currentWeekStart.getMonth() !== this.currentMonth || this.currentWeekStart.getFullYear() !== this.currentYear) {
-        this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 15);
+        // Prefer today's week when we are already on today's month.
+        const t = parseIso(this.todayIso) || new Date();
+        const anchor = (t.getFullYear() === this.currentYear && t.getMonth() === this.currentMonth)
+          ? t
+          : new Date(this.currentYear, this.currentMonth, 1);
+        this.currentWeekStart = startOfWeek(anchor);
       }
     } else if (view === 'month') {
       this.currentMonth = this.currentWeekStart.getMonth();
@@ -606,9 +691,11 @@ export class FacultyDashboardController {
         this.currentMonth = 11;
         this.currentYear -= 1;
       }
-      this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 15);
+      this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
     } else if (this.calendarView === 'week') {
-      this.currentWeekStart = new Date(this.currentWeekStart.getTime() + delta * 7 * 86400000);
+      const w = startOfWeek(this.currentWeekStart);
+      w.setDate(w.getDate() + delta * 7);
+      this.currentWeekStart = w;
       this.currentMonth = this.currentWeekStart.getMonth();
       this.currentYear = this.currentWeekStart.getFullYear();
     } else {
@@ -620,7 +707,7 @@ export class FacultyDashboardController {
         this.currentMonth = 11;
         this.currentYear -= 1;
       }
-      this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 15);
+      this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
     }
     this.render();
   }
@@ -927,8 +1014,7 @@ export class FacultyDashboardController {
     const weekRangeStr = `${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
     const totalTeachingHours = (weekClasses.length * 2.0).toFixed(1);
     const weekNum = this.getWeekNumber(weekDays[4].dateObj);
-    const realTodayIso = new Date().toISOString().split('T')[0];
-    const isThisWeek = weekDays.some(d => d.isoDate === this.todayIso || d.isoDate === realTodayIso);
+    const isThisWeek = weekDays.some(d => d.isoDate === this.todayIso);
 
     let html = `
       <!-- TOP WEEK BANNER & CONTROLS -->
@@ -1201,9 +1287,33 @@ export class FacultyDashboardController {
     }
     if (modalDetailDate) modalDetailDate.textContent = ev.dateRaw || ev.isoDate || 'Scheduled Date';
     if (modalDetailTimings) modalDetailTimings.textContent = (ev.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ');
-    if (modalDetailDuration) modalDetailDuration.textContent = `• ${ev.duration || '2 Hours'}`;
-    if (modalDetailFaculty) modalDetailFaculty.textContent = ev.faculty || this.currentFaculty;
+    const facultyName = ev.faculty || this.currentFaculty;
+    if (modalDetailFaculty) modalDetailFaculty.textContent = facultyName;
     if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
+
+    // Check permission for Reschedule & Cancellation option at faculty level
+    const canRescheduleCancel = reminderEmailService.getFacultyReschedulePermission(facultyName);
+    const actionGroup = document.getElementById('modalDetailActionButtonsGroup');
+    const closeBtn = document.getElementById('modalDetailCloseBtn');
+    const footerEl = document.getElementById('modalDetailFooter');
+
+    if (actionGroup && closeBtn) {
+      if (canRescheduleCancel) {
+        actionGroup.classList.remove('hidden');
+        closeBtn.className = 'btn-3d-primary px-5 py-2 rounded-xl text-xs font-bold cursor-pointer';
+        if (footerEl) {
+          footerEl.classList.remove('justify-center');
+          footerEl.classList.add('justify-between');
+        }
+      } else {
+        actionGroup.classList.add('hidden');
+        closeBtn.className = 'btn-3d-primary w-full py-2.5 rounded-xl text-xs font-bold cursor-pointer text-center shadow-md';
+        if (footerEl) {
+          footerEl.classList.remove('justify-between');
+          footerEl.classList.add('justify-center');
+        }
+      }
+    }
 
     // Delivery Platform info
     let platformEl = document.getElementById('facultyModalPlatformText');
@@ -1220,7 +1330,6 @@ export class FacultyDashboardController {
     if (platformEl) {
       platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
     }
-    if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
 
     if (this.modalGCalBtn) {
       this.modalGCalBtn.href = generateGoogleCalendarUrl(ev);
@@ -1620,10 +1729,8 @@ export class FacultyDashboardController {
     this.mobilePrevPeriodBtn?.addEventListener('click', () => this.navigateMobilePeriod(-1));
     this.mobileNextPeriodBtn?.addEventListener('click', () => this.navigateMobilePeriod(1));
     this.mobileTodayPeriodBtn?.addEventListener('click', () => {
-      this.currentYear = 2026;
-      this.currentMonth = 9;
-      this.currentWeekStart = new Date(2026, 9, 15);
-      this.mobileSelectedDateIso = this.todayIso;
+      this.todayIso = todayIso();
+      this.goToIsoDate(this.todayIso);
       this.render();
     });
 
@@ -1634,16 +1741,18 @@ export class FacultyDashboardController {
 
     // Mobile metrics click
     this.mobileMetricToday?.addEventListener('click', () => {
-      this.mobileSelectedDateIso = this.todayIso;
+      this.todayIso = todayIso();
+      this.goToIsoDate(this.todayIso);
       this.switchMobileView('month');
       this.renderMobileView();
     });
 
     this.mobileMetricUpcoming?.addEventListener('click', () => {
-      const upcoming = this.getFacultyEvents().filter(e => e.eventType === 'class' && e.isoDate >= this.todayIso);
-      if (upcoming.length > 0) {
-        this.mobileSelectedDateIso = upcoming[0].isoDate;
-      }
+      const next = this.getFacultyEvents()
+        .filter(e => e.eventType === 'class' && e.isoDate && e.isoDate >= this.todayIso)
+        .map(e => e.isoDate)
+        .sort()[0];
+      if (next) this.goToIsoDate(next);
       this.switchMobileView('month');
       this.renderMobileView();
     });
@@ -1692,7 +1801,9 @@ export class FacultyDashboardController {
 
   navigateMobilePeriod(delta) {
     if (this.mobileView === 'week') {
-      this.currentWeekStart = new Date(this.currentWeekStart.getTime() + delta * 7 * 86400000);
+      const w = startOfWeek(this.currentWeekStart);
+      w.setDate(w.getDate() + delta * 7);
+      this.currentWeekStart = w;
       this.currentMonth = this.currentWeekStart.getMonth();
       this.currentYear = this.currentWeekStart.getFullYear();
     } else {
@@ -1704,7 +1815,7 @@ export class FacultyDashboardController {
         this.currentMonth = 11;
         this.currentYear -= 1;
       }
-      this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 15);
+      this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
     }
     this.render();
   }
@@ -1986,7 +2097,7 @@ export class FacultyDashboardController {
 
     const selectedIso = this.mobileSelectedDateIso;
     const [y, m, d] = (selectedIso || '').split('-').map(Number);
-    const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date(2026, 9, 17);
+    const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date();
 
     const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2547,6 +2658,17 @@ export class FacultyDashboardController {
       `).join('');
     }
 
+    // Check permission for Reschedule & Cancellation option at faculty level
+    const canRescheduleCancel = reminderEmailService.getFacultyReschedulePermission(facultyName);
+    const mobileReschedCancelRow = document.getElementById('mobileModalRescheduleCancelRow');
+    if (mobileReschedCancelRow) {
+      if (canRescheduleCancel) {
+        mobileReschedCancelRow.classList.remove('hidden');
+      } else {
+        mobileReschedCancelRow.classList.add('hidden');
+      }
+    }
+
     const backdrop = document.getElementById('lecture-modal-backdrop');
     const sheet = document.getElementById('lecture-bottom-sheet');
     if (backdrop && sheet) {
@@ -2592,9 +2714,38 @@ export class FacultyDashboardController {
     return 'Saturday, October 17, 2026 • 7:00 PM – 9:00 PM';
   }
 
+  /**
+   * Machine-readable pointer to the lecture's row in the connected sheet.
+   * Carried on every faculty request so the admin's approval can be written
+   * back to the correct row rather than guessed from display strings.
+   */
+  buildLectureRef(ev = {}) {
+    const batch = this.batches?.find(b => b.id === ev.batchId);
+    return {
+      eventId: ev.id || '',
+      batchId: ev.batchId || '',
+      batchName: ev.batchName || batch?.name || '',
+      sheetTabName: batch?.sheetTabName || 'Lecture Planner',
+      sourceUrl: batch?.sourceUrl || '',
+      rowIndex: ev.rowIndex || 0,
+      isoDate: ev.isoDate || '',
+      dateRaw: ev.dateRaw || '',
+      faculty: ev.faculty || '',
+      subject: ev.subject || '',
+      chapter: ev.chapter || '',
+      topic: ev.topic || ev.chapter || '',
+      timings: ev.timings || '',
+      duration: ev.duration || ''
+    };
+  }
+
   handleRescheduleLecture(evData) {
     const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
     const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
+    if (!reminderEmailService.getFacultyReschedulePermission(faculty)) {
+      this.showToast('Reschedule requests are disabled for this faculty profile.');
+      return;
+    }
     const subject = ev.subject || this.facultySubject || 'Biochemistry';
     const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
     const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
@@ -2608,7 +2759,8 @@ export class FacultyDashboardController {
       batch: batch,
       originalSlot: originalSlot,
       proposedSlot: proposedSlot,
-      reason: `Slot adjustment requested for clinical rounds & CME conference (${topic})`
+      reason: `Slot adjustment requested for clinical rounds & CME conference (${topic})`,
+      lecture: this.buildLectureRef(ev)
     });
 
     this.closeDetailModal();
@@ -2619,6 +2771,10 @@ export class FacultyDashboardController {
   handleCancelLecture(evData) {
     const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
     const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
+    if (!reminderEmailService.getFacultyReschedulePermission(faculty)) {
+      this.showToast('Cancellation requests are disabled for this faculty profile.');
+      return;
+    }
     const subject = ev.subject || this.facultySubject || 'Biochemistry';
     const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
     const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
@@ -2630,7 +2786,8 @@ export class FacultyDashboardController {
       subject: subject,
       batch: batch,
       originalSlot: originalSlot,
-      reason: `Medical leave & scheduled clinical ward duties (${topic})`
+      reason: `Medical leave & scheduled clinical ward duties (${topic})`,
+      lecture: this.buildLectureRef(ev)
     });
 
     this.closeDetailModal();

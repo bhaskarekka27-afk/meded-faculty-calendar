@@ -316,7 +316,7 @@
           <div id="facultyProfilesList" class="hidden"></div>
 
           <div class="pt-2">
-            <a href="/login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
+            <a href="/faculty-login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
               <span class="material-symbols-outlined text-[18px]">logout</span>
               <span>Sign Out / Logout</span>
             </a>
@@ -521,7 +521,7 @@
 
     <!-- Logout Action Button -->
     <div class="pt-2">
-      <button type="button" onclick="document.getElementById('mobileProfileDropdown').classList.add('hidden'); window.location.href='/login.html';" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] transition-colors text-left cursor-pointer border-none bg-transparent">
+      <button type="button" onclick="document.getElementById('mobileProfileDropdown').classList.add('hidden'); window.location.href='/faculty-login.html';" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] transition-colors text-left cursor-pointer border-none bg-transparent">
         <svg class="w-4 h-4 text-[#b83230]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
         </svg>
@@ -936,8 +936,8 @@ Agenda
     </div>
 
     <!-- Bottom Fixed Actions inside Modal -->
-    <div class="p-3.5 bg-white border-t border-terra-border/80 space-y-2 shrink-0">
-      <div class="flex items-center gap-2">
+    <div class="p-3.5 bg-white border-t border-terra-border/80 space-y-2 shrink-0" id="mobileModalActionContainer">
+      <div class="flex items-center gap-2" id="mobileModalRescheduleCancelRow">
         <button id="mobileModalRescheduleBtn" type="button" class="flex-1 py-2.5 px-3 rounded-xl bg-terra-sand hover:bg-terra-sandHover text-terra-charcoal font-bold text-xs border border-terra-border flex items-center justify-center gap-1.5 transition-colors shadow-xs cursor-pointer">
           <span class="material-symbols-outlined text-[16px] text-terra-forest">edit_calendar</span>
           <span>Reschedule</span>
@@ -1011,8 +1011,8 @@ Agenda
           </p>
         </div>
 
-        <div class="flex items-center justify-between pt-3 border-t border-[#e5dfd5] gap-2 flex-wrap">
-          <div class="flex items-center gap-2">
+        <div class="flex items-center justify-between pt-3 border-t border-[#e5dfd5] gap-2 flex-wrap" id="modalDetailFooter">
+          <div class="flex items-center gap-2" id="modalDetailActionButtonsGroup">
             <button id="modalDetailRescheduleBtn" type="button" class="px-3.5 py-2 rounded-xl bg-[#f4efe6] hover:bg-[#eae3d5] text-[#2c332d] font-bold text-xs border border-[#ded5c6] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
               <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">edit_calendar</span>
               <span>Reschedule</span>

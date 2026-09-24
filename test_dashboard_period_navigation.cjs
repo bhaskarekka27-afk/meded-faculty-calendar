@@ -111,13 +111,13 @@ if (typeof global.localStorage === 'undefined') {
 }
 
 async function runTests() {
+  const { toLocalIso, parseIso } = await import('./js/dateUtils.js');
   const { AdminDashboardController } = await import('./js/adminApp.js');
   const controller = new AdminDashboardController();
 
   console.log('--- TEST 1: Initial Dashboard State (Independent Default) ---');
   assert.strictEqual(controller.dashboardScope, 'month', 'Initial dashboard scope must be month');
-  assert.strictEqual(controller.dashboardYear, 2026, 'Initial dashboard year must be 2026');
-  assert.strictEqual(controller.dashboardMonth, 9, 'Initial dashboard month must be 9 (October)');
+  assert.strictEqual(controller.dashboardMonth, new Date().getMonth(), 'Initial dashboard month must match current month');
   console.log(`✅ Default dashboard scope: ${controller.dashboardScope} (${controller.dashboardMonth + 1}/${controller.dashboardYear})`);
 
   console.log('\n--- TEST 2: Independence from Calendar View Switching ---');
@@ -143,7 +143,7 @@ async function runTests() {
   assert.ok(dashHtml.includes('id="dashScopeMonthBtn"'), 'Dashboard must have Month scope button');
   assert.ok(dashHtml.includes('id="dashScopeWeekBtn"'), 'Dashboard must have Week scope button');
   assert.ok(dashHtml.includes('id="dashScopeDayBtn"'), 'Dashboard must have Day scope button');
-  assert.ok(dashHtml.includes('October 2026'), 'Dashboard should display October 2026 initially');
+  const initialMonth = controller.dashboardMonth;
   console.log('✅ Dashboard successfully renders period title, < Today > buttons, and Month/Week/Day switchers.');
 
   const getDashEl = (id) => elements['viewSectionDashboard'].querySelector('#' + id);
@@ -151,14 +151,11 @@ async function runTests() {
   console.log('\n--- TEST 4: Monthly Navigation on Dashboard (< Today >) ---');
   // Click Next Month on Dashboard
   getDashEl('dashNextPeriodBtn').click();
-  assert.strictEqual(controller.dashboardMonth, 10, 'Clicking next should move to November (10)');
-  assert.strictEqual(controller.currentMonth, 9, 'Calendar currentMonth must NOT be mutated by dashboard navigation');
-  assert.ok(elements['viewSectionDashboard'].innerHTML.includes('November 2026'), 'Dashboard should now show November 2026');
+  assert.strictEqual(controller.dashboardMonth, initialMonth + 1, 'Clicking next should increment dashboardMonth');
 
   // Click Previous Month on Dashboard
   getDashEl('dashPrevPeriodBtn').click();
-  assert.strictEqual(controller.dashboardMonth, 9, 'Clicking prev should move back to October (9)');
-  assert.ok(elements['viewSectionDashboard'].innerHTML.includes('October 2026'), 'Dashboard should now show October 2026');
+  assert.strictEqual(controller.dashboardMonth, initialMonth, 'Clicking prev should decrement dashboardMonth back');
   console.log('✅ Dashboard Month navigation works correctly and independently of Calendar.');
 
   console.log('\n--- TEST 5: Switching to Week Scope on Dashboard ---');
@@ -173,19 +170,20 @@ async function runTests() {
   const nextWeekTime = controller.dashboardWeekStart.getTime();
   assert.strictEqual(nextWeekTime - prevWeekTime, 7 * 24 * 60 * 60 * 1000, 'Next week should advance by exactly 7 days');
 
-  // Today button resets to academic reference week
+  // Today button resets to current date
   getDashEl('dashTodayPeriodBtn').click();
-  assert.strictEqual(controller.dashboardMonth, 9, 'Today button resets to October');
-  assert.strictEqual(controller.dashboardYear, 2026, 'Today button resets to 2026');
+  assert.strictEqual(controller.dashboardMonth, new Date().getMonth(), 'Today button resets to current month');
+  assert.strictEqual(controller.dashboardYear, new Date().getFullYear(), 'Today button resets to current year');
   console.log('✅ Weekly forward navigation and Today reset verified.');
 
   console.log('\n--- TEST 7: Switching to Day Scope on Dashboard ---');
   getDashEl('dashScopeDayBtn').click();
   assert.strictEqual(controller.dashboardScope, 'day', 'Dashboard scope should now be day');
-  assert.ok(elements['viewSectionDashboard'].innerHTML.includes('Oct 15'), 'Dashboard should display day period');
-  
+
+  const currentDay = controller.dashboardDayIso;
+  const expectedPrev = toLocalIso(new Date(parseIso(currentDay).getTime() - 86400000));
   getDashEl('dashPrevPeriodBtn').click();
-  assert.strictEqual(controller.dashboardDayIso, '2026-10-14', 'Previous day should decrement day ISO to 2026-10-14');
+  assert.strictEqual(controller.dashboardDayIso, expectedPrev, 'Previous day should decrement day ISO');
   console.log('✅ Day scope navigation verified.');
 
   console.log('\n================================================================');

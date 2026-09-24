@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite preview --host 0.0.0.0 --port ${PORT:-10000}"
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-10000}",
+    "local": "node server.cjs"
   },
   "dependencies": {
     "vite": "^6.2.0"

@@ -19,3 +19,12 @@ services:
       - type: rewrite
         source: /requests
         destination: /requests.html
+      - type: rewrite
+        source: /admin-login
+        destination: /admin-login.html
+      - type: rewrite
+        source: /faculty-login
+        destination: /faculty-login.html
+      - type: rewrite
+        source: /login
+        destination: /login.html

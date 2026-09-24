@@ -184,7 +184,7 @@
 
             <!-- Logout Button -->
             <div class="pt-2">
-              <a href="/login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
+              <a href="/admin-login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
                 <span class="material-symbols-outlined text-[18px]">logout</span>
                 <span>Sign Out / Logout</span>
               </a>
@@ -1220,7 +1220,7 @@
   </div>
 
   <!-- 2. INTERACTIVE RESCHEDULE TIMETABLE MODAL -->
-  <div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rescheduleModal" role="dialog">
+  <div aria-modal="true" class="hidden fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="rescheduleModal" role="dialog">
     <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="modalBackdrop"></div>
     <div class="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-[#e8e2d8] overflow-hidden my-8 z-10 flex flex-col animate-in fade-in zoom-in-95 duration-200">
       
@@ -1751,10 +1751,10 @@
     </div>
   </div>
 
-  <!-- 5. CENTERED ALTERNATIVE SLOT MODAL OVERLAY (Top Layer z-[100]) -->
-  <div aria-modal="true" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto" id="altSlotModal" role="dialog">
+  <!-- 5. CENTERED ALTERNATIVE SLOT MODAL OVERLAY (nested above #rescheduleModal: z-[100000] > z-[99999]) -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-[100000] flex items-center justify-center p-4 overflow-y-auto" id="altSlotModal" role="dialog">
     <div class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" id="altSlotBackdrop"></div>
-    <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-[#c4c8bc] p-4 text-left z-[100] transition-all animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#4a7c59]/20">
+    <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-[#c4c8bc] p-4 text-left z-10 transition-all animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#4a7c59]/20">
       
       <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-[#e8e2d8]">
         <div class="flex items-center gap-1.5">
@@ -1772,7 +1772,7 @@
       <div class="py-3 space-y-2.5 text-xs">
         <div class="flex items-center gap-1.5 text-[#2e3230] font-semibold text-xs">
           <span class="material-symbols-outlined text-[16px] text-[#74796e]">calendar_month</span>
-          <span>Mon, 19 Oct • 5:00 – 7:00 PM <span class="text-[#74796e] font-normal">(2.0 hrs)</span></span>
+          <span id="altSlotSummaryText">Mon, 19 Oct • 5:00 – 7:00 PM <span class="text-[#74796e] font-normal" id="altSlotDurationText">(2.0 hrs)</span></span>
         </div>
         
         <div class="bg-[#f5f1ea] p-2.5 rounded-xl border border-[#e8e2d8] space-y-2">
@@ -1783,11 +1783,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
               <span class="text-[10px] text-[#74796e]">Start</span>
-              <span class="font-bold text-[#2e3230]">5:00 PM</span>
+              <span class="font-bold text-[#2e3230]" id="altSlotStartText">5:00 PM</span>
             </div>
             <div class="bg-white rounded-lg border border-[#c4c8bc] px-2 py-1.5 flex items-center justify-between text-xs">
               <span class="text-[10px] text-[#74796e]">End</span>
-              <span class="font-bold text-[#2e3230]">7:00 PM</span>
+              <span class="font-bold text-[#2e3230]" id="altSlotEndText">7:00 PM</span>
             </div>
           </div>
           <div class="flex items-center justify-between gap-1.5 pt-0.5">

@@ -92,6 +92,12 @@ export default defineConfig({
           }
           if (req.url === '/' || req.url === '/index.html') {
             req.url = '/admin.html';
+          } else if (req.url === '/admin-login' || req.url === '/admin/login') {
+            req.url = '/admin-login.html';
+          } else if (req.url === '/faculty-login' || req.url === '/faculty/login') {
+            req.url = '/faculty-login.html';
+          } else if (req.url === '/login') {
+            req.url = '/login.html';
           }
           next();
         });
@@ -103,6 +109,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         login: resolve(__dirname, 'login.html'),
+        adminLogin: resolve(__dirname, 'admin-login.html'),
+        facultyLogin: resolve(__dirname, 'faculty-login.html'),
+        googleOauth: resolve(__dirname, 'google-oauth.html'),
         admin: resolve(__dirname, 'admin.html'),
         faculty: resolve(__dirname, 'faculty.html'),
         week: resolve(__dirname, 'week.html'),

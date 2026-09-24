@@ -65,7 +65,17 @@ export function addFacultyRequest(newRequest) {
     avatarBg: 'bg-[#c8e8d0] text-[#002110]',
     typeBg: isCancel ? 'bg-[#ffdad8] text-[#690005]' : 'bg-[#f8e0a8] text-[#221a05]',
     status: 'pending', // 'pending' | 'approved' | 'declined'
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    /**
+     * Machine-readable pointer back to the row in the connected sheet.
+     * Without this the request only holds display strings and an approval
+     * cannot be written back to the right lecture.
+     */
+    lecture: newRequest.lecture || null,
+    /** Structured proposed slot, when the faculty app could supply one. */
+    proposedSlotData: newRequest.proposedSlotData || null,
+    /** Set once the decision has been written to the sheet. */
+    sheetSync: null
   };
 
   list.unshift(item);
@@ -76,14 +86,20 @@ export function addFacultyRequest(newRequest) {
 /**
  * Update a request's review status (approved or declined)
  */
-export function updateRequestStatus(requestId, newStatus) {
+export function updateRequestStatus(requestId, newStatus, sheetSync = undefined) {
   const list = getStoredRequests();
   const item = list.find(r => r.id === requestId);
   if (item) {
     item.status = newStatus;
+    if (sheetSync !== undefined) item.sheetSync = sheetSync;
     saveStoredRequests(list);
   }
   return list;
+}
+
+/** Look up a stored request by id. */
+export function getRequestById(requestId) {
+  return getStoredRequests().find(r => r.id === requestId) || null;
 }
 
 /**

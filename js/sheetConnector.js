@@ -197,6 +197,18 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     detectedName = overrideName || `Batch ${new Date().toLocaleDateString()}`;
   }
 
+  // Columns written back by the Apps Script Web App (apps-script/Code.gs).
+  // Located by header name so inserting a column in the sheet cannot shift
+  // them, and absent entirely on sheets that have never been written to.
+  const findCol = (name) => header.findIndex(h => String(h || '').replace(/\s+/g, ' ').trim().toLowerCase() === name);
+  const statusCols = {
+    status: findCol('status'),
+    rescheduledDate: findCol('rescheduled date'),
+    rescheduledTime: findCol('rescheduled time'),
+    rescheduledDuration: findCol('rescheduled duration'),
+    updatedAt: findCol('status updated at')
+  };
+
   const events = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
@@ -271,9 +283,21 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? 'Hours' : 'Mins'}` 
       : '2 Hours');
 
+    const cell = (idx) => (idx >= 0 ? (r[idx] || '').trim() : '');
+    const sheetStatus = cell(statusCols.status);
+    const normalisedStatus = sheetStatus.toLowerCase();
+
     events.push({
       id: `${id}_ev_${i}`,
       batchId: id,
+      // Live status as it currently stands in the sheet.
+      sheetStatus,
+      isCancelled: normalisedStatus === 'cancelled' || normalisedStatus === 'canceled',
+      isRescheduled: normalisedStatus === 'rescheduled',
+      rescheduledDate: cell(statusCols.rescheduledDate),
+      rescheduledTime: cell(statusCols.rescheduledTime),
+      rescheduledDuration: cell(statusCols.rescheduledDuration),
+      statusUpdatedAt: cell(statusCols.updatedAt),
       batchName: detectedName,
       rowIndex: i + 1,
       dateRaw: dateStr,

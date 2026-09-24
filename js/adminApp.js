@@ -9,7 +9,18 @@ import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
 import { WorkloadManager } from './workloadData.js';
 import { renderWorkloadView } from './workloadView.js';
-import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal } from './requestsView.js';
+import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal, getRequestById } from './requestsView.js';
+import { toLocalIso, todayIso, parseIso, startOfWeek, endOfWeek, isInMonth, nearestMonthWithEvents, parseSlotText, formatDuration } from './dateUtils.js';
+import {
+  pushRescheduleToSheet,
+  pushCancellationToSheet,
+  isSheetWriteBackConfigured,
+  getSheetWriterConfig,
+  saveSheetWriterConfig,
+  testSheetWriteBack,
+  flushPendingSheetWrites,
+  getPendingSheetWrites
+} from './sheetWriter.js';
 
 class AdminDashboardController {
   constructor() {
@@ -23,9 +34,10 @@ class AdminDashboardController {
       sortBy: 'hours'
     };
     this.currentBatchId = 'batch-prarambh-2026';
-    this.currentYear = 2026;
-    this.currentMonth = 9; // 0-indexed: 9 = October
-    this.currentWeekStart = new Date(2026, 9, 11); // Sunday Oct 11, 2026
+    const _now = new Date();
+    this.currentYear = _now.getFullYear();
+    this.currentMonth = _now.getMonth();
+    this.currentWeekStart = startOfWeek(_now);
     this.selectedSubject = 'all';
     this.searchQuery = '';
     
@@ -59,14 +71,14 @@ class AdminDashboardController {
 
     // Faculty Highlights Card State (Day | Week | Month)
     this.facultyHighlightScope = 'month'; // 'day' | 'week' | 'month'
-    this.selectedDayIso = '2026-10-15'; // Default simulated today date
+    this.selectedDayIso = todayIso();
 
     // Dashboard Individual Period & Navigation State (Independent of Calendar)
     this.dashboardScope = 'month'; // 'month' | 'week' | 'day'
-    this.dashboardYear = 2026;
-    this.dashboardMonth = 9; // October (0-indexed: 9 = October)
-    this.dashboardWeekStart = new Date(2026, 9, 11); // Sunday Oct 11, 2026
-    this.dashboardDayIso = '2026-10-15';
+    this.dashboardYear = _now.getFullYear();
+    this.dashboardMonth = _now.getMonth();
+    this.dashboardWeekStart = startOfWeek(_now);
+    this.dashboardDayIso = todayIso();
     this.dashboardInitialized = false;
 
     // Batch-Level Lecture View Graph State (Day | Week | Month)
@@ -106,6 +118,8 @@ class AdminDashboardController {
     this.autoAdjustDateToActiveBatch();
     this.setupHashListener();
     this.renderAll();
+    // Retry any sheet write-backs that failed in an earlier session.
+    setTimeout(() => this.flushSheetWriteQueue(), 1500);
   }
 
   setupHashListener() {
@@ -145,22 +159,20 @@ class AdminDashboardController {
   }
 
   autoAdjustDateToActiveBatch() {
-    const events = this.batchManager.getAllEvents(this.currentBatchId);
-    const firstClass = events.find(e => e.eventType === 'class' && e.isoDate);
-    if (firstClass && firstClass.isoDate) {
-      const [y, m, d] = firstClass.isoDate.split('-').map(Number);
-      if (y && m) {
-        this.currentYear = y;
-        this.currentMonth = m - 1;
-        this.currentWeekStart = new Date(y, m - 1, d || 1);
-        if (!this.dashboardInitialized) {
-          this.dashboardYear = y;
-          this.dashboardMonth = m - 1;
-          this.dashboardWeekStart = new Date(y, m - 1, d || 1);
-          this.dashboardDayIso = firstClass.isoDate;
-          this.dashboardInitialized = true;
-        }
-      }
+    const today = new Date();
+    const todayStr = todayIso();
+
+    this.currentYear = today.getFullYear();
+    this.currentMonth = today.getMonth();
+    this.currentWeekStart = startOfWeek(today);
+    this.selectedDayIso = todayStr;
+
+    if (!this.dashboardInitialized) {
+      this.dashboardYear = today.getFullYear();
+      this.dashboardMonth = today.getMonth();
+      this.dashboardWeekStart = startOfWeek(today);
+      this.dashboardDayIso = todayStr;
+      this.dashboardInitialized = true;
     }
   }
 
@@ -228,6 +240,129 @@ class AdminDashboardController {
     return events;
   }
 
+  /**
+   * Keep the visible period in sync with the active filters.
+   *
+   * Stays on the current month when it still has at least one matching class,
+   * and only moves when the month would otherwise render blank — then it jumps
+   * to the nearest month that does have matches. Returns the month it landed
+   * on when it moved, else null.
+   */
+  syncPeriodToFilters() {
+    const events = this.getAllActiveEvents().filter(e => e.eventType === 'class' && e.isoDate);
+    const target = nearestMonthWithEvents(events, this.currentYear, this.currentMonth);
+    if (!target) return null;
+
+    this.currentYear = target.year;
+    this.currentMonth = target.month;
+
+    // Anchor the week/day views inside the new month, preferring a day that
+    // actually has classes so week and timeline views are not blank either.
+    const monthEvents = events
+      .filter(e => isInMonth(e.isoDate, target.year, target.month))
+      .map(e => e.isoDate)
+      .sort();
+    const anchorIso = monthEvents[0] || `${target.year}-${String(target.month + 1).padStart(2, '0')}-01`;
+    this.currentWeekStart = startOfWeek(parseIso(anchorIso) || new Date(target.year, target.month, 1));
+    this.selectedDayIso = anchorIso;
+    return target;
+  }
+
+  /** Re-render everything that displays the active period or filter counts. */
+  refreshPeriodChrome() {
+    this.updateMonthTitle();
+    this.updateSummaryCards();
+    this.renderMainContent();
+  }
+
+  /** Human label for a {year, month} pair. */
+  formatMonthLabel(year, month) {
+    return new Date(year, month, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  // --- Sheet write-back -----------------------------------------------------
+
+  /**
+   * Read the Alternative Slot dialog into a structured slot.
+   * Returns null when the dialog's date cannot be understood, so the caller
+   * can fall back rather than writing a wrong date to the sheet.
+   */
+  readAltSlotSelection() {
+    const summary = document.getElementById('altSlotSummaryText')?.textContent || '';
+    const startText = document.getElementById('altSlotStartText')?.textContent || '';
+    const endText = document.getElementById('altSlotEndText')?.textContent || '';
+    const activeDur = document.querySelector('#altSlotModal .btn-alt-dur.active')?.getAttribute('data-dur');
+
+    // The dialog's summary line carries the date; the Start/End boxes are
+    // authoritative for the time window.
+    const composed = `${summary.split('•')[0].trim()} ${startText} - ${endText}`;
+    const parsed = parseSlotText(composed, this.currentYear) || parseSlotText(summary, this.currentYear);
+    if (!parsed) return null;
+
+    const durMinutes = activeDur ? Math.round(Number(activeDur) * 60) : parsed.durationMinutes;
+    return {
+      isoDate: parsed.isoDate,
+      startTime: parsed.startTime,
+      endTime: parsed.endTime,
+      timings: parsed.timings,
+      durationMinutes: durMinutes,
+      duration: formatDuration(durMinutes) || parsed.duration,
+      label: parseIso(parsed.isoDate)
+        ? parseIso(parsed.isoDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+        : parsed.isoDate
+    };
+  }
+
+  /**
+   * The new slot for a reschedule approval, in priority order: what the admin
+   * picked in this session, then anything structured on the request, then the
+   * request's human-readable proposed slot.
+   */
+  resolveApprovedSlot(req) {
+    if (this.pendingRescheduleSlot) return this.pendingRescheduleSlot;
+    if (req?.proposedSlotData?.isoDate) return req.proposedSlotData;
+    const parsed = parseSlotText(req?.proposedSlot, this.currentYear);
+    return parsed && parsed.isoDate ? parsed : null;
+  }
+
+  /** Who is acting, for the sheet's audit columns. */
+  getActorLabel() {
+    const fromSettings = (() => {
+      try { return JSON.parse(localStorage.getItem('meded_admin_identity_v1') || 'null')?.name; }
+      catch (_) { return null; }
+    })();
+    return fromSettings || document.getElementById('adminDeanProfileBtn')?.getAttribute('data-actor') || 'MedEd Admin';
+  }
+
+  /**
+   * Report a write-back outcome without ever hiding a failure: if the sheet
+   * could not be updated the admin is told, and the write stays queued.
+   */
+  reportSheetSync(result, { action }) {
+    if (!result) return null;
+    if (result.ok) {
+      const row = result.data?.row;
+      this.showToast(`Sheet updated${row ? ` (row ${row})` : ''} - ${action} recorded`);
+      return { ok: true, row: row || null, at: new Date().toISOString() };
+    }
+    if (result.skipped) {
+      this.showToast(`Saved locally. ${result.error} - connect it under Dean menu > Connect Sheet.`);
+      return { ok: false, skipped: true, error: result.error, at: new Date().toISOString() };
+    }
+    this.showToast(`Sheet NOT updated: ${result.error}${result.queued ? ' (queued, will retry)' : ''}`);
+    return { ok: false, error: result.error, queued: Boolean(result.queued), at: new Date().toISOString() };
+  }
+
+  /** Retry any write-backs that failed in an earlier session. */
+  async flushSheetWriteQueue({ quiet = true } = {}) {
+    if (!isSheetWriteBackConfigured()) return;
+    const pending = getPendingSheetWrites();
+    if (pending.length === 0) return;
+    const res = await flushPendingSheetWrites();
+    if (res.sent > 0) this.showToast(`Synced ${res.sent} pending sheet update${res.sent > 1 ? 's' : ''}`);
+    else if (!quiet && res.remaining > 0) this.showToast(`${res.remaining} sheet update(s) still pending`);
+  }
+
   // --- 1. Header & Batch Selector ---
   setupHeaderControls() {
     const batchPill = document.getElementById('adminBatchPill');
@@ -249,7 +384,8 @@ class AdminDashboardController {
     // Search Input
     searchInput?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.trim().toLowerCase();
-      this.renderMainContent();
+      this.syncPeriodToFilters();
+      this.refreshPeriodChrome();
     });
 
     // Logo Click -> Reset to Month view
@@ -326,15 +462,18 @@ class AdminDashboardController {
 
     // Summary Metric Cards Click Handlers
     document.getElementById('cardScheduleOverviewBtn')?.addEventListener('click', () => {
-      this.currentYear = 2026;
-      this.currentMonth = 9; // October 2026
-      this.currentWeekStart = new Date(2026, 9, 11);
+      const now = new Date();
+      this.currentYear = now.getFullYear();
+      this.currentMonth = now.getMonth();
+      this.currentWeekStart = startOfWeek(now);
       this.mainTab = 'calendar';
       this.calendarSubView = 'month';
+      // Fall forward to the nearest month that actually has classes.
+      this.autoAdjustDateToActiveBatch();
       this.updateDockState('calendar');
       this.updateMonthTitle();
       this.renderMainContent();
-      this.showToast('Viewing October 2026 Term Overview');
+      this.showToast(`Viewing ${this.formatMonthLabel(this.currentYear, this.currentMonth)} schedule overview`);
     });
 
     document.getElementById('cardActiveFacultyBtn')?.addEventListener('click', () => {
@@ -363,7 +502,7 @@ class AdminDashboardController {
           this.currentMonth = 11;
           this.currentYear--;
         }
-        this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 1);
+        this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       }
       this.updateMonthTitle();
       this.updateSummaryCards();
@@ -381,7 +520,7 @@ class AdminDashboardController {
           this.currentMonth = 0;
           this.currentYear++;
         }
-        this.currentWeekStart = new Date(this.currentYear, this.currentMonth, 1);
+        this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       }
       this.updateMonthTitle();
       this.updateSummaryCards();
@@ -392,10 +531,15 @@ class AdminDashboardController {
       const now = new Date();
       this.currentYear = now.getFullYear();
       this.currentMonth = now.getMonth();
-      this.currentWeekStart = new Date(now);
-      this.selectedDayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      this.currentWeekStart = startOfWeek(now);
+      this.selectedDayIso = todayIso();
+      this.dashboardYear = now.getFullYear();
+      this.dashboardMonth = now.getMonth();
+      this.dashboardWeekStart = startOfWeek(now);
+      this.dashboardDayIso = todayIso();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
       this.renderMainContent();
 
       setTimeout(() => {
@@ -505,7 +649,7 @@ class AdminDashboardController {
           this.selectedSubject = 'all';
           this.autoAdjustDateToActiveBatch();
           this.renderAll();
-          this.showToast(`Switched to ${this.getActiveBatch()?.name}`);
+          this.showToast(`Switched to ${this.getActiveBatch()?.name} - ${this.formatMonthLabel(this.currentYear, this.currentMonth)}`);
         });
       });
 
@@ -780,22 +924,31 @@ class AdminDashboardController {
     btnDay?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'day';
+      this.dashboardScope = 'day';
+      this.batchGraphGranularity = 'day';
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     btnWeek?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'week';
+      this.dashboardScope = 'week';
+      this.batchGraphGranularity = 'week';
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     btnMonth?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'month';
+      this.dashboardScope = 'month';
+      this.batchGraphGranularity = 'month';
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     card?.addEventListener('click', () => {
@@ -808,6 +961,10 @@ class AdminDashboardController {
   renderFacultyHighlightsCard() {
     this.updateFacultyCardScopeButtons?.();
 
+    if (this.facultyHighlightScope) {
+      this.dashboardScope = this.facultyHighlightScope;
+    }
+
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
 
@@ -819,24 +976,22 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
+    const targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
+    const targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 8);
+    const targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(2026, 8, 14);
+    const targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+
     if (this.facultyHighlightScope === 'day') {
-      const targetIso = this.selectedDayIso || '2026-10-15';
-      filtered = classes.filter(e => e.isoDate === targetIso);
-      const d = new Date(targetIso + 'T00:00:00');
-      const isToday = targetIso === '2026-10-15' || targetIso === new Date().toISOString().slice(0, 10);
+      filtered = classes.filter(e => e.isoDate === targetDayIso);
+      const d = parseIso(targetDayIso) || new Date();
+      const isToday = targetDayIso === todayIso();
       scopeBadgeText = `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}${isToday ? ' (Today)' : ''}`;
     } else if (this.facultyHighlightScope === 'week') {
-      const sunday = new Date(this.currentWeekStart.getTime());
-      const day = sunday.getDay();
-      sunday.setDate(sunday.getDate() - day);
-      sunday.setHours(0, 0, 0, 0);
+      const sunday = startOfWeek(targetWeekStart);
+      const saturday = endOfWeek(targetWeekStart);
 
-      const saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      saturday.setHours(23, 59, 59, 999);
-
-      const sundayIso = sunday.toISOString().slice(0, 10);
-      const saturdayIso = saturday.toISOString().slice(0, 10);
+      const sundayIso = toLocalIso(sunday);
+      const saturdayIso = toLocalIso(saturday);
 
       filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
 
@@ -851,9 +1006,9 @@ class AdminDashboardController {
       filtered = classes.filter(e => {
         if (!e.isoDate) return false;
         const [y, m] = e.isoDate.split('-').map(Number);
-        return y === this.currentYear && m === (this.currentMonth + 1);
+        return y === targetYear && m === (targetMonth + 1);
       });
-      scopeBadgeText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+      scopeBadgeText = `${monthNames[targetMonth]} ${targetYear}`;
     }
 
     // Group by faculty
@@ -987,22 +1142,31 @@ class AdminDashboardController {
 
     btnDay?.addEventListener('click', () => {
       this.facultyHighlightScope = 'day';
+      this.dashboardScope = 'day';
+      this.batchGraphGranularity = 'day';
       updateModalScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
       this.renderFacultyHighlightsModal();
     });
 
     btnWeek?.addEventListener('click', () => {
       this.facultyHighlightScope = 'week';
+      this.dashboardScope = 'week';
+      this.batchGraphGranularity = 'week';
       updateModalScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
       this.renderFacultyHighlightsModal();
     });
 
     btnMonth?.addEventListener('click', () => {
       this.facultyHighlightScope = 'month';
+      this.dashboardScope = 'month';
+      this.batchGraphGranularity = 'month';
       updateModalScopeButtons();
       this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
       this.renderFacultyHighlightsModal();
     });
 
@@ -1036,6 +1200,10 @@ class AdminDashboardController {
     const activePeriodBadge = document.getElementById('modalActivePeriodBadge');
     const listContainer = document.getElementById('modalFacultyDistributionList');
 
+    if (this.dashboardScope) {
+      this.facultyHighlightScope = this.dashboardScope;
+    }
+
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
 
@@ -1047,23 +1215,21 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
+    const targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
+    const targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 8);
+    const targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(2026, 8, 14);
+    const targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+
     if (this.facultyHighlightScope === 'day') {
-      const targetIso = this.selectedDayIso || '2026-10-15';
-      filtered = classes.filter(e => e.isoDate === targetIso);
-      const d = new Date(targetIso + 'T00:00:00');
+      filtered = classes.filter(e => e.isoDate === targetDayIso);
+      const d = parseIso(targetDayIso) || new Date();
       periodText = `Selected Day: ${d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
     } else if (this.facultyHighlightScope === 'week') {
-      const sunday = new Date(this.currentWeekStart.getTime());
-      const day = sunday.getDay();
-      sunday.setDate(sunday.getDate() - day);
-      sunday.setHours(0, 0, 0, 0);
+      const sunday = startOfWeek(targetWeekStart);
+      const saturday = endOfWeek(targetWeekStart);
 
-      const saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      saturday.setHours(23, 59, 59, 999);
-
-      const sundayIso = sunday.toISOString().slice(0, 10);
-      const saturdayIso = saturday.toISOString().slice(0, 10);
+      const sundayIso = toLocalIso(sunday);
+      const saturdayIso = toLocalIso(saturday);
 
       filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
       periodText = `Active Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
@@ -1071,9 +1237,9 @@ class AdminDashboardController {
       filtered = classes.filter(e => {
         if (!e.isoDate) return false;
         const [y, m] = e.isoDate.split('-').map(Number);
-        return y === this.currentYear && m === (this.currentMonth + 1);
+        return y === targetYear && m === (targetMonth + 1);
       });
-      periodText = `Active Month: ${monthNames[this.currentMonth]} ${this.currentYear}`;
+      periodText = `Active Month: ${monthNames[targetMonth]} ${targetYear}`;
     }
 
     if (subtitleEl) subtitleEl.textContent = `Detailed class load for ${periodText}`;
@@ -1239,9 +1405,14 @@ class AdminDashboardController {
     container.querySelectorAll('[data-subject]').forEach(btn => {
       btn.addEventListener('click', () => {
         this.selectedSubject = btn.getAttribute('data-subject');
+        const moved = this.syncPeriodToFilters();
         this.updateSubjectFilterButtons();
-        this.renderMainContent();
-        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        this.refreshPeriodChrome();
+        if (moved) {
+          this.showToast(`No ${this.selectedSubject === 'all' ? 'classes' : this.selectedSubject} classes in view - jumped to ${this.formatMonthLabel(moved.year, moved.month)}`);
+        }
+        document.querySelector(`#adminSubjectFilters [data-subject="${this.selectedSubject}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       });
     });
 
@@ -1548,19 +1719,42 @@ class AdminDashboardController {
         confirmApproveBtn.classList.remove('bg-[#4a7c59]');
         confirmApproveBtn.classList.add('bg-[#3d6749]');
 
-        setTimeout(() => {
+        setTimeout(async () => {
           closeRescheduleModal();
           confirmApproveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span><span>Confirm Reschedule &amp; Approve</span>';
           confirmApproveBtn.classList.add('bg-[#4a7c59]');
           confirmApproveBtn.classList.remove('bg-[#3d6749]');
 
-          if (this.currentActiveRequestId) {
-            updateRequestStatus(this.currentActiveRequestId, 'approved');
+          const req = this.currentActiveRequestId ? getRequestById(this.currentActiveRequestId) : null;
+          this.showToast('Reschedule approved! New slot locked & students updated.');
+
+          // Write the decision back to the connected sheet.
+          let sync = null;
+          if (req?.lecture) {
+            const slot = this.resolveApprovedSlot(req);
+            if (!slot) {
+              this.showToast('Approved locally, but the new slot could not be read - sheet not updated.');
+              sync = { ok: false, error: 'Could not determine the rescheduled slot', at: new Date().toISOString() };
+            } else {
+              const result = await pushRescheduleToSheet(req.lecture, slot, {
+                reason: req.reason || '',
+                actor: this.getActorLabel(),
+                requestId: req.id
+              });
+              sync = this.reportSheetSync(result, { action: 'reschedule' });
+            }
+          } else if (this.currentActiveRequestId && isSheetWriteBackConfigured()) {
+            this.showToast('Approved locally. This request has no sheet row reference, so the sheet was not updated.');
+            sync = { ok: false, error: 'Request carries no lecture reference', at: new Date().toISOString() };
           }
+
+          if (this.currentActiveRequestId) {
+            updateRequestStatus(this.currentActiveRequestId, 'approved', sync);
+          }
+          this.pendingRescheduleSlot = null;
           if (requestsSection) {
             renderRequestsView(requestsSection, this.requestsState, this);
           }
-          this.showToast('Reschedule approved! New slot locked & students updated.');
         }, 400);
       });
     }
@@ -1593,10 +1787,15 @@ class AdminDashboardController {
 
     if (scheduleAltSlotBtn) {
       scheduleAltSlotBtn.addEventListener('click', () => {
+        const slot = this.readAltSlotSelection();
         const propText = document.getElementById('rescheduleProposedSlotText');
-        if (propText) propText.textContent = 'Mon, 19 Oct • 5:00 PM – 7:00 PM';
+        const label = slot ? `${slot.label} • ${slot.timings}` : 'Mon, 19 Oct • 5:00 PM – 7:00 PM';
+        if (propText) propText.textContent = label;
+        // Remember the pick in machine-readable form so approving can write
+        // the exact date, time and duration back to the sheet.
+        this.pendingRescheduleSlot = slot;
         closeAltSlotModal();
-        this.showToast('Selected Mon, 19 Oct (5:00 PM – 7:00 PM) as alternative proposed slot');
+        this.showToast(`Selected ${label} as the alternative proposed slot`);
       });
     }
 
@@ -1623,18 +1822,33 @@ class AdminDashboardController {
         confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
         confirmApproveCancellationBtn.disabled = true;
 
-        setTimeout(() => {
+        setTimeout(async () => {
           closeApproveCancelModal();
           confirmApproveCancellationBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check_circle</span> Confirm Approval';
           confirmApproveCancellationBtn.disabled = false;
 
+          const req = this.currentActiveRequestId ? getRequestById(this.currentActiveRequestId) : null;
+          this.showToast('Cancellation approved. Slot vacated & substitute mapped.');
+
+          let sync = null;
+          if (req?.lecture) {
+            const result = await pushCancellationToSheet(req.lecture, {
+              reason: req.reason || '',
+              actor: this.getActorLabel(),
+              requestId: req.id
+            });
+            sync = this.reportSheetSync(result, { action: 'cancellation' });
+          } else if (this.currentActiveRequestId && isSheetWriteBackConfigured()) {
+            this.showToast('Approved locally. This request has no sheet row reference, so the sheet was not updated.');
+            sync = { ok: false, error: 'Request carries no lecture reference', at: new Date().toISOString() };
+          }
+
           if (this.currentActiveRequestId) {
-            updateRequestStatus(this.currentActiveRequestId, 'approved');
+            updateRequestStatus(this.currentActiveRequestId, 'approved', sync);
           }
           if (requestsSection) {
             renderRequestsView(requestsSection, this.requestsState, this);
           }
-          this.showToast('Cancellation approved. Slot vacated & substitute mapped.');
         }, 400);
       });
     }
@@ -2770,7 +2984,11 @@ class AdminDashboardController {
     if (this.dashboardYear === undefined) this.dashboardYear = this.currentYear || 2026;
     if (this.dashboardMonth === undefined) this.dashboardMonth = this.currentMonth !== undefined ? this.currentMonth : 9;
     if (!this.dashboardWeekStart) this.dashboardWeekStart = new Date(this.currentWeekStart || new Date(2026, 9, 11));
-    if (!this.dashboardDayIso) this.dashboardDayIso = this.selectedDayIso || '2026-10-15';
+    if (!this.dashboardDayIso) this.dashboardDayIso = this.selectedDayIso || todayIso();
+
+    this.facultyHighlightScope = this.dashboardScope;
+    this.batchGraphGranularity = this.dashboardScope;
+    this.renderFacultyHighlightsCard();
 
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
@@ -2784,23 +3002,17 @@ class AdminDashboardController {
     ];
 
     if (this.dashboardScope === 'day') {
-      const targetIso = this.dashboardDayIso || '2026-10-15';
+      const targetIso = this.dashboardDayIso || todayIso();
       filtered = classes.filter(e => e.isoDate === targetIso);
       const d = new Date(targetIso + 'T00:00:00');
-      const isToday = targetIso === '2026-10-15' || targetIso === new Date().toISOString().slice(0, 10);
+      const isToday = targetIso === todayIso();
       periodText = `${d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}${isToday ? ' (Today)' : ''}`;
     } else if (this.dashboardScope === 'week') {
-      const sunday = new Date(this.dashboardWeekStart.getTime());
-      const day = sunday.getDay();
-      sunday.setDate(sunday.getDate() - day);
-      sunday.setHours(0, 0, 0, 0);
+      const sunday = startOfWeek(this.dashboardWeekStart);
+      const saturday = endOfWeek(this.dashboardWeekStart);
 
-      const saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      saturday.setHours(23, 59, 59, 999);
-
-      const sundayIso = sunday.toISOString().slice(0, 10);
-      const saturdayIso = saturday.toISOString().slice(0, 10);
+      const sundayIso = toLocalIso(sunday);
+      const saturdayIso = toLocalIso(saturday);
 
       filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
 
@@ -3405,6 +3617,7 @@ class AdminDashboardController {
     container.querySelector('#dashScopeMonthBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'month';
       this.facultyHighlightScope = 'month';
+      this.batchGraphGranularity = 'month';
       this.renderFacultyHighlightsCard();
       this.renderDashboardView();
     });
@@ -3412,6 +3625,7 @@ class AdminDashboardController {
     container.querySelector('#dashScopeWeekBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'week';
       this.facultyHighlightScope = 'week';
+      this.batchGraphGranularity = 'week';
       this.renderFacultyHighlightsCard();
       this.renderDashboardView();
     });
@@ -3419,6 +3633,7 @@ class AdminDashboardController {
     container.querySelector('#dashScopeDayBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'day';
       this.facultyHighlightScope = 'day';
+      this.batchGraphGranularity = 'day';
       this.renderFacultyHighlightsCard();
       this.renderDashboardView();
     });
@@ -3434,10 +3649,9 @@ class AdminDashboardController {
       } else if (this.dashboardScope === 'week') {
         this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() - (7 * 24 * 60 * 60 * 1000));
       } else if (this.dashboardScope === 'day') {
-        const [y, m, day] = (this.dashboardDayIso || '2026-10-15').split('-').map(Number);
-        const d = new Date(Date.UTC(y, m - 1, day));
-        d.setUTCDate(d.getUTCDate() - 1);
-        this.dashboardDayIso = d.toISOString().slice(0, 10);
+        const d = parseIso(this.dashboardDayIso) || new Date();
+        d.setDate(d.getDate() - 1);
+        this.dashboardDayIso = toLocalIso(d);
       }
       this.renderDashboardView();
     });
@@ -3452,21 +3666,26 @@ class AdminDashboardController {
       } else if (this.dashboardScope === 'week') {
         this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() + (7 * 24 * 60 * 60 * 1000));
       } else if (this.dashboardScope === 'day') {
-        const [y, m, day] = (this.dashboardDayIso || '2026-10-15').split('-').map(Number);
-        const d = new Date(Date.UTC(y, m - 1, day));
-        d.setUTCDate(d.getUTCDate() + 1);
-        this.dashboardDayIso = d.toISOString().slice(0, 10);
+        const d = parseIso(this.dashboardDayIso) || new Date();
+        d.setDate(d.getDate() + 1);
+        this.dashboardDayIso = toLocalIso(d);
       }
       this.renderDashboardView();
     });
 
     container.querySelector('#dashTodayPeriodBtn')?.addEventListener('click', () => {
-      this.dashboardYear = 2026;
-      this.dashboardMonth = 9; // October 2026 academic term reference
-      this.dashboardWeekStart = new Date(2026, 9, 11);
-      this.dashboardDayIso = '2026-10-15';
+      const now = new Date();
+      this.dashboardYear = now.getFullYear();
+      this.dashboardMonth = now.getMonth();
+      this.dashboardWeekStart = startOfWeek(now);
+      this.dashboardDayIso = todayIso();
+      this.currentYear = now.getFullYear();
+      this.currentMonth = now.getMonth();
+      this.currentWeekStart = startOfWeek(now);
+      this.selectedDayIso = todayIso();
+      this.renderFacultyHighlightsCard();
       this.renderDashboardView();
-      this.showToast('Dashboard reset to current academic period (October 2026)');
+      this.showToast(`Navigated to Today (${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`);
     });
 
     // Donut hover interaction
@@ -3664,7 +3883,12 @@ class AdminDashboardController {
       totalFilteredHours += parseHours(c.duration);
     });
 
-    const activeDayMonth = this.batchGraphDayMonth || 'all';
+    let activeDayMonth = this.batchGraphDayMonth;
+    if (!activeDayMonth || activeDayMonth === 'all') {
+      const dashYm = `${this.dashboardYear || 2026}-${String((this.dashboardMonth !== undefined ? this.dashboardMonth : 8) + 1).padStart(2, '0')}`;
+      activeDayMonth = ['2026-09', '2026-10', '2026-11'].includes(dashYm) ? dashYm : '2026-09';
+      this.batchGraphDayMonth = activeDayMonth;
+    }
 
     let chartHtml = '';
     let inspectorHtml = '';
@@ -3841,7 +4065,7 @@ class AdminDashboardController {
         sat.setDate(sun.getDate() + 6);
         const firstJan = new Date(d.getFullYear(), 0, 1);
         const weekNum = Math.ceil((((d - firstJan) / 86400000) + firstJan.getDay() + 1) / 7);
-        const wkKey = sun.toISOString().slice(0, 10);
+        const wkKey = toLocalIso(sun);
         return {
           key: wkKey,
           label: `W${weekNum}`,
@@ -4023,12 +4247,12 @@ class AdminDashboardController {
 
       const sortedDayKeys = Object.keys(days).sort();
       const maxDayClasses = Math.max(1, ...Object.values(days).map(d => d.total));
-      const peakDayKey = sortedDayKeys.find(k => days[k].total === maxDayClasses) || '2026-10-15';
+      const peakDayKey = sortedDayKeys.find(k => days[k].total === maxDayClasses) || todayIso();
       peakBadgeText = `Peak Day: ${days[peakDayKey]?.formattedDate || 'Oct 15'} (${maxDayClasses} cls)`;
 
       const selectedDayKey = this.batchGraphSelectedKey && days[this.batchGraphSelectedKey]
         ? this.batchGraphSelectedKey
-        : (days['2026-10-15'] ? '2026-10-15' : peakDayKey);
+        : (days[todayIso()] ? todayIso() : peakDayKey);
 
       const dayBarsHtml = sortedDayKeys.map(k => {
         const d = days[k];
@@ -4218,7 +4442,6 @@ class AdminDashboardController {
           <!-- Day-Wise Month Switcher (Only visible in Day-Wise view) -->
           ${granularity === 'day' ? `
             <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-bold">
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === 'all' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="all">All Days (67)</button>
               <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (14)</button>
               <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (26)</button>
               <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (27)</button>
@@ -4245,20 +4468,29 @@ class AdminDashboardController {
     // Granularity Switcher
     container.querySelector('#batchGraphScopeDayBtn')?.addEventListener('click', () => {
       this.batchGraphGranularity = 'day';
+      this.dashboardScope = 'day';
+      this.facultyHighlightScope = 'day';
       this.batchGraphSelectedKey = null;
-      this.updateBatchLectureGraph(container);
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     container.querySelector('#batchGraphScopeWeekBtn')?.addEventListener('click', () => {
       this.batchGraphGranularity = 'week';
+      this.dashboardScope = 'week';
+      this.facultyHighlightScope = 'week';
       this.batchGraphSelectedKey = null;
-      this.updateBatchLectureGraph(container);
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     container.querySelector('#batchGraphScopeMonthBtn')?.addEventListener('click', () => {
       this.batchGraphGranularity = 'month';
+      this.dashboardScope = 'month';
+      this.facultyHighlightScope = 'month';
       this.batchGraphSelectedKey = null;
-      this.updateBatchLectureGraph(container);
+      this.renderFacultyHighlightsCard();
+      this.renderDashboardView();
     });
 
     // Cohort Filters
@@ -4507,6 +4739,7 @@ class AdminDashboardController {
 
     listContainer.innerHTML = pagedItems.map(f => {
       const isVerified = f.status === 'Verified';
+      const canReschedule = f.canRescheduleCancel !== false;
       const initials = (f.name || '').replace(/^(Dr\.|Prof\.)\s*/i, '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
       const cohortsHtml = (f.cohorts || []).map(c => `<span class="px-2.5 py-0.5 rounded-md bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-semibold text-[#2c332d]">${c}</span>`).join(' ');
 
@@ -4521,6 +4754,19 @@ class AdminDashboardController {
       const avatarBox = isVerified
         ? `<div class="w-11 h-11 rounded-xl bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center font-bold text-sm shrink-0">${initials}</div>`
         : `<div class="w-11 h-11 rounded-xl bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center font-bold text-sm shrink-0">${initials}</div>`;
+
+      const rescheduleToggleHtml = `
+        <div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/80" title="${canReschedule ? 'Reschedule & cancellation enabled for faculty portal' : 'Reschedule & cancellation disabled (shows Close button only)'}">
+          <span class="text-[11px] font-bold ${canReschedule ? 'text-[#2d4d37]' : 'text-[#8b958c]'} select-none flex items-center gap-1">
+            <span class="material-symbols-outlined text-[13px] ${canReschedule ? 'text-[#4a7c59]' : 'text-[#8b958c]'}">edit_calendar</span>
+            Reschedule &amp; Cancel
+          </span>
+          <button type="button" role="switch" aria-checked="${canReschedule}" class="btn-toggle-reschedule relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${canReschedule ? 'bg-[#4a7c59]' : 'bg-[#ded5c6]'}" data-id="${f.id}" title="${canReschedule ? 'Click to disable reschedule & cancellation for this faculty' : 'Click to enable reschedule & cancellation for this faculty'}">
+            <span class="sr-only">Toggle Reschedule and Cancellation</span>
+            <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${canReschedule ? 'translate-x-4' : 'translate-x-0'}"></span>
+          </button>
+        </div>
+      `;
 
       const actionButtons = isVerified
         ? `<button class="btn-edit-mapping btn-3d-secondary text-xs font-bold text-[#2c332d] px-3.5 py-1.5 rounded-lg cursor-pointer" data-id="${f.id}" type="button">
@@ -4564,10 +4810,13 @@ class AdminDashboardController {
               </div>
             </div>
           </div>
-          <div class="flex flex-row md:flex-col items-start md:items-end justify-between gap-2 shrink-0 pt-2 md:pt-0">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-[#8b958c]">Cohorts:</span>
-              ${cohortsHtml || '<span class="text-[11px] text-[#8b958c]">None</span>'}
+          <div class="flex flex-col md:items-end justify-between gap-2.5 shrink-0 pt-2 md:pt-0">
+            <div class="flex items-center gap-2.5 flex-wrap md:justify-end">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[#8b958c]">Cohorts:</span>
+                ${cohortsHtml || '<span class="text-[11px] text-[#8b958c]">None</span>'}
+              </div>
+              ${rescheduleToggleHtml}
             </div>
             <div class="flex items-center gap-2">
               ${actionButtons}
@@ -4731,6 +4980,9 @@ class AdminDashboardController {
     const resetFormState = () => {
       this.editingFacultyId = null;
       form?.reset();
+      const reschedToggle = document.getElementById('onboard-reschedule-toggle');
+      if (reschedToggle) reschedToggle.checked = true;
+
       if (submitBtnText) submitBtnText.textContent = 'Save & Map Credentials';
       if (submitIcon) submitIcon.textContent = 'how_to_reg';
       if (panelTitle) panelTitle.textContent = 'Quick Map & Onboard';
@@ -4752,8 +5004,9 @@ class AdminDashboardController {
       this.showToast('Edit mode canceled');
     });
 
-    // 8. Row Action Buttons delegation
+    // 8. Row Action Buttons & Toggle delegation
     container?.addEventListener('click', (e) => {
+      const toggleBtn = e.target.closest('.btn-toggle-reschedule');
       const editBtn = e.target.closest('.btn-edit-mapping');
       const resendBtn = e.target.closest('.btn-resend-creds');
       const completeBtn = e.target.closest('.btn-complete-mapping');
@@ -4771,6 +5024,23 @@ class AdminDashboardController {
         if (statusFilter) statusFilter.value = 'All';
         this.onboardingPage = 1;
         this.renderOnboardingList();
+        return;
+      }
+
+      if (toggleBtn) {
+        const id = toggleBtn.getAttribute('data-id');
+        const fac = this.facultyOnboardingList.find(f => f.id === id);
+        if (fac) {
+          const newVal = fac.canRescheduleCancel === false ? true : false;
+          fac.canRescheduleCancel = newVal;
+          reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          this.renderOnboardingList();
+          if (newVal) {
+            this.showToast(`Reschedule & cancellation enabled for ${fac.name}`);
+          } else {
+            this.showToast(`Reschedule & cancellation disabled for ${fac.name}`);
+          }
+        }
         return;
       }
 
@@ -4798,10 +5068,12 @@ class AdminDashboardController {
         const nameInput = document.getElementById('onboard-name-input');
         const emailInput = document.getElementById('onboard-email-input');
         const phoneInput = document.getElementById('onboard-phone-input');
+        const reschedToggle = document.getElementById('onboard-reschedule-toggle');
 
         if (nameInput) nameInput.value = fac.name;
         if (emailInput) emailInput.value = fac.email;
         if (phoneInput) phoneInput.value = (fac.phone || '').replace(/\D/g, '');
+        if (reschedToggle) reschedToggle.checked = fac.canRescheduleCancel !== false;
 
         // Deactivate all chips first
         subjectChips?.querySelectorAll('.subject-chip').forEach(c => setChipState(c, false));
@@ -4878,10 +5150,12 @@ class AdminDashboardController {
       const nameInput = document.getElementById('onboard-name-input');
       const emailInput = document.getElementById('onboard-email-input');
       const phoneInput = document.getElementById('onboard-phone-input');
+      const reschedToggle = document.getElementById('onboard-reschedule-toggle');
 
       const nameVal = (nameInput?.value || '').trim();
       const emailVal = (emailInput?.value || '').trim();
       const phoneVal = (phoneInput?.value || '').trim();
+      const canReschedVal = reschedToggle ? reschedToggle.checked : true;
 
       if (!nameVal || !emailVal) {
         alert('Please provide faculty name and registered institutional email.');
@@ -4910,8 +5184,9 @@ class AdminDashboardController {
           fac.dept = primarySubject;
           fac.role = `Professor • ${primarySubject}`;
           fac.cohorts = checkedCohorts;
+          fac.canRescheduleCancel = canReschedVal;
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-          this.showToast(`Updated credentials & cohort mapping for ${cleanName}!`);
+          this.showToast(`Updated credentials & permissions for ${cleanName}!`);
         }
         resetFormState();
         this.renderOnboardingList();
@@ -4924,6 +5199,7 @@ class AdminDashboardController {
           dept: primarySubject,
           role: `Professor • ${primarySubject}`,
           status: 'Verified',
+          canRescheduleCancel: canReschedVal,
           cohorts: checkedCohorts
         };
 
@@ -5447,9 +5723,117 @@ class AdminDashboardController {
     });
   }
 
+  /**
+   * Render the sheet write-back settings into the existing "Connect Sheet"
+   * settings panel. Built from JS so the five HTML entry points stay in sync
+   * automatically.
+   */
+  renderSheetWriteBackSettings() {
+    const host = document.getElementById('settingsTabContentSheet');
+    if (!host) return;
+
+    let card = document.getElementById('sheetWriteBackCard');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'sheetWriteBackCard';
+      card.className = 'mt-4 p-3.5 rounded-xl border border-[#ded5c6] bg-[#fbf9f4]';
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2 mb-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">sync_alt</span>
+            <span class="font-headline text-xs font-bold text-[#2c332d]">Sheet Write-Back</span>
+          </div>
+          <span id="sheetWriteBackBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md border"></span>
+        </div>
+        <p class="text-[11px] text-[#68736a] leading-relaxed mb-2.5">
+          Writes <strong>Status</strong>, <strong>Rescheduled Date</strong>, <strong>Rescheduled Time</strong> and
+          <strong>Rescheduled Duration</strong> back into the Lecture Planner tab when you approve a reschedule or
+          cancellation. Deploy <code class="text-[10px]">apps-script/Code.gs</code> from the sheet as a Web App, then paste its
+          <code class="text-[10px]">/exec</code> URL and token below.
+        </p>
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-[#68736a] mb-1">Web App URL</label>
+        <input id="sheetWriteBackUrl" type="url" placeholder="https://script.google.com/macros/s/AKfy.../exec"
+          class="w-full px-2.5 py-1.5 mb-2 rounded-lg border border-[#ded5c6] text-xs text-[#2c332d] bg-white" />
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-[#68736a] mb-1">Shared Token</label>
+        <input id="sheetWriteBackToken" type="password" placeholder="must match SHARED_TOKEN in the script"
+          class="w-full px-2.5 py-1.5 mb-2.5 rounded-lg border border-[#ded5c6] text-xs text-[#2c332d] bg-white" />
+        <label class="flex items-center gap-2 mb-2.5 cursor-pointer">
+          <input id="sheetWriteBackEnabled" type="checkbox" class="cursor-pointer" />
+          <span class="text-[11px] font-semibold text-[#2c332d]">Update the sheet on approval</span>
+        </label>
+        <div class="flex items-center gap-2">
+          <button id="sheetWriteBackTestBtn" type="button"
+            class="px-3 py-1.5 rounded-lg border border-[#c4c8bc] hover:bg-[#f4efe6] text-[11px] font-semibold text-[#2c332d] cursor-pointer bg-white">Test connection</button>
+          <button id="sheetWriteBackSaveBtn" type="button"
+            class="px-3 py-1.5 rounded-lg btn-3d-primary text-white text-[11px] font-bold cursor-pointer border-none">Save</button>
+          <button id="sheetWriteBackRetryBtn" type="button"
+            class="px-3 py-1.5 rounded-lg border border-[#c4c8bc] hover:bg-[#f4efe6] text-[11px] font-semibold text-[#2c332d] cursor-pointer bg-white hidden">Retry pending</button>
+        </div>
+        <p id="sheetWriteBackResult" class="text-[11px] mt-2 text-[#68736a]"></p>
+      `;
+      host.appendChild(card);
+
+      const urlEl = card.querySelector('#sheetWriteBackUrl');
+      const tokenEl = card.querySelector('#sheetWriteBackToken');
+      const enabledEl = card.querySelector('#sheetWriteBackEnabled');
+      const resultEl = card.querySelector('#sheetWriteBackResult');
+
+      card.querySelector('#sheetWriteBackSaveBtn')?.addEventListener('click', () => {
+        const cfg = saveSheetWriterConfig({
+          endpoint: urlEl.value,
+          token: tokenEl.value,
+          enabled: enabledEl.checked
+        });
+        resultEl.textContent = cfg.endpoint && cfg.token
+          ? 'Saved.'
+          : 'Saved, but the URL or token is empty - approvals will stay local only.';
+        this.renderSheetWriteBackSettings();
+        this.flushSheetWriteQueue({ quiet: false });
+      });
+
+      card.querySelector('#sheetWriteBackTestBtn')?.addEventListener('click', async () => {
+        resultEl.textContent = 'Testing...';
+        const res = await testSheetWriteBack(urlEl.value.trim(), tokenEl.value.trim());
+        resultEl.textContent = res.ok
+          ? `Connected to "${res.spreadsheet}". Tabs: ${res.tabs.join(', ')}`
+          : `Failed: ${res.error}`;
+      });
+
+      card.querySelector('#sheetWriteBackRetryBtn')?.addEventListener('click', async () => {
+        resultEl.textContent = 'Retrying...';
+        const res = await flushPendingSheetWrites();
+        resultEl.textContent = `Sent ${res.sent}, still pending ${res.remaining}.`;
+        this.renderSheetWriteBackSettings();
+      });
+    }
+
+    const cfg = getSheetWriterConfig();
+    const urlEl = card.querySelector('#sheetWriteBackUrl');
+    const tokenEl = card.querySelector('#sheetWriteBackToken');
+    const enabledEl = card.querySelector('#sheetWriteBackEnabled');
+    if (urlEl && document.activeElement !== urlEl) urlEl.value = cfg.endpoint;
+    if (tokenEl && document.activeElement !== tokenEl) tokenEl.value = cfg.token;
+    if (enabledEl) enabledEl.checked = cfg.enabled;
+
+    const pending = getPendingSheetWrites().length;
+    const badge = card.querySelector('#sheetWriteBackBadge');
+    if (badge) {
+      const connected = isSheetWriteBackConfigured();
+      badge.textContent = connected ? (pending ? `${pending} pending` : 'Connected') : 'Not connected';
+      badge.className = connected && !pending
+        ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]'
+        : connected
+          ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf6e3] text-[#7a5c00] border border-[#e8d9a8]'
+          : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7]';
+    }
+    card.querySelector('#sheetWriteBackRetryBtn')?.classList.toggle('hidden', pending === 0);
+  }
+
   openAdminSettingsModal(activeTab = 'email') {
     const modal = document.getElementById('adminSettingsModal');
     if (!modal) return;
+
+    this.renderSheetWriteBackSettings();
 
     // Load fresh settings from service
     const settings = reminderEmailService.getSettings();
