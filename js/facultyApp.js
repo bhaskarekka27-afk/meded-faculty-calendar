@@ -29,6 +29,8 @@ export class FacultyDashboardController {
     // Faculty identity (defaults to Dr. Rajesh Jambhulkar)
     this.currentFaculty = 'Dr. Rajesh Jambhulkar';
     this.facultySubject = 'Biochemistry';
+    this.loggedInFaculty = 'Dr. Rajesh Jambhulkar';
+    this.loggedInSubject = 'Biochemistry';
 
     // Calendar state - defaults to October 2026 where lecture data exists
     const _now = new Date();
@@ -94,6 +96,10 @@ export class FacultyDashboardController {
       }
     } catch (e) {
       console.warn('Could not read user session:', e);
+    }
+    if (!this.loggedInFaculty) {
+      this.loggedInFaculty = this.currentFaculty || 'Dr. Rajesh Jambhulkar';
+      this.loggedInSubject = this.facultySubject || 'Biochemistry';
     }
   }
 
@@ -344,35 +350,16 @@ export class FacultyDashboardController {
       this.mobileSelectedDateIso = anchorIso;
     }
 
-    if (isAll) {
-      // Preserve logged-in faculty identity when All Batches is selected
-      if (this.loggedInFaculty) {
-        this.currentFaculty = this.loggedInFaculty;
-        this.facultySubject = this.loggedInSubject || this.facultySubject;
-      } else if (!this.currentFaculty) {
-        this.currentFaculty = 'All Faculty';
-        this.facultySubject = 'Combined Curriculum';
-      }
-      this.updateFacultyProfileUI();
-    } else {
-      // If logged-in faculty is present, keep their profile
-      if (this.loggedInFaculty) {
-        this.currentFaculty = this.loggedInFaculty;
-        this.facultySubject = this.loggedInSubject || this.facultySubject;
-        this.updateFacultyProfileUI();
-      } else {
-        // If current faculty is 'All Faculty' or has 0 classes in this new batch, auto-select first available faculty
-        const facultyInNewBatch = batchClasses.filter(e => e.eventType === 'class' && e.faculty && this.currentFaculty && this.currentFaculty !== 'All Faculty' && e.faculty.toLowerCase().includes(this.currentFaculty.toLowerCase()));
-        if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || facultyInNewBatch.length === 0) {
-          const firstFac = batchClasses.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off'));
-          if (firstFac && firstFac.faculty) {
-            this.currentFaculty = firstFac.faculty.trim();
-            this.facultySubject = firstFac.subject || 'Faculty';
-            this.updateFacultyProfileUI();
-          }
-        }
-      }
+    // ALWAYS preserve the logged-in faculty member's profile identity.
+    // Changing batch filters must NEVER change the logged-in faculty profile!
+    if (this.loggedInFaculty) {
+      this.currentFaculty = this.loggedInFaculty;
+      this.facultySubject = this.loggedInSubject || this.facultySubject;
+    } else if (!this.currentFaculty) {
+      this.currentFaculty = 'Dr. Rajesh Jambhulkar';
+      this.facultySubject = 'Biochemistry';
     }
+    this.updateFacultyProfileUI();
 
     // Close batch dropdown popup immediately
     this.batchDropdown?.classList.add('hidden');
