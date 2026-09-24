@@ -2248,6 +2248,7 @@ export class FacultyDashboardController {
       const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
 
       const initials = this.getFacultyInitials(ev.faculty || this.currentFaculty);
+      const canRescheduleCancel = this.canFacultyRescheduleCancel(ev);
 
       card.innerHTML = `
         <!-- Header Row: Subject & Batch Badge + Time -->
