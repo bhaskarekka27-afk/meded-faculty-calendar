@@ -9,12 +9,13 @@ export const DEFAULT_FACULTY_ONBOARDING = [
   {
     id: 'fac-1',
     name: 'Dr. Rajesh Jambhulkar',
-    email: 'rajesh.j@pwmeded.edu.in',
+    email: 'bhaskarekka27@gmail.com',
+    secondaryEmail: 'rajesh.j@pwmeded.edu.in',
     phone: '98234 56710',
     dept: 'Biochemistry',
-    role: 'HOD & Professor • Biochemistry',
+    role: 'Professor • Biochemistry',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
@@ -365,18 +366,6 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     status: 'Verified',
     canRescheduleCancel: true,
     cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-admin-1',
-    name: 'Bhaskar Ekka',
-    email: 'bhaskarekka27@gmail.com',
-    phone: '98765 43210',
-    dept: 'Medical Sciences',
-    role: 'Lead Academic Faculty',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {

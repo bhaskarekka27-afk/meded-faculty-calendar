@@ -269,13 +269,14 @@ export class ReminderEmailService {
     const cleanEmail = email.trim().toLowerCase();
     const list = this.getFacultyOnboardingList();
 
-    // Strictly match only registered ID, email, or verified name in the Faculty Onboarding Directory
+    // Strictly match only registered ID, email, secondaryEmail, or verified name in the Faculty Onboarding Directory
     return list.find(f => {
       const fEmail = (f.email || '').trim().toLowerCase();
+      const fSecEmail = (f.secondaryEmail || '').trim().toLowerCase();
       const fId = (f.id || '').trim().toLowerCase();
       const fName = (f.name || '').trim().toLowerCase().replace(/^(dr\.|prof\.|dr|prof)\s*/i, '');
       const inputName = cleanEmail.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '');
-      return fEmail === cleanEmail || fId === cleanEmail || (inputName.length >= 3 && fName === inputName);
+      return fEmail === cleanEmail || fSecEmail === cleanEmail || fId === cleanEmail || (inputName.length >= 3 && fName === inputName);
     }) || null;
   }
 

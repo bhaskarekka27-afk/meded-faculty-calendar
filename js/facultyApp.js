@@ -81,6 +81,7 @@ export class FacultyDashboardController {
               this.facultySubject = matchedFaculty.dept || 'Biochemistry';
               this.loggedInFaculty = matchedFaculty.name;
               this.loggedInSubject = matchedFaculty.dept || 'Biochemistry';
+              this.loggedInEmail = matchedFaculty.email;
               return;
             }
           }
@@ -92,6 +93,9 @@ export class FacultyDashboardController {
             this.facultySubject = user.subject.trim();
             this.loggedInSubject = user.subject.trim();
           }
+          if (user.email) {
+            this.loggedInEmail = user.email;
+          }
         }
       }
     } catch (e) {
@@ -100,6 +104,7 @@ export class FacultyDashboardController {
     if (!this.loggedInFaculty) {
       this.loggedInFaculty = this.currentFaculty || 'Dr. Rajesh Jambhulkar';
       this.loggedInSubject = this.facultySubject || 'Biochemistry';
+      this.loggedInEmail = 'bhaskarekka27@gmail.com';
     }
   }
 
@@ -434,17 +439,16 @@ export class FacultyDashboardController {
 
     if (mobileAvatar) mobileAvatar.textContent = initials;
     if (mobileName) {
-      const parts = displayName.split(' ');
-      mobileName.textContent = isAll ? 'All Faculty' : (parts.length > 1 ? `Dr. ${parts[1]}` : displayName);
+      mobileName.textContent = isAll ? 'All Faculty' : displayName;
     }
     if (mobileSubj) {
-      mobileSubj.textContent = isAll ? 'All Batches' : (displaySubject.length > 9 ? displaySubject.slice(0, 8) + '..' : displaySubject);
+      mobileSubj.textContent = isAll ? 'All Batches' : displaySubject;
     }
     if (mobileDropName) mobileDropName.textContent = displayName;
-    if (mobileDropSubj) mobileDropSubj.textContent = isAll ? 'Combined Curriculum' : `${displaySubject} HOD`;
+    if (mobileDropSubj) mobileDropSubj.textContent = isAll ? 'Combined Curriculum' : `Department of ${displaySubject}`;
     if (mobileDropEmail) {
-      const emailPrefix = displayName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').slice(0, 12);
-      mobileDropEmail.textContent = `${emailPrefix}@pwmeded.edu.in`;
+      const matched = reminderEmailService.findFacultyByEmail(this.loggedInEmail || this.currentFaculty) || reminderEmailService.findFacultyByName(this.currentFaculty);
+      mobileDropEmail.textContent = matched ? matched.email : (this.loggedInEmail || 'bhaskarekka27@gmail.com');
     }
     if (mobileFacultySub) mobileFacultySub.textContent = displaySubject;
   }
