@@ -268,7 +268,63 @@ export class ReminderEmailService {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();
     const list = this.getFacultyOnboardingList();
-    return list.find(f => (f.email || '').trim().toLowerCase() === cleanEmail) || null;
+
+    // 1. Direct exact email match
+    let matched = list.find(f => (f.email || '').trim().toLowerCase() === cleanEmail);
+    if (matched) return matched;
+
+    // 2. Email prefix / username match (e.g. rajesh.j@gmail.com matches rajesh.j@pwmeded.edu.in)
+    const username = cleanEmail.split('@')[0].replace(/^(dr\.|prof\.)/i, '');
+    matched = list.find(f => {
+      const fEmailUser = (f.email || '').split('@')[0].toLowerCase().replace(/^(dr\.|prof\.)/i, '');
+      const fNameClean = (f.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').toLowerCase().replace(/\s+/g, '.');
+      return fEmailUser === username || (username.length > 3 && (fEmailUser.includes(username) || username.includes(fEmailUser))) || fNameClean === username;
+    });
+    if (matched) return matched;
+
+    // 3. Name-based match if username contains parts of faculty name
+    matched = list.find(f => {
+      const fNameParts = (f.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').toLowerCase().split(/\s+/);
+      return fNameParts.length > 0 && fNameParts.some(part => part.length > 3 && username.includes(part));
+    });
+    if (matched) return matched;
+
+    // 4. Authorized admin/developer allowlist & institutional domains
+    const ADMIN_FACULTY_ALLOWLIST = [
+      'bhaskarekka27@gmail.com',
+      'kanchan.gupta1@pw.live',
+      'admin.office@pwmeded.edu.in',
+      'dean.office@pwmeded.edu.in',
+      'admin.office@pw.live',
+      'bhaskar.ekka@pw.live'
+    ];
+
+    const isAuthorizedDomain = cleanEmail.endsWith('@pw.live') ||
+                               cleanEmail.endsWith('@physicswallah.org') ||
+                               ADMIN_FACULTY_ALLOWLIST.includes(cleanEmail);
+
+    if (isAuthorizedDomain) {
+      let name = 'Dr. Rajesh Jambhulkar';
+      if (cleanEmail === 'bhaskarekka27@gmail.com' || cleanEmail.startsWith('bhaskar')) {
+        name = 'Bhaskar Ekka';
+      } else if (cleanEmail === 'kanchan.gupta1@pw.live' || cleanEmail.startsWith('kanchan')) {
+        name = 'Kanchan Gupta';
+      }
+      return {
+        id: 'fac-authorized',
+        name: name,
+        email: cleanEmail,
+        phone: '98765 43210',
+        dept: 'Biochemistry',
+        role: 'Faculty Member • Biochemistry',
+        status: 'Verified',
+        canRescheduleCancel: true,
+        cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    return null;
   }
 
   resolveFacultyDetails(facultyName) {
