@@ -2266,25 +2266,27 @@ export class FacultyDashboardController {
       const canRescheduleCancel = this.canFacultyRescheduleCancel(ev);
 
       card.innerHTML = `
-        <!-- Header Row: Subject & Batch Badge + Time -->
+        <!-- Header Row 1: Subject Badge (Left) & App/YT Live Badge (Right) -->
         <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-forest text-white shadow-sm">
-              ${ev.subject || this.facultySubject}
-            </span>
-            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-terra-sand text-terra-charcoal border border-terra-border/80 truncate max-w-[120px]">
-              ${batchObj.name || "Prarambh '26"}
-            </span>
-            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded border flex items-center gap-1 ${badgeLiveClass}">
-              <span class="w-1.5 h-1.5 rounded-full animate-pulse ${pulseColor}"></span>
-              ${badgeLiveText}
-            </span>
-          </div>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-forest text-white shadow-sm">
+            ${ev.subject || this.facultySubject}
+          </span>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
+            <span class="w-1.5 h-1.5 rounded-full animate-pulse ${pulseColor}"></span>
+            ${badgeLiveText}
+          </span>
+        </div>
+
+        <!-- Header Row 2: Batch Badge (Left) & Time Pill (Right) -->
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-terra-sand text-terra-charcoal border border-terra-border/80 truncate max-w-[170px]" title="${batchObj.name || "Prarambh '26"}">
+            ${batchObj.name || "Prarambh '26"}
+          </span>
           <div class="text-[11px] font-bold text-terra-charcoal flex items-center gap-1 shrink-0 bg-terra-sand/60 px-2 py-1 rounded-lg border border-terra-border/50">
             <svg class="w-3.5 h-3.5 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
             </svg>
-            ${ev.timings || '7:00pm – 9:00pm'}
+            ${ev.timings || '7:00pm to 9:00pm'}
           </div>
         </div>
 
@@ -2412,19 +2414,32 @@ export class FacultyDashboardController {
         // Lecture item
         const item = document.createElement('div');
         item.className = 'bg-terra-card border border-terra-border rounded-xl p-3 flex items-center justify-between shadow-soft cursor-pointer hover:border-terra-forest/40 transition-colors';
+        
+        const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026', platform: 'app' };
+        const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
+        const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+        const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
+
         item.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
             <div class="w-10 h-10 rounded-lg bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
               <span class="text-[10px] font-bold uppercase text-terra-forest">${dayStr}</span>
               <span class="text-sm font-black leading-none text-terra-forest">${d || 21}</span>
             </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 text-[10px] font-semibold text-terra-muted">
-                <span>${ev.timings || '7:00pm – 9:00pm'}</span>
-                <span>•</span>
-                <span class="text-terra-forest font-bold">${ev.subject || this.facultySubject}</span>
+            <div class="min-w-0 flex-1 space-y-1">
+              <div class="flex items-center justify-between gap-1.5">
+                <span class="text-[10px] font-bold uppercase text-terra-forest">${ev.subject || this.facultySubject}</span>
+                <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
+                  <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
+                  ${badgeLiveText}
+                </span>
               </div>
-              <h4 class="text-xs font-bold text-terra-charcoal truncate">${ev.topic || 'Medical Lecture'}</h4>
+              <div class="flex items-center justify-between gap-1.5 text-[10px] font-semibold text-terra-muted">
+                <span class="truncate max-w-[130px]">${batchObj.name || "Prarambh '26"}</span>
+                <span class="shrink-0 font-medium font-mono">${(ev.timings || '7:00pm to 9:00pm').replace(/\s*to\s*/i, ' to ')}</span>
+              </div>
+              <h4 class="text-xs font-bold text-terra-charcoal truncate pt-0.5">${ev.topic || 'Medical Lecture'}</h4>
             </div>
           </div>
           <button aria-label="View lecture details" class="w-8 h-8 rounded-lg bg-terra-sand hover:bg-terra-sandHover flex items-center justify-center text-terra-charcoal shrink-0 ml-2 cursor-pointer" type="button">
@@ -2622,20 +2637,32 @@ export class FacultyDashboardController {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+      const batchObj = this.batches.find(b => b.id === c.batchId) || { name: 'Prarambh 2026', platform: 'app' };
+      const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
+      const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+      const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
+
       const card = document.createElement('div');
       card.className = 'bg-white rounded-2xl border border-terra-border/80 p-3.5 shadow-soft flex items-center justify-between cursor-pointer hover:border-terra-forest/40 transition-all';
       card.innerHTML = `
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
           <div class="w-12 h-12 rounded-xl bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
             <span class="text-[9px] font-bold uppercase text-terra-forest">${monthNames[dateObj.getMonth()]}</span>
             <span class="text-base font-black leading-none text-terra-forest">${d || 1}</span>
             <span class="text-[8px] font-semibold text-terra-muted uppercase">${dayNames[dateObj.getDay()]}</span>
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5 text-[10px] font-bold">
+          <div class="min-w-0 flex-1 space-y-1">
+            <div class="flex items-center justify-between gap-1.5 text-[10px] font-bold">
               <span class="text-terra-forest uppercase">${c.subject || this.facultySubject}</span>
-              <span class="text-terra-muted">•</span>
-              <span class="text-terra-muted">${c.timings || '7:00 PM – 9:00 PM'}</span>
+              <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
+                <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
+                ${badgeLiveText}
+              </span>
+            </div>
+            <div class="flex items-center justify-between gap-1.5 text-[10px] font-semibold text-terra-muted">
+              <span class="truncate max-w-[130px]">${batchObj.name || "Prarambh '26"}</span>
+              <span class="shrink-0 font-medium font-mono">${(c.timings || '7:00 PM – 9:00 PM').replace(/\s*to\s*/i, ' to ')}</span>
             </div>
             <h4 class="text-xs font-bold text-terra-charcoal truncate mt-0.5">${c.topic || 'Medical Lecture'}</h4>
             <div class="text-[10px] text-terra-muted truncate mt-0.5">${c.faculty || this.currentFaculty}</div>
