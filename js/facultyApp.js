@@ -2875,71 +2875,132 @@ export class FacultyDashboardController {
   }
 
   markMobileNotificationsRead() {
+    reminderEmailService.markAllAsRead('faculty');
     if (this.mobileNotificationDrawer) {
       const dots = this.mobileNotificationDrawer.querySelectorAll('.unread-dot');
       dots.forEach(d => d.remove());
       if (this.mobileNotificationBadge) this.mobileNotificationBadge.classList.add('hidden');
-      this.showToast('All notifications marked as read');
     }
+    this.renderFacultyNotifications();
+    this.renderMobileNotifications();
+    this.showToast('All notifications marked as read');
   }
 
   renderMobileNotifications() {
-    if (!this.mobileNotificationFeed) return;
-    this.mobileNotificationFeed.innerHTML = '';
+    const feed = this.mobileNotificationFeed;
+    if (!feed) return;
+    feed.innerHTML = '';
 
-    const allEvents = this.getFacultyEvents();
-    const upcoming = allEvents.filter(e => e.eventType === 'class' && e.isoDate >= this.todayIso);
+    const notifs = reminderEmailService.getFacultyNotifications(this.currentFaculty);
+    const unreadCount = reminderEmailService.getFacultyUnreadCount(this.currentFaculty);
 
-    const notifications = [
-      {
-        title: 'Upcoming Lecture Reminder',
-        text: upcoming[0] ? `${upcoming[0].subject}: ${upcoming[0].topic} scheduled for ${upcoming[0].isoDate}` : 'No upcoming classes today.',
-        time: '10m ago',
-        type: 'schedule',
-        unread: true
-      },
-      {
-        title: 'Attendance Logged',
-        text: '94% attendance logged for previous Biochemistry lecture session.',
-        time: '1h ago',
-        type: 'attendance',
-        unread: false
-      },
-      {
-        title: 'Academic Circular',
-        text: 'Academic calendar 2026-27 updated with Diwali holiday schedule.',
-        time: 'Yesterday',
-        type: 'circular',
-        unread: false
-      }
-    ];
+    if (this.mobileNotificationBadge) {
+      this.mobileNotificationBadge.classList.toggle('hidden', unreadCount === 0);
+    }
 
     const countBadge = document.getElementById('mobileNotificationCountBadge');
-    if (countBadge) countBadge.textContent = `All (${notifications.length})`;
+    if (countBadge) {
+      countBadge.textContent = unreadCount > 0 ? `${unreadCount} New` : `All (${notifs.length})`;
+    }
 
-    notifications.forEach(n => {
-      const item = document.createElement('div');
-      item.className = `p-3 rounded-2xl border flex gap-3 relative ${
-        n.unread ? 'bg-terra-forestLight/40 border-terra-forest/20' : 'bg-terra-card border-terra-border/80 shadow-soft'
-      }`;
-
-      item.innerHTML = `
-        <div class="w-8 h-8 rounded-xl ${n.type === 'attendance' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (n.type === 'circular' ? 'bg-terra-amberBg text-terra-amber border border-terra-amberBorder' : 'bg-terra-forest text-white')} flex items-center justify-center shrink-0 mt-0.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0 pr-2">
-          <div class="flex items-center justify-between gap-1">
-            <span class="text-[10px] font-bold uppercase tracking-wider ${n.type === 'circular' ? 'text-terra-amber' : 'text-terra-forest'}">${n.title}</span>
-            <span class="text-[10px] text-terra-muted">${n.time}</span>
+    if (notifs.length === 0) {
+      feed.innerHTML = `
+        <div class="py-10 px-4 text-center text-terra-muted space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-terra-sand border border-terra-border flex items-center justify-center text-terra-muted">
+            <svg class="w-6 h-6 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
           </div>
-          <p class="text-xs font-bold text-terra-charcoal mt-0.5 leading-snug">${n.title}</p>
-          <p class="text-[11px] text-terra-muted mt-0.5 leading-relaxed">${n.text}</p>
+          <p class="text-xs font-bold text-terra-charcoal">No class reminders yet</p>
+          <p class="text-[11px] text-terra-muted leading-relaxed">
+            Automated class reminder notifications for <strong>${this.currentFaculty}</strong> will appear here prior to scheduled lecture commencement.
+          </p>
         </div>
-        ${n.unread ? '<span class="unread-dot w-2 h-2 rounded-full bg-terra-forest shrink-0 mt-1"></span>' : ''}
       `;
-      this.mobileNotificationFeed.appendChild(item);
+      return;
+    }
+
+    feed.innerHTML = notifs.map(n => {
+      const timeAgo = this.formatTimeAgo(n.timestamp);
+      const isUnread = !n.read;
+
+      if (n.type === 'email_reminder_received') {
+        return `
+          <div class="p-3.5 rounded-2xl border ${isUnread ? 'bg-terra-forestLight/40 border-terra-forest/40 ring-1 ring-terra-forest/20' : 'bg-terra-card border-terra-border/80 shadow-soft'} space-y-2.5 transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold text-terra-forest bg-terra-forestLight px-2 py-0.5 rounded border border-terra-forest/20 flex items-center gap-1">
+                  <svg class="w-3 h-3 text-terra-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                  <span>Class Reminder</span>
+                </span>
+                ${isUnread ? '<span class="unread-dot w-2 h-2 rounded-full bg-terra-forest shrink-0"></span>' : ''}
+              </div>
+              <span class="text-[10px] text-terra-muted font-medium">${timeAgo}</span>
+            </div>
+
+            <div>
+              <p class="text-xs font-bold text-terra-charcoal leading-snug">${n.topic || 'Curricular Lecture Session'}</p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-terra-muted flex-wrap">
+                <span class="font-bold text-terra-forest">⏰ ${n.timings || '7:00 PM'}</span>
+                <span>•</span>
+                <span class="bg-terra-amberBg text-terra-amber font-semibold px-1.5 py-0.2 rounded border border-terra-amberBorder">In ${n.leadDurationText || '30 Mins'}</span>
+                <span>•</span>
+                <span class="bg-terra-forestLight text-terra-forest font-semibold px-1.5 py-0.2 rounded border border-terra-forest/20">${n.subject || 'Biochemistry'}</span>
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-terra-sand/50 border border-terra-border/60 text-[10.5px] text-terra-muted space-y-0.5">
+              <div class="flex items-center justify-between">
+                <span>Delivered To:</span>
+                <span class="font-mono font-semibold text-terra-charcoal truncate max-w-[180px]">${n.recipientEmail}</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-terra-border/60 flex items-center justify-between gap-2">
+              <a href="https://meet.google.com/pwm-med" target="_blank" class="text-xs font-bold text-terra-forest hover:underline flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                <span>Join Room</span>
+              </a>
+              <button type="button" class="btn-preview-mobile-faculty-email px-2.5 py-1 rounded-lg bg-terra-sand hover:bg-terra-sandHover text-terra-charcoal text-xs font-bold flex items-center gap-1 border border-terra-border cursor-pointer transition-colors" data-notif-id="${n.id}">
+                <span>View Email</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Default system alert
+      return `
+        <div class="p-3.5 rounded-2xl border ${isUnread ? 'bg-terra-forestLight/40 border-terra-forest/40' : 'bg-terra-card border-terra-border/80 shadow-soft'} space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold text-terra-forest bg-terra-forestLight px-2 py-0.5 rounded uppercase border border-terra-forest/20">
+              ${n.title || 'System Notification'}
+            </span>
+            <span class="text-[10px] text-terra-muted font-medium">${timeAgo}</span>
+          </div>
+          <p class="text-xs font-bold text-terra-charcoal">${n.title}</p>
+          <p class="text-[11px] text-terra-muted leading-relaxed">${n.body}</p>
+        </div>
+      `;
+    }).join('');
+
+    // Bind "View Email" buttons on mobile
+    feed.querySelectorAll('.btn-preview-mobile-faculty-email').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const notifId = btn.getAttribute('data-notif-id');
+        const notif = notifs.find(n => n.id === notifId);
+        if (notif) {
+          reminderEmailService.markNotificationAsRead(notifId);
+          this.openFacultyEmailPreview({
+            from: notif.senderEmail,
+            to: `${notif.facultyName} <${notif.recipientEmail}>`,
+            subject: `[PW MedEd] Class Reminder: ${notif.topic}`,
+            html: notif.emailHtml
+          });
+          this.renderMobileNotifications();
+          this.renderFacultyNotifications();
+        }
+      });
     });
   }
 }
