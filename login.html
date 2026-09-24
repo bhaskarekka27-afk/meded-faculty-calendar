@@ -667,11 +667,11 @@
         if (customStore[cleanEmail] && (customStore[cleanEmail] === cleanPw || customStore[cleanEmail].toLowerCase() === cleanPw.toLowerCase())) return true;
       } catch (e) {}
 
-      // Verified faculty or admin can log in with standard password length
-      if (currentPortal === 'faculty' && reminderEmailService.findFacultyByEmail(cleanEmail) && cleanPw.length >= 4) {
+      // Verified faculty or admin can log in with any password
+      if (currentPortal === 'faculty' && reminderEmailService.findFacultyByEmail(cleanEmail) && cleanPw.length >= 1) {
         return true;
       }
-      if (currentPortal === 'admin' && (cleanEmail.endsWith('@pwmeded.edu.in') || cleanEmail.endsWith('@pw.live') || cleanEmail === 'bhaskarekka27@gmail.com') && cleanPw.length >= 4) {
+      if (currentPortal === 'admin' && (cleanEmail.endsWith('@pwmeded.edu.in') || cleanEmail.endsWith('@pw.live') || cleanEmail === 'bhaskarekka27@gmail.com') && cleanPw.length >= 1) {
         return true;
       }
       return false;

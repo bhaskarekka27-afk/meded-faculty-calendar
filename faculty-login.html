@@ -556,8 +556,8 @@
         if (customStore[cleanEmail] && (customStore[cleanEmail] === cleanPw || customStore[cleanEmail].toLowerCase() === cleanPw.toLowerCase())) return true;
       } catch (e) {}
 
-      // Verified faculty in directory can log in with standard password length
-      if (reminderEmailService.findFacultyByEmail(cleanEmail) && cleanPw.length >= 4) {
+      // Verified faculty in directory can log in with any password
+      if (reminderEmailService.findFacultyByEmail(cleanEmail) && cleanPw.length >= 1) {
         return true;
       }
       return false;

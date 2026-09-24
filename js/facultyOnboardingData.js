@@ -366,10 +366,82 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     canRescheduleCancel: true,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
+  },
+  {
+    id: 'fac-admin-1',
+    name: 'Bhaskar Ekka',
+    email: 'bhaskarekka27@gmail.com',
+    phone: '98765 43210',
+    dept: 'Medical Sciences',
+    role: 'Lead Academic Faculty',
+    status: 'Verified',
+    canRescheduleCancel: true,
+    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+    lastUpdated: '2026-09-24T12:00:00.000Z'
+  },
+  {
+    id: 'fac-admin-2',
+    name: 'Bhaskar Ekka',
+    email: 'bhaskar.ekka@pw.live',
+    phone: '98765 43210',
+    dept: 'Medical Sciences',
+    role: 'Lead Academic Faculty',
+    status: 'Verified',
+    canRescheduleCancel: true,
+    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+    lastUpdated: '2026-09-24T12:00:00.000Z'
+  },
+  {
+    id: 'fac-admin-3',
+    name: 'Kanchan Gupta',
+    email: 'kanchan.gupta1@pw.live',
+    phone: '98765 43211',
+    dept: 'Medical Sciences',
+    role: 'Faculty Coordinator',
+    status: 'Verified',
+    canRescheduleCancel: true,
+    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+    lastUpdated: '2026-09-24T12:00:00.000Z'
+  },
+  {
+    id: 'fac-admin-4',
+    name: 'Academic Dean Office',
+    email: 'admin.office@pwmeded.edu.in',
+    phone: '98765 43212',
+    dept: 'Academic Operations',
+    role: 'Dean & Academic Director',
+    status: 'Verified',
+    canRescheduleCancel: true,
+    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+    lastUpdated: '2026-09-24T12:00:00.000Z'
+  },
+  {
+    id: 'fac-admin-5',
+    name: 'Academic Office',
+    email: 'admin.office@pw.live',
+    phone: '98765 43213',
+    dept: 'Academic Operations',
+    role: 'Academic Director',
+    status: 'Verified',
+    canRescheduleCancel: true,
+    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
+    lastUpdated: '2026-09-24T12:00:00.000Z'
   }
 ];
 
 export const ONBOARDING_STORAGE_KEY = 'meded_faculty_onboarding';
+
+// Background sync from server
+if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+  fetch('/api/faculty-onboarding')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success && Array.isArray(data.list) && data.list.length > 0) {
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(data.list));
+      }
+    })
+    .catch(() => {});
+}
 
 /**
  * Returns the current faculty onboarding data (from localStorage if available, merged with code defaults).
@@ -404,8 +476,15 @@ export function saveFacultyOnboardingData(list) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(list));
     }
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
+    }
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/faculty-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ list })
+      }).catch(() => {});
     }
   } catch (e) {
     console.error('Error saving faculty onboarding data:', e);

@@ -108,12 +108,46 @@ async function fetchSheet(res, q) {
   return json(res, 404, { error: `Could not find a valid lecture tab for "${sheet}".` });
 }
 
+const ONBOARDING_FILE = path.join(ROOT, 'data_onboarding.json');
+
+function handleFacultyOnboardingApi(req, res) {
+  if (req.method === 'GET') {
+    try {
+      if (fs.existsSync(ONBOARDING_FILE)) {
+        const content = fs.readFileSync(ONBOARDING_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        return json(res, 200, { success: true, list: parsed });
+      }
+    } catch (e) {}
+    return json(res, 200, { success: true, list: null });
+  }
+
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (Array.isArray(data.list)) {
+          fs.writeFileSync(ONBOARDING_FILE, JSON.stringify(data.list, null, 2), 'utf-8');
+          return json(res, 200, { success: true });
+        }
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+      return json(res, 400, { error: 'Invalid data' });
+    });
+    return;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsed.pathname);
 
   if (pathname.startsWith('/api/detect-tabs')) return detectTabs(res, parsed.query);
   if (pathname.startsWith('/api/fetch-sheet')) return fetchSheet(res, parsed.query);
+  if (pathname.startsWith('/api/faculty-onboarding')) return handleFacultyOnboardingApi(req, res);
 
   if (ROUTES[pathname]) pathname = ROUTES[pathname];
 

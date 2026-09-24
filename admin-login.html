@@ -555,7 +555,7 @@
         if (customStore[cleanEmail] && (customStore[cleanEmail] === cleanPw || customStore[cleanEmail].toLowerCase() === cleanPw.toLowerCase())) return true;
       } catch (e) {}
 
-      if ((cleanEmail.endsWith('@pwmeded.edu.in') || cleanEmail.endsWith('@pw.live') || cleanEmail === 'bhaskarekka27@gmail.com') && cleanPw.length >= 4) {
+      if ((cleanEmail.endsWith('@pwmeded.edu.in') || cleanEmail.endsWith('@pw.live') || cleanEmail === 'bhaskarekka27@gmail.com') && cleanPw.length >= 1) {
         return true;
       }
       return false;
