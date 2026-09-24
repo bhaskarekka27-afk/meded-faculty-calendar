@@ -4844,6 +4844,94 @@ class AdminDashboardController {
         </div>
       `;
     }).join('');
+
+    // Update the live master spreadsheet table view on every render
+    this.renderSpreadsheetTableView();
+  }
+
+  /**
+   * Renders the embedded, Excel-style live Master Spreadsheet table view directly
+   * in the Faculty Master Spreadsheet section for instant view and verification.
+   */
+  renderSpreadsheetTableView() {
+    const tbody = document.getElementById('spreadsheet-table-body');
+    const totalBadge = document.getElementById('spreadsheet-total-rows-badge');
+    const footerInfo = document.getElementById('spreadsheet-footer-info');
+    if (!tbody) return;
+
+    if (!this.facultyOnboardingList) {
+      this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList() || [];
+    }
+
+    const list = this.facultyOnboardingList;
+    if (totalBadge) totalBadge.textContent = `${list.length} Rows`;
+
+    const searchQ = (this.spreadsheetTableSearchQuery || '').trim().toLowerCase();
+    const testEmailQ = (this.spreadsheetVerifyEmailQuery || '').trim().toLowerCase();
+
+    const filtered = list.filter((f, idx) => {
+      if (!searchQ) return true;
+      const text = `${idx + 1} ${f.id} ${f.name} ${f.email} ${f.secondaryEmail || ''} ${f.phone || ''} ${f.dept || ''} ${f.role || ''} ${f.status || ''} ${f.cohorts ? f.cohorts.join(' ') : ''}`.toLowerCase();
+      return text.includes(searchQ);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="12" class="py-8 text-center text-[#8b958c]">
+            <span class="material-symbols-outlined text-[24px] block mb-1">search_off</span>
+            No matching spreadsheet rows found for "${searchQ}".
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((f, idx) => {
+      const isMatchedTest = testEmailQ && (
+        (f.email && f.email.toLowerCase() === testEmailQ) ||
+        (f.secondaryEmail && f.secondaryEmail.toLowerCase() === testEmailQ) ||
+        (f.name && f.name.toLowerCase().includes(testEmailQ))
+      );
+      const rowBg = isMatchedTest 
+        ? 'bg-emerald-100 font-medium' 
+        : idx % 2 === 0 ? 'bg-white hover:bg-[#f6faf7]' : 'bg-[#faf9f5] hover:bg-[#f2f7f3]';
+      
+      const statusBadge = f.status === 'Verified'
+        ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Verified</span>`
+        : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca]"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>`;
+      
+      const reschedBadge = f.canRescheduleCancel !== false
+        ? `<span class="text-[11px] font-bold text-[#2d4d37] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">TRUE</span>`
+        : `<span class="text-[11px] font-bold text-[#b91c1c] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">FALSE</span>`;
+
+      const cohortsHtml = (f.cohorts || ["Prarambh '26"]).map(c => 
+        `<span class="inline-block bg-[#f0ede6] text-[#2c332d] text-[10px] font-semibold px-1.5 py-0.5 rounded mr-1 mb-0.5">${c}</span>`
+      ).join('');
+
+      const updatedStr = f.lastUpdated ? new Date(f.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Live Synced';
+
+      return `
+        <tr class="${rowBg} transition-colors border-b border-[#eef4f0]">
+          <td class="py-2 px-3 border-r border-[#eef4f0] text-center font-mono text-[11px] text-[#8b958c] bg-[#f9faf9] select-none">${idx + 1}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] font-bold text-[#3b6347] whitespace-nowrap">${f.id}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-bold text-[#2c332d] whitespace-nowrap">${f.name}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#1c3225] whitespace-nowrap font-semibold">${f.email}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#68736a] whitespace-nowrap">${f.secondaryEmail || '<span class="text-neutral-300">-</span>'}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#576058] whitespace-nowrap">${f.phone || '-'}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] font-semibold text-[#2c332d] whitespace-nowrap">${f.dept || 'Medicine'}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] text-[#576058] text-[11px] whitespace-nowrap">${f.role || `Professor • ${f.dept || 'Medicine'}`}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] text-center whitespace-nowrap">${statusBadge}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] text-center whitespace-nowrap font-mono">${reschedBadge}</td>
+          <td class="py-2 px-3 border-r border-[#eef4f0] text-[11px]">${cohortsHtml}</td>
+          <td class="py-2 px-3 text-[10px] text-[#8b958c] font-mono whitespace-nowrap">${updatedStr}</td>
+        </tr>
+      `;
+    }).join('');
+
+    if (footerInfo) {
+      footerInfo.textContent = `Showing ${filtered.length} of ${list.length} mapped spreadsheet entries in data_faculty_onboarding.csv`;
+    }
   }
 
   initOnboardingHandlers() {
@@ -4896,9 +4984,81 @@ class AdminDashboardController {
       this.showToast('Filtered by: Pending Mapping faculty');
     });
 
-    // Master Spreadsheet Download & Sync Action Buttons
+    // Master Spreadsheet Action Controls & Email Mapping Tester
     const downloadCsvBtn = document.getElementById('btn-download-onboarding-csv');
     const syncGoogleSheetBtn = document.getElementById('btn-sync-google-sheet');
+    const toggleSpreadsheetBtn = document.getElementById('btn-toggle-spreadsheet-view');
+    const toggleSpreadsheetText = document.getElementById('btn-toggle-spreadsheet-text');
+    const spreadsheetWrapper = document.getElementById('spreadsheet-table-wrapper');
+    const tableSearchInput = document.getElementById('spreadsheet-table-search-input');
+    const refreshTableBtn = document.getElementById('btn-refresh-spreadsheet-table');
+    const emailVerifyInput = document.getElementById('spreadsheet-email-verify-input');
+    const emailVerifyResult = document.getElementById('spreadsheet-verify-result');
+
+    // 1. Toggle Table View
+    toggleSpreadsheetBtn?.addEventListener('click', () => {
+      if (!spreadsheetWrapper) return;
+      const isHidden = spreadsheetWrapper.classList.toggle('hidden');
+      if (toggleSpreadsheetText) {
+        toggleSpreadsheetText.textContent = isHidden ? 'View Spreadsheet Table' : 'Hide Spreadsheet Table';
+      }
+    });
+
+    // 2. Search inside spreadsheet grid
+    tableSearchInput?.addEventListener('input', (e) => {
+      this.spreadsheetTableSearchQuery = e.target.value;
+      this.renderSpreadsheetTableView();
+    });
+
+    // 3. Refresh Spreadsheet Table from Server
+    refreshTableBtn?.addEventListener('click', async () => {
+      this.showToast('Refreshing master spreadsheet rows from server...');
+      try {
+        const res = await fetch('/api/faculty-onboarding');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          this.facultyOnboardingList = data;
+          reminderEmailService.saveFacultyOnboardingList(data);
+          this.renderOnboardingList();
+          this.showToast('Master spreadsheet synchronized with server data.');
+        }
+      } catch (e) {
+        this.renderSpreadsheetTableView();
+      }
+    });
+
+    // 4. Live Email Login Verification Tester
+    const updateVerifyResult = (val) => {
+      const q = (val || '').trim().toLowerCase();
+      this.spreadsheetVerifyEmailQuery = q;
+      this.renderSpreadsheetTableView();
+
+      if (!q) {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-white/15 border border-white/20 rounded-lg px-3 py-1.5 text-white/70 shrink-0';
+          emailVerifyResult.innerHTML = '<span class="material-symbols-outlined text-white/60 text-[16px]">info</span><span>Type an email above to test mapped login credentials</span>';
+        }
+        return;
+      }
+
+      const matched = reminderEmailService.findFacultyByEmail(q);
+      if (matched) {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-emerald-950/80 border border-emerald-500/50 rounded-lg px-3 py-1.5 text-emerald-200 shrink-0';
+          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-emerald-400 text-[16px]">check_circle</span><span>${matched.name} • ${matched.dept || 'Faculty'} (${matched.status}) [Authorized Login]</span>`;
+        }
+      } else {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-red-950/80 border border-red-500/50 rounded-lg px-3 py-1.5 text-red-200 shrink-0';
+          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-red-400 text-[16px]">block</span><span>No faculty record found for "${q}" [Login Blocked]</span>`;
+        }
+      }
+    };
+
+    emailVerifyInput?.addEventListener('input', (e) => updateVerifyResult(e.target.value));
+    if (emailVerifyInput && emailVerifyInput.value) {
+      updateVerifyResult(emailVerifyInput.value);
+    }
 
     downloadCsvBtn?.addEventListener('click', () => {
       this.showToast('Downloading Faculty Onboarding Master Spreadsheet (.csv)...');
