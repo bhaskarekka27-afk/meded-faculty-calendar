@@ -108,13 +108,154 @@ async function fetchSheet(res, q) {
   return json(res, 404, { error: `Could not find a valid lecture tab for "${sheet}".` });
 }
 
-const ONBOARDING_FILE = path.join(ROOT, 'data_onboarding.json');
+const ONBOARDING_JSON_FILE = path.join(ROOT, 'data_faculty_onboarding.json');
+const ONBOARDING_CSV_FILE = path.join(ROOT, 'data_faculty_onboarding.csv');
 
-function handleFacultyOnboardingApi(req, res) {
+function facultyListToCSV(list) {
+  const headers = ['Faculty ID', 'Name', 'Primary Email', 'Secondary Email', 'Phone', 'Department', 'Designation Role', 'Status', 'Can Reschedule Cancel', 'Assigned Cohorts', 'Last Updated'];
+  const escapeCsv = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val);
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const rows = [headers.join(',')];
+  for (const f of list) {
+    const row = [
+      escapeCsv(f.id || ''),
+      escapeCsv(f.name || ''),
+      escapeCsv(f.email || ''),
+      escapeCsv(f.secondaryEmail || ''),
+      escapeCsv(f.phone || ''),
+      escapeCsv(f.dept || ''),
+      escapeCsv(f.role || ''),
+      escapeCsv(f.status || 'Verified'),
+      escapeCsv(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
+      escapeCsv(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
+      escapeCsv(f.lastUpdated || new Date().toISOString())
+    ];
+    rows.push(row.join(','));
+  }
+  return rows.join('\r\n');
+}
+
+function parseFacultyCSV(csvText) {
+  if (!csvText) return [];
+  const lines = [];
+  let row = [];
+  let inQuotes = false;
+  let currentField = '';
+  
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentField);
+      currentField = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      row.push(currentField);
+      lines.push(row);
+      row = [];
+      currentField = '';
+    } else {
+      currentField += char;
+    }
+  }
+  if (currentField || row.length > 0) {
+    row.push(currentField);
+    lines.push(row);
+  }
+
+  if (lines.length <= 1) return [];
+  const list = [];
+  for (let i = 1; i < lines.length; i++) {
+    const r = lines[i];
+    if (!r || r.length < 2 || !r[1]) continue;
+    const cohortsRaw = r[9] || '';
+    const cohorts = cohortsRaw ? cohortsRaw.split(';').map(c => c.trim()).filter(Boolean) : ["Prarambh '26"];
+    list.push({
+      id: r[0] || `fac-${i}`,
+      name: r[1],
+      email: r[2] || '',
+      secondaryEmail: r[3] || '',
+      phone: r[4] || '98765 43210',
+      dept: r[5] || 'Medical Sciences',
+      role: r[6] || `Professor • ${r[5] || 'Medical Sciences'}`,
+      status: r[7] || 'Verified',
+      canRescheduleCancel: String(r[8]).toUpperCase() !== 'FALSE',
+      cohorts,
+      lastUpdated: r[10] || new Date().toISOString()
+    });
+  }
+  return list;
+}
+
+function handleFacultyOnboardingApi(req, res, pathname) {
+  if (pathname === '/api/faculty-onboarding-csv') {
+    let csvContent = '';
+    if (fs.existsSync(ONBOARDING_CSV_FILE)) {
+      csvContent = fs.readFileSync(ONBOARDING_CSV_FILE, 'utf-8');
+    } else if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+      try {
+        const list = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8'));
+        csvContent = facultyListToCSV(list);
+        fs.writeFileSync(ONBOARDING_CSV_FILE, csvContent, 'utf-8');
+      } catch (_) {}
+    }
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="PW_MedEd_Faculty_Onboarding_Directory.csv"');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.end(csvContent);
+  }
+
+  if (pathname === '/api/faculty-onboarding/sync-sheet' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const sheetUrl = data.sheetUrl;
+        if (!sheetUrl) return json(res, 400, { error: 'Missing sheetUrl' });
+
+        const match = sheetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!match) return json(res, 400, { error: 'Invalid Google Spreadsheet URL' });
+        const sheetId = match[1];
+        const gidMatch = sheetUrl.match(/gid=([0-9]+)/);
+        const gid = gidMatch ? gidMatch[1] : '0';
+
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+        const response = await fetch(csvUrl);
+        const csvText = await response.text();
+        const parsedList = parseFacultyCSV(csvText);
+
+        if (parsedList.length > 0) {
+          fs.writeFileSync(ONBOARDING_JSON_FILE, JSON.stringify(parsedList, null, 2), 'utf-8');
+          fs.writeFileSync(ONBOARDING_CSV_FILE, facultyListToCSV(parsedList), 'utf-8');
+          return json(res, 200, { success: true, count: parsedList.length, list: parsedList });
+        } else {
+          return json(res, 400, { error: 'Could not extract valid faculty records from sheet.' });
+        }
+      } catch (err) {
+        return json(res, 500, { error: err.message });
+      }
+    });
+    return;
+  }
+
   if (req.method === 'GET') {
     try {
-      if (fs.existsSync(ONBOARDING_FILE)) {
-        const content = fs.readFileSync(ONBOARDING_FILE, 'utf-8');
+      if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+        const content = fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8');
         const parsed = JSON.parse(content);
         return json(res, 200, { success: true, list: parsed });
       }
@@ -129,8 +270,10 @@ function handleFacultyOnboardingApi(req, res) {
       try {
         const data = JSON.parse(body);
         if (Array.isArray(data.list)) {
-          fs.writeFileSync(ONBOARDING_FILE, JSON.stringify(data.list, null, 2), 'utf-8');
-          return json(res, 200, { success: true });
+          fs.writeFileSync(ONBOARDING_JSON_FILE, JSON.stringify(data.list, null, 2), 'utf-8');
+          const csvText = facultyListToCSV(data.list);
+          fs.writeFileSync(ONBOARDING_CSV_FILE, csvText, 'utf-8');
+          return json(res, 200, { success: true, count: data.list.length });
         }
       } catch (err) {
         return json(res, 400, { error: err.message });
@@ -147,7 +290,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname.startsWith('/api/detect-tabs')) return detectTabs(res, parsed.query);
   if (pathname.startsWith('/api/fetch-sheet')) return fetchSheet(res, parsed.query);
-  if (pathname.startsWith('/api/faculty-onboarding')) return handleFacultyOnboardingApi(req, res);
+  if (pathname.startsWith('/api/faculty-onboarding')) return handleFacultyOnboardingApi(req, res, pathname);
 
   if (ROUTES[pathname]) pathname = ROUTES[pathname];
 

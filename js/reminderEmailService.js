@@ -280,6 +280,16 @@ export class ReminderEmailService {
     }) || null;
   }
 
+  findFacultyByName(name) {
+    if (!name) return null;
+    const cleanName = name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
+    const list = this.getFacultyOnboardingList();
+    return list.find(f => {
+      const fClean = (f.name || '').replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
+      return fClean === cleanName || f.name.toLowerCase() === name.toLowerCase() || (cleanName.length > 2 && (fClean.includes(cleanName) || cleanName.includes(fClean)));
+    }) || null;
+  }
+
   resolveFacultyDetails(facultyName) {
     if (!facultyName) return null;
     const cleanName = facultyName.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();

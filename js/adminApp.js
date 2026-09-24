@@ -4896,6 +4896,54 @@ class AdminDashboardController {
       this.showToast('Filtered by: Pending Mapping faculty');
     });
 
+    // Master Spreadsheet Download & Sync Action Buttons
+    const downloadCsvBtn = document.getElementById('btn-download-onboarding-csv');
+    const syncGoogleSheetBtn = document.getElementById('btn-sync-google-sheet');
+
+    downloadCsvBtn?.addEventListener('click', () => {
+      this.showToast('Downloading Faculty Onboarding Master Spreadsheet (.csv)...');
+      try {
+        const link = document.createElement('a');
+        link.href = '/api/faculty-onboarding-csv';
+        link.download = 'PW_MedEd_Faculty_Onboarding_Directory.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        window.open('/api/faculty-onboarding-csv', '_blank');
+      }
+    });
+
+    syncGoogleSheetBtn?.addEventListener('click', async () => {
+      const defaultUrl = 'https://docs.google.com/spreadsheets/d/1X5X.../edit';
+      const inputUrl = prompt(
+        'Enter public/shared Google Spreadsheet URL containing Faculty Onboarding Mappings:\n(Format: Faculty ID, Name, Primary Email, Secondary Email, Phone, Department, Designation Role, Status, Can Reschedule Cancel, Assigned Cohorts, Last Updated)',
+        ''
+      );
+      if (!inputUrl || !inputUrl.trim()) return;
+
+      this.showToast('Connecting and synchronizing with Google Sheet...');
+      try {
+        const res = await fetch('/api/faculty-onboarding/sync-sheet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sheetUrl: inputUrl.trim() })
+        });
+        const jsonRes = await res.json();
+        if (jsonRes.success && Array.isArray(jsonRes.list)) {
+          this.facultyOnboardingList = jsonRes.list;
+          reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          this.onboardingPage = 1;
+          this.renderOnboardingList();
+          this.showToast(`Successfully synced ${jsonRes.count} faculty records from Google Spreadsheet!`);
+        } else {
+          alert(`Google Sheet Sync Error: ${jsonRes.error || 'Failed to parse spreadsheet data'}`);
+        }
+      } catch (e) {
+        alert(`Failed to connect to spreadsheet server: ${e.message}`);
+      }
+    });
+
     // 1. Search filter
     searchInput?.addEventListener('input', (e) => {
       this.onboardingSearchQuery = e.target.value;
