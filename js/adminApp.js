@@ -87,14 +87,14 @@ class AdminDashboardController {
     this.batchGraphDayMonth = 'all'; // 'all' | '2026-09' | '2026-10' | '2026-11'
     this.batchGraphSelectedKey = null; // Key of inspected item
 
-    // Faculty Onboarding State - loaded dynamically from Reminder Email Service & synced from batches
+    // Faculty Onboarding State - loaded dynamically from persistent spreadsheet & storage
     this.onboardingPage = 1;
     this.onboardingPageSize = 5;
     this.editingFacultyId = null;
     this.onboardingSearchQuery = '';
     this.onboardingDeptFilter = 'All';
     this.onboardingStatusFilter = 'All';
-    this.facultyOnboardingList = reminderEmailService.syncFromBatches(this.batchManager.getBatches());
+    this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList();
 
     this.init();
   }
@@ -134,6 +134,22 @@ class AdminDashboardController {
         this.renderOnboardingList();
       }
     });
+
+    // Synchronize with server spreadsheet on initial load
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/faculty-onboarding')
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.success && Array.isArray(res.list)) {
+            this.facultyOnboardingList = res.list;
+            reminderEmailService.saveFacultyOnboardingList(res.list);
+            if (this.mainTab === 'onboarding') {
+              this.renderOnboardingList();
+            }
+          }
+        })
+        .catch(() => {});
+    }
   }
 
   setupHashListener() {

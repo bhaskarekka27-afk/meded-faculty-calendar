@@ -441,18 +441,18 @@ export function getFacultyOnboardingData() {
       return JSON.parse(JSON.stringify(DEFAULT_FACULTY_ONBOARDING));
     }
     const data = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!data) {
+    if (data === null) {
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(DEFAULT_FACULTY_ONBOARDING));
       return JSON.parse(JSON.stringify(DEFAULT_FACULTY_ONBOARDING));
     }
     const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return JSON.parse(JSON.stringify(DEFAULT_FACULTY_ONBOARDING));
+    if (!Array.isArray(parsed)) {
+      return [];
     }
     return parsed;
   } catch (e) {
     console.warn('Error reading faculty onboarding data:', e);
-    return JSON.parse(JSON.stringify(DEFAULT_FACULTY_ONBOARDING));
+    return [];
   }
 }
 

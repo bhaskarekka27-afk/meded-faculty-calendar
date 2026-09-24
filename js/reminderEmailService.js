@@ -49,7 +49,7 @@ export class ReminderEmailService {
     if (!localStorage.getItem(this.SETTINGS_KEY)) {
       localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(this.defaultSettings));
     }
-    if (!localStorage.getItem(this.ONBOARDING_KEY)) {
+    if (localStorage.getItem(this.ONBOARDING_KEY) === null) {
       localStorage.setItem(this.ONBOARDING_KEY, JSON.stringify(this.defaultFacultyList));
     } else {
       try {
@@ -63,18 +63,12 @@ export class ReminderEmailService {
               updated = true;
             }
           }
-          for (const defFac of this.defaultFacultyList) {
-            if (!storedList.some(f => f.name.toLowerCase() === defFac.name.toLowerCase())) {
-              storedList.push(defFac);
-              updated = true;
-            }
-          }
           if (updated) {
             localStorage.setItem(this.ONBOARDING_KEY, JSON.stringify(storedList));
           }
         }
       } catch (e) {
-        console.warn('Failed to merge onboarding faculty:', e);
+        console.warn('Failed to parse onboarding faculty:', e);
       }
     }
     if (!localStorage.getItem(this.NOTIFICATIONS_KEY)) {
