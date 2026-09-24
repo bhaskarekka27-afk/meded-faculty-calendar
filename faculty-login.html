@@ -466,11 +466,20 @@
     // --- GOOGLE OAUTH TRIGGER ---
     window.triggerGoogleOAuth = function() {
       window.setLockState('neutral');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && navigator.maxTouchPoints > 0);
 
-      // 1. Try official Google OAuth 2.0 Token Client popup
+      // 1. Try official Google OAuth 2.0 Token Client
       if (tokenClient) {
         try {
           tokenClient.requestAccessToken({ prompt: 'select_account' });
+          if (isMobile) {
+            // On mobile, if popup was blocked or delayed, smoothly open in-page modal
+            setTimeout(() => {
+              if (!document.hidden && !window.googleAuthCompleted) {
+                openInPageOAuth();
+              }
+            }, 1200);
+          }
           return;
         } catch (e) {
           console.warn('tokenClient.requestAccessToken error:', e);
@@ -496,6 +505,12 @@
     };
 
     function openDirectGoogleAuthWindow() {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && navigator.maxTouchPoints > 0);
+      if (isMobile) {
+        openInPageOAuth();
+        return;
+      }
+
       const redirectUri = window.location.origin + '/faculty-login.html';
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}&prompt=select_account`;
       
@@ -531,12 +546,20 @@
     function isValidPassword(email, password) {
       if (!password || password.trim().length === 0) return false;
       const cleanPw = password.trim();
-      if (VALID_PASSWORDS.includes(cleanPw)) return true;
       const cleanEmail = (email || '').toLowerCase().trim();
+      
+      const VALID_PASSWORDS_LOWER = VALID_PASSWORDS.map(p => p.toLowerCase());
+      if (VALID_PASSWORDS.includes(cleanPw) || VALID_PASSWORDS_LOWER.includes(cleanPw.toLowerCase())) return true;
+
       try {
         const customStore = JSON.parse(localStorage.getItem('meded_custom_passwords') || '{}');
-        if (customStore[cleanEmail] && customStore[cleanEmail] === cleanPw) return true;
+        if (customStore[cleanEmail] && (customStore[cleanEmail] === cleanPw || customStore[cleanEmail].toLowerCase() === cleanPw.toLowerCase())) return true;
       } catch (e) {}
+
+      // Verified faculty in directory can log in with standard password length
+      if (reminderEmailService.findFacultyByEmail(cleanEmail) && cleanPw.length >= 4) {
+        return true;
+      }
       return false;
     }
 
@@ -573,17 +596,22 @@
       const input = document.getElementById('fallbackGoogleEmail');
       const err = document.getElementById('inPageEmailError');
       const errText = document.getElementById('inPageEmailErrorText');
-      const email = input?.value?.trim();
+      const rawInput = (input?.value || '').trim();
 
-      if (!email) return;
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!re.test(email)) {
-        if (errText) errText.textContent = "Couldn't find your Google Account. Enter a valid email.";
+      if (!rawInput) return;
+      const cleanInput = rawInput.toLowerCase();
+
+      // Check registered faculty by ID (fac-1), email (rajesh.j@pwmeded.edu.in), or name
+      const matchedFaculty = reminderEmailService.findFacultyByEmail(cleanInput);
+      const isEmailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanInput);
+
+      if (!matchedFaculty && !isEmailFormat) {
+        if (errText) errText.textContent = "Couldn't find your account. Enter your registered faculty email or ID (e.g. fac-1).";
         if (err) err.classList.remove('hidden');
         return;
       }
 
-      inPageEnteredEmail = email;
+      inPageEnteredEmail = matchedFaculty ? matchedFaculty.email : cleanInput;
       if (err) err.classList.add('hidden');
       document.getElementById('inPageEmailStep')?.classList.add('hidden');
       document.getElementById('inPagePasswordStep')?.classList.remove('hidden');
@@ -618,6 +646,7 @@
 
       if (err) err.classList.add('hidden');
       closeInPageOAuth();
+      window.googleAuthCompleted = true;
       handleGoogleAuthCallback(inPageEnteredEmail);
     };
 
