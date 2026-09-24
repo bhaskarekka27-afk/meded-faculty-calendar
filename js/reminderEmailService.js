@@ -718,14 +718,15 @@ export class ReminderEmailService {
     const cleanEmail = (facultyEmail || '').trim().toLowerCase();
 
     return all.filter(n => {
-      if (n.type === 'system') return true;
       if (n.role !== 'faculty') return false;
+      if (n.type === 'system') return false;
+      if (n.title && n.title.toLowerCase().includes('google sheets')) return false;
       if (cleanEmail && n.recipientEmail && n.recipientEmail.toLowerCase() === cleanEmail) return true;
       if (cleanName && n.facultyName) {
         const notifClean = n.facultyName.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
         return notifClean.includes(cleanName) || cleanName.includes(notifClean);
       }
-      return true;
+      return !cleanName;
     });
   }
 
