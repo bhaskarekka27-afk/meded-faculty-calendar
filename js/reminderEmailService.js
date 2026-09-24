@@ -10,6 +10,16 @@
  * 6. Automated interval checker for upcoming scheduled classes
  */
 
+import { 
+  DEFAULT_FACULTY_ONBOARDING, 
+  getFacultyOnboardingData, 
+  saveFacultyOnboardingData, 
+  upsertFacultyMember, 
+  deleteFacultyMember, 
+  syncFacultyFromBatches, 
+  exportFacultyOnboardingAsCode 
+} from './facultyOnboardingData.js';
+
 export class ReminderEmailService {
   constructor() {
     this.SETTINGS_KEY = 'meded_email_settings';
@@ -29,39 +39,7 @@ export class ReminderEmailService {
       lastConfiguredAt: new Date().toISOString()
     };
 
-    this.defaultFacultyList = [
-      { id: 'fac-1', name: 'Dr. Rajesh Jambhulkar', email: 'rajesh.j@pwmeded.edu.in', phone: '98234 56710', dept: 'Biochemistry', role: 'HOD & Professor • Biochemistry', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"] },
-      { id: 'fac-2', name: 'Dr. Pradeep Pawar', email: 'pradeep.p@pwmeded.edu.in', phone: '98450 12389', dept: 'Anatomy', role: 'Professor • Anatomy', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26", "INI-CET '26", "FMGE '26"] },
-      { id: 'fac-3', name: 'Dr. Vivek Nalgirkar', email: 'vivek.physio@pwmeded.edu.in', phone: '99881 23411', dept: 'Physiology', role: 'Professor • Physiology', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26", "INI-CET '26", "FMGE '26"] },
-      { id: 'fac-4', name: 'Dr. Sanchit Sir', email: 'sanchit.path@pwmeded.edu.in', phone: '98721 54320', dept: 'Pathology', role: 'Assoc. Professor • Pathology', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-5', name: 'Dr. Ashwani Sir', email: 'ashwani.psm@pwmeded.edu.in', phone: '98112 34509', dept: 'Community Med', role: 'Assoc. Professor • Community Med', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-6', name: "Dr. Sudha Ma'am", email: 'sudha.optha@pwmeded.edu.in', phone: '97654 32100', dept: 'Ophthalmology', role: 'Assistant Professor • Ophthalmology', status: 'Pending', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-7', name: 'Dr. Gobind Rai Garg', email: 'gobind.garg@pwmeded.edu.in', phone: '98100 45678', dept: 'Pharmacology', role: 'Professor • Pharmacology', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26", "Sushruta '26"] },
-      { id: 'fac-8', name: 'Dr. Preeti Sharma', email: 'preeti.micro@pwmeded.edu.in', phone: '98711 22334', dept: 'Microbiology', role: 'Professor • Microbiology', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26"] },
-      { id: 'fac-9', name: 'Dr. Apurv Mehra', email: 'apurv.ortho@pwmeded.edu.in', phone: '98188 99001', dept: 'General Surgery', role: 'Professor • Ortho & Surgery', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-10', name: 'Dr. Zainab Vora', email: 'zainab.med@pwmeded.edu.in', phone: '98200 11223', dept: 'General Medicine', role: 'Consultant • Radiology & Medicine', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26", "Sushruta '26"] },
-      { id: 'fac-11', name: 'Dr. Nikita Nanwani', email: 'nikita.fmt@pwmeded.edu.in', phone: '98333 44556', dept: 'Forensic Med', role: 'Assoc. Professor • FMT', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-12', name: 'Dr. Neha Taneja', email: 'neha.psm@pwmeded.edu.in', phone: '98122 33445', dept: 'Community Med', role: 'Assoc. Professor • PSM', status: 'Verified', canRescheduleCancel: true, cohorts: ["Prarambh '26"] },
-      { id: 'fac-13', name: 'Dr. Shrikant', email: 'shrikant.peds@pwmeded.edu.in', phone: '98765 11223', dept: 'Pediatrics', role: 'Assistant Professor • Pediatrics', status: 'Verified', canRescheduleCancel: true, cohorts: ["Sushruta '26"] },
-      { id: 'fac-14', name: 'Dr. Rajiv Ranjan', email: 'rajiv.ent@pwmeded.edu.in', phone: '98990 01122', dept: 'ENT', role: 'Assistant Professor • ENT', status: 'Pending', canRescheduleCancel: true, cohorts: ["Prarambh '26"] },
-      // YouTube Series Faculty
-      { id: 'fac-15', name: 'Dr. Ranjith AR', email: 'ranjith.ar@pwmeded.edu.in', phone: '98401 22334', dept: 'Pathology', role: 'Senior Consultant • Pathology', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-16', name: 'Dr. Manjunath A', email: 'manjunath.a@pwmeded.edu.in', phone: '98452 33445', dept: 'Forensic Medicine', role: 'Assoc. Professor • Forensic Medicine', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-17', name: 'Dr. Vinish Srivastava', email: 'vinish.s@pwmeded.edu.in', phone: '98110 44556', dept: 'Anaesthesia', role: 'Professor • Anaesthesia', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-18', name: 'Dr. Ashwani Ranjan', email: 'ashwani.r@pwmeded.edu.in', phone: '98112 55667', dept: 'Community Medicine', role: 'Professor • Community Medicine (PSM)', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-19', name: 'Dr. Sudha Seetharam', email: 'sudha.s@pwmeded.edu.in', phone: '97654 66778', dept: 'Ophthalmology', role: 'Professor • Ophthalmology', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-20', name: 'Dr. Sanchit Bajpai', email: 'sanchit.b@pwmeded.edu.in', phone: '98721 77889', dept: 'ENT', role: 'Assoc. Professor • ENT', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-21', name: 'Dr. Santhosh Patil', email: 'santhosh.p@pwmeded.edu.in', phone: '98440 88990', dept: 'General Medicine', role: 'Lead Consultant • Medicine', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-22', name: 'Dr. Era Dutta', email: 'era.dutta@pwmeded.edu.in', phone: '98201 99001', dept: 'Psychiatry', role: 'Consultant Psychiatrist', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-23', name: 'Dr. Siraj Ahmad', email: 'siraj.a@pwmeded.edu.in', phone: '98102 11223', dept: 'Pharmacology', role: 'Professor • Pharmacology', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-24', name: 'Dr. Prassan Vij', email: 'prassan.vij@pwmeded.edu.in', phone: '98103 22334', dept: 'Obstetrics & Gynaecology', role: 'Lead Consultant • OBG', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-25', name: 'Dr. Alekhya', email: 'alekhya.ortho@pwmeded.edu.in', phone: '98480 33445', dept: 'Orthopedics', role: 'Consultant • Orthopedics', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-26', name: 'Dr. Sandeep Seeramreddi', email: 'sandeep.s@pwmeded.edu.in', phone: '98490 44556', dept: 'General Surgery', role: 'Senior Consultant • Surgery', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-27', name: 'Dr. Natisha Arora', email: 'natisha.a@pwmeded.edu.in', phone: '98114 55667', dept: 'Radiology', role: 'Consultant • Radio-diagnosis', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-28', name: 'Dr. Jazeer Abdul Khader', email: 'jazeer.k@pwmeded.edu.in', phone: '98470 66778', dept: 'Dermatology', role: 'Consultant • Dermatology & Venereology', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-29', name: 'Dr. Anusha Rathi', email: 'anusha.r@pwmeded.edu.in', phone: '98715 77889', dept: 'Microbiology', role: 'Assistant Professor • Microbiology', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] },
-      { id: 'fac-30', name: 'Dr. Divya Madan', email: 'divya.m@pwmeded.edu.in', phone: '98180 88990', dept: 'Pediatrics', role: 'Senior Consultant • Pediatrics', status: 'Verified', canRescheduleCancel: true, cohorts: ["INI-CET '26", "FMGE '26"] }
-    ];
+    this.defaultFacultyList = DEFAULT_FACULTY_ONBOARDING;
 
     this.initStorage();
   }
@@ -175,24 +153,36 @@ export class ReminderEmailService {
 
   // --- 2. Faculty Onboarding Directory ---
   getFacultyOnboardingList() {
-    try {
-      if (typeof localStorage === 'undefined') return this.defaultFacultyList;
-      const data = localStorage.getItem(this.ONBOARDING_KEY);
-      return data ? JSON.parse(data) : this.defaultFacultyList;
-    } catch (e) {
-      return this.defaultFacultyList;
-    }
+    return getFacultyOnboardingData();
   }
 
   saveFacultyOnboardingList(list) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(this.ONBOARDING_KEY, JSON.stringify(list));
-      }
-      this.broadcastEvent('meded:faculty_onboarding_updated', list);
-    } catch (e) {
-      console.error('Error saving onboarding list:', e);
+    saveFacultyOnboardingData(list);
+    this.broadcastEvent('meded:faculty_onboarding_updated', list);
+  }
+
+  upsertFaculty(facultyData) {
+    const result = upsertFacultyMember(facultyData);
+    this.broadcastEvent('meded:faculty_onboarding_updated', this.getFacultyOnboardingList());
+    return result;
+  }
+
+  deleteFaculty(idOrEmail) {
+    const result = deleteFacultyMember(idOrEmail);
+    if (result) {
+      this.broadcastEvent('meded:faculty_onboarding_updated', this.getFacultyOnboardingList());
     }
+    return result;
+  }
+
+  syncFromBatches(batches) {
+    const result = syncFacultyFromBatches(batches);
+    this.broadcastEvent('meded:faculty_onboarding_updated', result);
+    return result;
+  }
+
+  exportCode(list) {
+    return exportFacultyOnboardingAsCode(list || this.getFacultyOnboardingList());
   }
 
   getFacultyReschedulePermission(facultyNameOrId) {

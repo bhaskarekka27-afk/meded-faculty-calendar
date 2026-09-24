@@ -87,14 +87,14 @@ class AdminDashboardController {
     this.batchGraphDayMonth = 'all'; // 'all' | '2026-09' | '2026-10' | '2026-11'
     this.batchGraphSelectedKey = null; // Key of inspected item
 
-    // Faculty Onboarding State - loaded dynamically from Reminder Email Service
+    // Faculty Onboarding State - loaded dynamically from Reminder Email Service & synced from batches
     this.onboardingPage = 1;
     this.onboardingPageSize = 5;
     this.editingFacultyId = null;
     this.onboardingSearchQuery = '';
     this.onboardingDeptFilter = 'All';
     this.onboardingStatusFilter = 'All';
-    this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList();
+    this.facultyOnboardingList = reminderEmailService.syncFromBatches(this.batchManager.getBatches());
 
     this.init();
   }
@@ -112,6 +112,7 @@ class AdminDashboardController {
     this.setupFacultyHighlightsCard();
     this.setupFacultyHighlightsModal();
     this.initOnboardingHandlers();
+    this.setupOnboardingSyncListener();
     this.renderOnboardingList();
     this.renderAdminNotifications();
     this.startAutomatedReminderEngine();
@@ -120,6 +121,19 @@ class AdminDashboardController {
     this.renderAll();
     // Retry any sheet write-backs that failed in an earlier session.
     setTimeout(() => this.flushSheetWriteQueue(), 1500);
+  }
+
+  setupOnboardingSyncListener() {
+    window.addEventListener('meded:faculty_onboarding_updated', (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        this.facultyOnboardingList = e.detail;
+      } else {
+        this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList();
+      }
+      if (this.mainTab === 'onboarding') {
+        this.renderOnboardingList();
+      }
+    });
   }
 
   setupHashListener() {
