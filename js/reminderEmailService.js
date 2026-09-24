@@ -185,15 +185,37 @@ export class ReminderEmailService {
     return exportFacultyOnboardingAsCode(list || this.getFacultyOnboardingList());
   }
 
-  getFacultyReschedulePermission(facultyNameOrId) {
-    if (!facultyNameOrId) return true;
+  getFacultyReschedulePermission(facultyIdentifier) {
+    if (!facultyIdentifier) return true;
     const list = this.getFacultyOnboardingList();
-    const clean = facultyNameOrId.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
-    
+    const clean = String(facultyIdentifier).trim().toLowerCase();
+    const nameClean = clean.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
+
+    // Check in-session user directly if matches
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('meded_active_user');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          if (u) {
+            const uEmail = (u.email || '').toLowerCase().trim();
+            const uName = (u.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').toLowerCase().trim();
+            if (uEmail === clean || (nameClean.length > 2 && (uName === nameClean || uName.includes(nameClean) || nameClean.includes(uName)))) {
+              if (u.canRescheduleCancel === false) return false;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     const matched = list.find(f => {
-      if (f.id && f.id === facultyNameOrId) return true;
-      const fClean = (f.name || '').replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
-      return fClean === clean || (f.name && f.name.toLowerCase() === facultyNameOrId.toLowerCase()) || fClean.includes(clean) || clean.includes(fClean);
+      if (f.id && f.id.toLowerCase() === clean) return true;
+      if (f.email && f.email.toLowerCase().trim() === clean) return true;
+      const fNameClean = (f.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim().toLowerCase();
+      if (fNameClean === nameClean) return true;
+      if (f.name && f.name.toLowerCase().trim() === clean) return true;
+      if (nameClean.length > 2 && (fNameClean.includes(nameClean) || nameClean.includes(fNameClean))) return true;
+      return false;
     });
 
     if (matched) {
@@ -202,19 +224,41 @@ export class ReminderEmailService {
     return true;
   }
 
-  setFacultyReschedulePermission(facultyIdOrName, enabled) {
+  setFacultyReschedulePermission(facultyIdOrNameOrEmail, enabled) {
     const list = this.getFacultyOnboardingList();
-    const clean = (facultyIdOrName || '').replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
+    const raw = String(facultyIdOrNameOrEmail || '').trim();
+    const clean = raw.toLowerCase();
+    const nameClean = clean.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
     
     const matched = list.find(f => {
-      if (f.id && f.id === facultyIdOrName) return true;
-      const fClean = (f.name || '').replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
-      return fClean === clean || (f.name && f.name.toLowerCase() === facultyIdOrName.toLowerCase());
+      if (f.id && (f.id === raw || f.id.toLowerCase() === clean)) return true;
+      if (f.email && f.email.toLowerCase().trim() === clean) return true;
+      const fClean = (f.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim().toLowerCase();
+      return fClean === nameClean || (f.name && f.name.toLowerCase() === clean);
     });
 
     if (matched) {
       matched.canRescheduleCancel = Boolean(enabled);
       this.saveFacultyOnboardingList(list);
+
+      // Also update in-session user if matched
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const storedUser = localStorage.getItem('meded_active_user');
+          if (storedUser) {
+            const u = JSON.parse(storedUser);
+            if (u) {
+              const uEmail = (u.email || '').toLowerCase().trim();
+              const uName = (u.name || '').replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').toLowerCase().trim();
+              if (uEmail === (matched.email || '').toLowerCase().trim() || (matched.id && u.id === matched.id) || (nameClean.length > 2 && (uName === nameClean || uName.includes(nameClean) || nameClean.includes(uName)))) {
+                u.canRescheduleCancel = Boolean(enabled);
+                localStorage.setItem('meded_active_user', JSON.stringify(u));
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
       return { success: true, faculty: matched };
     }
     return { success: false, error: 'Faculty not found' };

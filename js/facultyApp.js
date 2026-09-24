@@ -347,9 +347,9 @@ export class FacultyDashboardController {
       this.updateFacultyProfileUI();
     } else {
       // If current faculty is 'All Faculty' or has 0 classes in this new batch, auto-select first available faculty
-      const facultyInNewBatch = batchEvents.filter(e => e.eventType === 'class' && e.faculty && e.faculty.toLowerCase().includes(this.currentFaculty.toLowerCase()));
-      if (this.currentFaculty === 'All Faculty' || facultyInNewBatch.length === 0) {
-        const firstFac = batchEvents.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off'));
+      const facultyInNewBatch = batchClasses.filter(e => e.eventType === 'class' && e.faculty && this.currentFaculty && this.currentFaculty !== 'All Faculty' && e.faculty.toLowerCase().includes(this.currentFaculty.toLowerCase()));
+      if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || facultyInNewBatch.length === 0) {
+        const firstFac = batchClasses.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off'));
         if (firstFac && firstFac.faculty) {
           this.currentFaculty = firstFac.faculty.trim();
           this.facultySubject = firstFac.subject || 'Faculty';
@@ -500,10 +500,10 @@ export class FacultyDashboardController {
 
   getFacultyEvents() {
     const allBatchEvents = this.batchManager.getAllEvents(this.activeBatchId);
-    if (this.activeBatchId === 'all' && (this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all')) {
+    if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all') {
       return allBatchEvents;
     }
-    const facultyLower = (this.currentFaculty || '').toLowerCase();
+    const facultyLower = (this.currentFaculty || '').toLowerCase().trim();
 
     return allBatchEvents.filter(ev => {
       // Keep cool_off / holiday markers for calendar structure
@@ -511,6 +511,37 @@ export class FacultyDashboardController {
       // Strictly match current faculty
       return ev.eventType === 'class' && ev.faculty && ev.faculty.toLowerCase().includes(facultyLower);
     });
+  }
+
+  canFacultyRescheduleCancel(ev) {
+    const facultyName = ev?.faculty || (this.currentFaculty !== 'All Faculty' ? this.currentFaculty : null);
+    
+    // 1. If currently logged in as a specific user, check active user session first
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const storedUser = localStorage.getItem('meded_active_user');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          if (u) {
+            if (u.canRescheduleCancel === false) return false;
+            if (u.email && !reminderEmailService.getFacultyReschedulePermission(u.email)) return false;
+            if (u.name && !reminderEmailService.getFacultyReschedulePermission(u.name)) return false;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check current active faculty selection in UI
+    if (this.currentFaculty && this.currentFaculty !== 'All Faculty') {
+      if (!reminderEmailService.getFacultyReschedulePermission(this.currentFaculty)) return false;
+    }
+
+    // 3. Check event faculty
+    if (facultyName) {
+      if (!reminderEmailService.getFacultyReschedulePermission(facultyName)) return false;
+    }
+
+    return true;
   }
 
   /**
@@ -1292,7 +1323,7 @@ export class FacultyDashboardController {
     if (modalDetailTopic) modalDetailTopic.textContent = ev.topic ? `${ev.topic} (Chapter: ${ev.chapter || 'General'})` : 'Detailed curricular session according to NMC guidelines.';
 
     // Check permission for Reschedule & Cancellation option at faculty level
-    const canRescheduleCancel = reminderEmailService.getFacultyReschedulePermission(facultyName);
+    const canRescheduleCancel = this.canFacultyRescheduleCancel(ev);
     const actionGroup = document.getElementById('modalDetailActionButtonsGroup');
     const closeBtn = document.getElementById('modalDetailCloseBtn');
     const footerEl = document.getElementById('modalDetailFooter');
@@ -2659,7 +2690,7 @@ export class FacultyDashboardController {
     }
 
     // Check permission for Reschedule & Cancellation option at faculty level
-    const canRescheduleCancel = reminderEmailService.getFacultyReschedulePermission(facultyName);
+    const canRescheduleCancel = this.canFacultyRescheduleCancel(ev);
     const mobileReschedCancelRow = document.getElementById('mobileModalRescheduleCancelRow');
     if (mobileReschedCancelRow) {
       if (canRescheduleCancel) {
@@ -2741,11 +2772,11 @@ export class FacultyDashboardController {
 
   handleRescheduleLecture(evData) {
     const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
-    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
-    if (!reminderEmailService.getFacultyReschedulePermission(faculty)) {
+    if (!this.canFacultyRescheduleCancel(ev)) {
       this.showToast('Reschedule requests are disabled for this faculty profile.');
       return;
     }
+    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
     const subject = ev.subject || this.facultySubject || 'Biochemistry';
     const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
     const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
@@ -2770,11 +2801,11 @@ export class FacultyDashboardController {
 
   handleCancelLecture(evData) {
     const ev = evData || this.currentDetailEvent || this.currentMobileDetailEvent || {};
-    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
-    if (!reminderEmailService.getFacultyReschedulePermission(faculty)) {
+    if (!this.canFacultyRescheduleCancel(ev)) {
       this.showToast('Cancellation requests are disabled for this faculty profile.');
       return;
     }
+    const faculty = ev.faculty || this.currentFaculty || 'Dr. Rajesh Jambhulkar';
     const subject = ev.subject || this.facultySubject || 'Biochemistry';
     const batch = ev.batchName || (this.batches.find(b => b.id === ev.batchId)?.name) || 'Prarambh 2026 Batch';
     const topic = ev.topic || ev.chapter || 'Introduction and orientation- Biochemistry';
