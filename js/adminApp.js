@@ -4755,23 +4755,23 @@ class AdminDashboardController {
       const isVerified = f.status === 'Verified';
       const canReschedule = f.canRescheduleCancel !== false;
       const initials = (f.name || '').replace(/^(Dr\.|Prof\.)\s*/i, '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
-      const cohortsHtml = (f.cohorts || []).map(c => `<span class="px-2.5 py-0.5 rounded-md bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-semibold text-[#2c332d]">${c}</span>`).join(' ');
+      const cohortsHtml = (f.cohorts || []).map(c => `<span class="px-2 py-0.5 rounded-md bg-[#f4efe6] border border-[#ded5c6] text-[10px] font-semibold text-[#2c332d] whitespace-nowrap">${c}</span>`).join(' ');
 
       const statusBadge = isVerified
-        ? `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] font-bold border border-[#cde0d3] badge-3d">
+        ? `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] font-bold border border-[#cde0d3] badge-3d shrink-0">
              <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">check_circle</span> Verified
            </span>`
-        : `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] font-bold border border-[#ebe0ca] badge-3d">
+        : `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] font-bold border border-[#ebe0ca] badge-3d shrink-0">
              <span class="material-symbols-outlined text-[13px]">pending</span> Pending Invite
            </span>`;
 
       const avatarBox = isVerified
-        ? `<div class="w-11 h-11 rounded-xl bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center font-bold text-sm shrink-0">${initials}</div>`
-        : `<div class="w-11 h-11 rounded-xl bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center font-bold text-sm shrink-0">${initials}</div>`;
+        ? `<div class="w-11 h-11 rounded-xl bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`
+        : `<div class="w-11 h-11 rounded-xl bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`;
 
       const rescheduleToggleHtml = `
-        <div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/80" title="${canReschedule ? 'Reschedule & cancellation enabled for faculty portal' : 'Reschedule & cancellation disabled (shows Close button only)'}">
-          <span class="text-[11px] font-bold ${canReschedule ? 'text-[#2d4d37]' : 'text-[#8b958c]'} select-none flex items-center gap-1">
+        <div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/80 shrink-0" title="${canReschedule ? 'Reschedule & cancellation enabled for faculty portal' : 'Reschedule & cancellation disabled (shows Close button only)'}">
+          <span class="text-[11px] font-bold ${canReschedule ? 'text-[#2d4d37]' : 'text-[#8b958c]'} select-none flex items-center gap-1 whitespace-nowrap">
             <span class="material-symbols-outlined text-[13px] ${canReschedule ? 'text-[#4a7c59]' : 'text-[#8b958c]'}">edit_calendar</span>
             Reschedule &amp; Cancel
           </span>
@@ -4783,57 +4783,62 @@ class AdminDashboardController {
       `;
 
       const actionButtons = isVerified
-        ? `<button class="btn-edit-mapping btn-3d-secondary text-xs font-bold text-[#2c332d] px-3.5 py-1.5 rounded-lg cursor-pointer" data-id="${f.id}" type="button">
+        ? `<button class="btn-edit-mapping btn-3d-secondary text-xs font-bold text-[#2c332d] px-3.5 py-1.5 rounded-lg cursor-pointer whitespace-nowrap shrink-0" data-id="${f.id}" type="button">
              Edit Mapping
            </button>
-           <button class="btn-resend-creds w-8 h-8 rounded-lg bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] text-[#576058] flex items-center justify-center hover:text-[#2c332d] transition-colors cursor-pointer" data-id="${f.id}" title="Resend Credentials" type="button">
+           <button class="btn-resend-creds w-8 h-8 rounded-lg bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] text-[#576058] flex items-center justify-center hover:text-[#2c332d] transition-colors cursor-pointer shrink-0" data-id="${f.id}" title="Resend Credentials" type="button">
              <span class="material-symbols-outlined text-[16px]">forward_to_inbox</span>
            </button>
-           <button class="btn-delete-faculty w-8 h-8 rounded-lg bg-[#fdf2f2] hover:bg-[#fae2e2] border border-[#f5c6c6] text-[#b83230] flex items-center justify-center transition-colors cursor-pointer" data-id="${f.id}" title="Remove Faculty" type="button">
+           <button class="btn-delete-faculty w-8 h-8 rounded-lg bg-[#fdf2f2] hover:bg-[#fae2e2] border border-[#f5c6c6] text-[#b83230] flex items-center justify-center transition-colors cursor-pointer shrink-0" data-id="${f.id}" title="Remove Faculty" type="button">
              <span class="material-symbols-outlined text-[16px]">delete</span>
            </button>`
-        : `<button class="btn-complete-mapping btn-3d-primary text-xs font-bold text-white px-3.5 py-1.5 rounded-lg cursor-pointer" data-id="${f.id}" type="button">
+        : `<button class="btn-complete-mapping btn-3d-primary text-xs font-bold text-white px-3.5 py-1.5 rounded-lg cursor-pointer whitespace-nowrap shrink-0" data-id="${f.id}" type="button">
              Complete Mapping
            </button>
-           <button class="btn-send-otp btn-3d-secondary text-xs font-bold text-[#4a7c59] px-3.5 py-1.5 rounded-lg cursor-pointer" data-id="${f.id}" title="Send OTP Token" type="button">
+           <button class="btn-send-otp btn-3d-secondary text-xs font-bold text-[#4a7c59] px-3.5 py-1.5 rounded-lg cursor-pointer whitespace-nowrap shrink-0" data-id="${f.id}" title="Send OTP Token" type="button">
              Send OTP
            </button>
-           <button class="btn-delete-faculty w-8 h-8 rounded-lg bg-[#fdf2f2] hover:bg-[#fae2e2] border border-[#f5c6c6] text-[#b83230] flex items-center justify-center transition-colors cursor-pointer" data-id="${f.id}" title="Remove Faculty" type="button">
+           <button class="btn-delete-faculty w-8 h-8 rounded-lg bg-[#fdf2f2] hover:bg-[#fae2e2] border border-[#f5c6c6] text-[#b83230] flex items-center justify-center transition-colors cursor-pointer shrink-0" data-id="${f.id}" title="Remove Faculty" type="button">
              <span class="material-symbols-outlined text-[16px]">delete</span>
            </button>`;
 
       return `
-        <div class="faculty-row bg-white rounded-xl p-5 card-3d flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all" data-id="${f.id}" data-dept="${f.dept}" data-name="${f.name}" data-status="${f.status}">
-          <div class="flex items-start gap-3.5 min-w-0">
-            ${avatarBox}
-            <div class="min-w-0 space-y-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="font-bold text-base text-[#2c332d] leading-snug">${f.name}</h3>
-                ${statusBadge}
-              </div>
-              <div class="text-xs font-semibold text-[#576058]">${f.role || `Professor • ${f.dept}`}</div>
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#68736a] pt-1">
-                <span class="inline-flex items-center gap-1">
-                  <span class="material-symbols-outlined text-[15px] text-[#8b958c]">alternate_email</span>
-                  <span class="font-mono text-[11px]">${f.email}</span>
-                </span>
-                <span class="inline-flex items-center gap-1">
-                  <span class="material-symbols-outlined text-[15px] text-[#8b958c]">phone_iphone</span>
-                  <span>+91 ${f.phone}</span>
-                </span>
+        <div class="faculty-row bg-white rounded-xl p-4 sm:p-5 card-3d flex flex-col gap-3.5 transition-all hover:border-[#4a7c59]/40" data-id="${f.id}" data-dept="${f.dept}" data-name="${f.name}" data-status="${f.status}">
+          <!-- Top Section: Avatar, Full Name & Role, Action Buttons -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+              ${avatarBox}
+              <div class="min-w-0 flex-1 space-y-0.5">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <h3 class="font-bold text-base text-[#2c332d] leading-snug tracking-tight">${f.name}</h3>
+                  ${statusBadge}
+                </div>
+                <div class="text-xs font-semibold text-[#576058] truncate">${f.role || `Professor • ${f.dept}`}</div>
               </div>
             </div>
+            <div class="flex items-center gap-2 shrink-0 self-start sm:self-center pt-1 sm:pt-0">
+              ${actionButtons}
+            </div>
           </div>
-          <div class="flex flex-col md:items-end justify-between gap-2.5 shrink-0 pt-2 md:pt-0">
-            <div class="flex items-center gap-2.5 flex-wrap md:justify-end">
-              <div class="flex items-center gap-1.5 flex-wrap">
+
+          <!-- Bottom Section: Email, Phone, Cohorts & Permission Toggle -->
+          <div class="pt-3 border-t border-[#ded5c6]/60 flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
+            <div class="flex flex-wrap items-center gap-2 text-[#68736a] min-w-0">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-mono text-[#4a524b] whitespace-nowrap">
+                <span class="material-symbols-outlined text-[14px] text-[#8b958c]">alternate_email</span>
+                <span>${f.email}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-medium text-[#4a524b] whitespace-nowrap">
+                <span class="material-symbols-outlined text-[14px] text-[#8b958c]">phone_iphone</span>
+                <span>+91 ${f.phone}</span>
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap pl-0.5">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-[#8b958c]">Cohorts:</span>
                 ${cohortsHtml || '<span class="text-[11px] text-[#8b958c]">None</span>'}
               </div>
-              ${rescheduleToggleHtml}
             </div>
-            <div class="flex items-center gap-2">
-              ${actionButtons}
+            <div class="shrink-0 flex items-center justify-start md:justify-end pt-1 md:pt-0">
+              ${rescheduleToggleHtml}
             </div>
           </div>
         </div>
