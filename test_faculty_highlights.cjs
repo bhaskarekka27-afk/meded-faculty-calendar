@@ -97,6 +97,7 @@ async function runTests() {
   const controller = new AdminDashboardController();
 
   console.log('--- TEST 1: Default Scope (Month View) ---');
+  controller.currentMonth = 9;
   controller.dashboardMonth = 9;
   controller.renderFacultyHighlightsCard();
   assert.strictEqual(controller.facultyHighlightScope, 'month');
@@ -112,6 +113,7 @@ async function runTests() {
 
   console.log('--- TEST 2: Switching Scope to Week ---');
   controller.facultyHighlightScope = 'week';
+  controller.currentWeekStart = new Date(2026, 9, 11);
   controller.dashboardWeekStart = new Date(2026, 9, 11);
   controller.renderFacultyHighlightsCard();
   console.log('Week Classes Count:', elements['cardFacultyHighlightsClassesCount'].textContent);

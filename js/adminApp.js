@@ -39,6 +39,7 @@ class AdminDashboardController {
     this.currentMonth = _now.getMonth();
     this.currentWeekStart = startOfWeek(_now);
     this.selectedSubject = 'all';
+    this.selectedFaculty = 'all';
     this.searchQuery = '';
     
     // View state
@@ -210,6 +211,7 @@ class AdminDashboardController {
     this.updateHeaderBatchSelector();
     this.updateMonthTitle();
     this.updateSummaryCards();
+    this.updateTeacherFilterLabel();
     this.updateSubjectFilterButtons();
     this.renderMainContent();
   }
@@ -246,6 +248,18 @@ class AdminDashboardController {
 
   getAllActiveEvents() {
     let events = this.batchManager.getAllEvents(this.currentBatchId);
+
+    // Apply Teacher / Faculty Filter
+    if (this.selectedFaculty && this.selectedFaculty !== 'all') {
+      const targetFac = this.selectedFaculty.trim().toLowerCase();
+      const normTarget = targetFac.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
+      events = events.filter(e => {
+        if (!e.faculty) return false;
+        const facClean = e.faculty.trim().toLowerCase();
+        const normFac = facClean.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
+        return facClean === targetFac || normFac === normTarget || normFac.includes(normTarget) || normTarget.includes(facClean);
+      });
+    }
 
     // Apply Subject Filter
     if (this.selectedSubject !== 'all') {
@@ -424,6 +438,7 @@ class AdminDashboardController {
       this.mainTab = 'calendar';
       this.calendarSubView = 'month';
       this.selectedSubject = 'all';
+      this.selectedFaculty = 'all';
       this.searchQuery = '';
       if (searchInput) searchInput.value = '';
       this.updateDockState('calendar');
@@ -534,6 +549,7 @@ class AdminDashboardController {
         }
         this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       }
+      this.facultyHighlightScope = 'month';
       this.updateMonthTitle();
       this.updateSummaryCards();
       this.renderMainContent();
@@ -552,6 +568,7 @@ class AdminDashboardController {
         }
         this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       }
+      this.facultyHighlightScope = 'month';
       this.updateMonthTitle();
       this.updateSummaryCards();
       this.renderMainContent();
@@ -567,6 +584,7 @@ class AdminDashboardController {
       this.dashboardMonth = now.getMonth();
       this.dashboardWeekStart = startOfWeek(now);
       this.dashboardDayIso = todayIso();
+      this.facultyHighlightScope = 'month';
       this.updateMonthTitle();
       this.updateSummaryCards();
       this.renderFacultyHighlightsCard();
@@ -582,6 +600,186 @@ class AdminDashboardController {
       const formatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       this.showToast(`Navigated to Today (${formatted})`);
     });
+
+    this.setupTeacherFilter();
+  }
+
+  setupTeacherFilter() {
+    const facultyBtn = document.getElementById('calActionFacultyBtn');
+    const facultyDropdown = document.getElementById('calActionFacultyDropdown');
+    const facultySearchInput = document.getElementById('calFacultySearchInput');
+
+    if (!facultyBtn || !facultyDropdown) return;
+
+    // Toggle Faculty Dropdown
+    facultyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      facultyDropdown.classList.toggle('hidden');
+      if (!facultyDropdown.classList.contains('hidden')) {
+        this.renderTeacherDropdownList();
+        if (facultySearchInput) {
+          facultySearchInput.value = '';
+          facultySearchInput.focus();
+        }
+      }
+    });
+
+    // Search inside Faculty Dropdown
+    facultySearchInput?.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const listEl = document.getElementById('calActionFacultyList');
+      if (!listEl) return;
+      const items = listEl.querySelectorAll('[data-fac-item]');
+      items.forEach(item => {
+        const name = (item.getAttribute('data-fac-item') || '').toLowerCase();
+        if (!q || name.includes(q)) {
+          item.classList.remove('hidden');
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!facultyBtn.contains(e.target) && !facultyDropdown.contains(e.target)) {
+        facultyDropdown.classList.add('hidden');
+      }
+    });
+  }
+
+  renderTeacherDropdownList() {
+    const listEl = document.getElementById('calActionFacultyList');
+    if (!listEl) return;
+
+    const allBatchEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allBatchEvents.filter(e => e.eventType === 'class');
+    const facultyCounts = {};
+    const facultySubjects = {};
+
+    classes.forEach(e => {
+      if (e.faculty) {
+        const name = e.faculty.trim();
+        facultyCounts[name] = (facultyCounts[name] || 0) + 1;
+        if (!facultySubjects[name]) facultySubjects[name] = new Set();
+        if (e.subject) facultySubjects[name].add(e.subject);
+      }
+    });
+
+    // Also get overall counts across all batches for reference
+    const allEvents = this.batchManager.getAllEvents('all').filter(e => e.eventType === 'class');
+    const allCounts = {};
+    allEvents.forEach(e => {
+      if (e.faculty) {
+        const name = e.faculty.trim();
+        allCounts[name] = (allCounts[name] || 0) + 1;
+      }
+    });
+
+    const isAllSelected = !this.selectedFaculty || this.selectedFaculty === 'all';
+    const totalBatchClasses = classes.length;
+
+    let html = `
+      <div class="px-2.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors border-b border-[#f0ece4] ${isAllSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-cal-fac="all" data-fac-item="all all faculty teachers">
+        <div class="flex items-center gap-2 truncate pr-2">
+          <span class="w-6 h-6 rounded-full bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center text-[10px] font-bold shrink-0">
+            <span class="material-symbols-outlined text-[14px]">groups</span>
+          </span>
+          <div class="truncate">
+            <span class="truncate block font-bold text-[#2c332d]">All Teachers / Faculty</span>
+            <span class="text-[10px] text-[#788279] block truncate">${totalBatchClasses} Classes in Current Batch</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">
+            ${totalBatchClasses}
+          </span>
+          ${isAllSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
+        </div>
+      </div>
+    `;
+
+    // Sort faculty by count descending
+    const allFacultyNames = Array.from(new Set([...Object.keys(facultyCounts), ...Object.keys(allCounts)])).sort((a, b) => {
+      const cA = facultyCounts[a] || 0;
+      const cB = facultyCounts[b] || 0;
+      if (cB !== cA) return cB - cA;
+      return (allCounts[b] || 0) - (allCounts[a] || 0);
+    });
+
+    const totalBadge = document.getElementById('calActionFacultyTotalBadge');
+    if (totalBadge) totalBadge.textContent = `${allFacultyNames.length} Faculty`;
+
+    allFacultyNames.forEach(name => {
+      const isSelected = !isAllSelected && this.selectedFaculty.toLowerCase() === name.toLowerCase();
+      const countInBatch = facultyCounts[name] || 0;
+      const totalOverall = allCounts[name] || 0;
+      const initial = name.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().split(' ').map(n => n[0]).join('').slice(0, 2) || 'DR';
+      const cleanTitle = name.startsWith('Dr.') || name.startsWith('Prof.') ? name : `Dr. ${name}`;
+      const subs = facultySubjects[name] ? Array.from(facultySubjects[name]).join(', ') : '';
+
+      html += `
+        <div class="px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c]'}" data-cal-fac="${name}" data-fac-item="${name} ${subs}">
+          <div class="flex items-center gap-2 truncate pr-2">
+            <span class="w-6 h-6 rounded-full bg-[#f4ece1] text-[#705c30] border border-[#d2c2ad] flex items-center justify-center text-[9px] font-bold shrink-0">
+              ${initial}
+            </span>
+            <div class="truncate">
+              <span class="truncate block font-bold text-[#2c332d]">${cleanTitle}</span>
+              <span class="text-[10px] text-[#788279] block truncate">
+                ${countInBatch > 0 ? `<span class="text-[#4a7c59] font-bold">${countInBatch} in batch</span>` : `<span class="text-[#c26d3e] font-semibold">0 in batch</span>`}
+                ${this.currentBatchId !== 'all' && totalOverall > countInBatch ? ` • ${totalOverall} overall` : ''}
+                ${subs ? ` • ${subs}` : ''}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${countInBatch > 0 ? 'bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]' : 'bg-[#f0ece4] text-[#8b958c]'}">
+              ${countInBatch}
+            </span>
+            ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>' : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('[data-cal-fac]').forEach(el => {
+      el.addEventListener('click', () => {
+        const fac = el.getAttribute('data-cal-fac');
+        this.selectedFaculty = fac;
+        document.getElementById('calActionFacultyDropdown')?.classList.add('hidden');
+        this.updateTeacherFilterLabel();
+        const moved = this.syncPeriodToFilters();
+        this.updateSubjectFilterButtons();
+        this.refreshPeriodChrome();
+        this.renderMainContent();
+        if (moved) {
+          this.showToast(`Showing ${this.selectedFaculty === 'all' ? 'All Faculty' : this.selectedFaculty} - jumped to ${this.formatMonthLabel(moved.year, moved.month)}`);
+        } else {
+          this.showToast(`Filtered for ${this.selectedFaculty === 'all' ? 'All Faculty' : this.selectedFaculty}`);
+        }
+      });
+    });
+  }
+
+  updateTeacherFilterLabel() {
+    const facLabel = document.getElementById('calActionFacultyLabel');
+    const facBtn = document.getElementById('calActionFacultyBtn');
+    if (!facLabel || !facBtn) return;
+
+    const isAll = !this.selectedFaculty || this.selectedFaculty === 'all';
+    if (isAll) {
+      facLabel.textContent = 'All Faculty';
+      facBtn.className = 'pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#2c332d] select-none transition-all shadow-xs';
+    } else {
+      const cleanTitle = this.selectedFaculty.startsWith('Dr.') || this.selectedFaculty.startsWith('Prof.')
+        ? this.selectedFaculty
+        : `Dr. ${this.selectedFaculty}`;
+      facLabel.textContent = cleanTitle;
+      facBtn.className = 'pill-3d flex items-center gap-1.5 text-xs bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#4a7c59] rounded-xl px-3 py-1.5 cursor-pointer text-[#2d4d37] font-bold select-none transition-all shadow-xs ring-1 ring-[#4a7c59]/20';
+    }
   }
 
   updateHeaderBatchSelector() {
@@ -677,7 +875,26 @@ class AdminDashboardController {
           this.currentBatchId = el.getAttribute('data-batch-id');
           document.getElementById('adminBatchDropdown')?.classList.add('hidden');
           this.selectedSubject = 'all';
-          this.autoAdjustDateToActiveBatch();
+
+          // Preserve selected month & year - DO NOT reset to today
+          const selYear = this.currentYear !== undefined ? this.currentYear : new Date().getFullYear();
+          const selMonth = this.currentMonth !== undefined ? this.currentMonth : new Date().getMonth();
+          this.currentYear = selYear;
+          this.currentMonth = selMonth;
+
+          // Re-anchor selectedDayIso and currentWeekStart within selected month
+          const monthPrefix = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
+          if (!this.selectedDayIso || !this.selectedDayIso.startsWith(monthPrefix)) {
+            const allEvs = this.batchManager.getAllEvents(this.currentBatchId);
+            const classInMonth = allEvs.find(ev => ev.eventType === 'class' && ev.isoDate && ev.isoDate.startsWith(monthPrefix));
+            this.selectedDayIso = classInMonth ? classInMonth.isoDate : `${monthPrefix}-01`;
+          }
+          const anchorDate = parseIso(this.selectedDayIso) || new Date(selYear, selMonth, 1);
+          this.currentWeekStart = startOfWeek(anchorDate);
+
+          // Ensure Faculty Highlights tab displays data of selected month
+          this.facultyHighlightScope = 'month';
+
           this.renderAll();
           this.showToast(`Switched to ${this.getActiveBatch()?.name} - ${this.formatMonthLabel(this.currentYear, this.currentMonth)}`);
         });
@@ -690,7 +907,8 @@ class AdminDashboardController {
           if (confirm('Are you sure you want to remove this batch?')) {
             this.batchManager.removeBatch(idToDelete);
             this.currentBatchId = this.batchManager.getBatches()[0].id;
-            this.autoAdjustDateToActiveBatch();
+            this.selectedSubject = 'all';
+            this.facultyHighlightScope = 'month';
             this.renderAll();
             this.showToast('Batch removed');
           }
@@ -702,7 +920,8 @@ class AdminDashboardController {
           this.batchManager.resetToDefaults();
           this.currentBatchId = 'batch-prarambh-2026';
           document.getElementById('adminBatchDropdown')?.classList.add('hidden');
-          this.autoAdjustDateToActiveBatch();
+          this.selectedSubject = 'all';
+          this.facultyHighlightScope = 'month';
           this.renderAll();
           this.showToast('Reset to default batches');
         }
@@ -954,31 +1173,43 @@ class AdminDashboardController {
     btnDay?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'day';
-      this.dashboardScope = 'day';
-      this.batchGraphGranularity = 'day';
+      if (this.mainTab === 'dashboard') {
+        this.dashboardScope = 'day';
+        this.batchGraphGranularity = 'day';
+      }
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
-      this.renderDashboardView();
+      if (this.mainTab === 'dashboard') {
+        this.renderDashboardView();
+      }
     });
 
     btnWeek?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'week';
-      this.dashboardScope = 'week';
-      this.batchGraphGranularity = 'week';
+      if (this.mainTab === 'dashboard') {
+        this.dashboardScope = 'week';
+        this.batchGraphGranularity = 'week';
+      }
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
-      this.renderDashboardView();
+      if (this.mainTab === 'dashboard') {
+        this.renderDashboardView();
+      }
     });
 
     btnMonth?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.facultyHighlightScope = 'month';
-      this.dashboardScope = 'month';
-      this.batchGraphGranularity = 'month';
+      if (this.mainTab === 'dashboard') {
+        this.dashboardScope = 'month';
+        this.batchGraphGranularity = 'month';
+      }
       updateScopeButtons();
       this.renderFacultyHighlightsCard();
-      this.renderDashboardView();
+      if (this.mainTab === 'dashboard') {
+        this.renderDashboardView();
+      }
     });
 
     card?.addEventListener('click', () => {
@@ -991,7 +1222,13 @@ class AdminDashboardController {
   renderFacultyHighlightsCard() {
     this.updateFacultyCardScopeButtons?.();
 
-    if (this.facultyHighlightScope) {
+    const isCalendar = (this.mainTab === 'calendar' || !this.mainTab);
+
+    if (!this.facultyHighlightScope) {
+      this.facultyHighlightScope = 'month';
+    }
+
+    if (!isCalendar && this.facultyHighlightScope) {
       this.dashboardScope = this.facultyHighlightScope;
     }
 
@@ -1006,10 +1243,28 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    const targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
-    const targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 8);
-    const targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(2026, 8, 14);
-    const targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+    let targetYear, targetMonth, targetWeekStart, targetDayIso;
+
+    if (isCalendar) {
+      targetYear = this.currentYear !== undefined ? this.currentYear : 2026;
+      targetMonth = this.currentMonth !== undefined ? this.currentMonth : (this.dashboardMonth !== undefined ? this.dashboardMonth : 9);
+      if (this.currentWeekStart && this.currentWeekStart.getMonth() === targetMonth) {
+        targetWeekStart = this.currentWeekStart;
+      } else {
+        targetWeekStart = startOfWeek(new Date(targetYear, targetMonth, 1));
+      }
+      const monthPrefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+      if (this.selectedDayIso && this.selectedDayIso.startsWith(monthPrefix)) {
+        targetDayIso = this.selectedDayIso;
+      } else {
+        targetDayIso = `${monthPrefix}-01`;
+      }
+    } else {
+      targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
+      targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 9);
+      targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(targetYear, targetMonth, 1);
+      targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+    }
 
     if (this.facultyHighlightScope === 'day') {
       filtered = classes.filter(e => e.isoDate === targetDayIso);
@@ -1230,7 +1485,9 @@ class AdminDashboardController {
     const activePeriodBadge = document.getElementById('modalActivePeriodBadge');
     const listContainer = document.getElementById('modalFacultyDistributionList');
 
-    if (this.dashboardScope) {
+    const isCalendar = (this.mainTab === 'calendar' || !this.mainTab);
+
+    if (!isCalendar && this.dashboardScope) {
       this.facultyHighlightScope = this.dashboardScope;
     }
 
@@ -1245,10 +1502,28 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    const targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
-    const targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 8);
-    const targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(2026, 8, 14);
-    const targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+    let targetYear, targetMonth, targetWeekStart, targetDayIso;
+
+    if (isCalendar) {
+      targetYear = this.currentYear !== undefined ? this.currentYear : 2026;
+      targetMonth = this.currentMonth !== undefined ? this.currentMonth : (this.dashboardMonth !== undefined ? this.dashboardMonth : 9);
+      if (this.currentWeekStart && this.currentWeekStart.getMonth() === targetMonth) {
+        targetWeekStart = this.currentWeekStart;
+      } else {
+        targetWeekStart = startOfWeek(new Date(targetYear, targetMonth, 1));
+      }
+      const monthPrefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+      if (this.selectedDayIso && this.selectedDayIso.startsWith(monthPrefix)) {
+        targetDayIso = this.selectedDayIso;
+      } else {
+        targetDayIso = `${monthPrefix}-01`;
+      }
+    } else {
+      targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
+      targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 9);
+      targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(targetYear, targetMonth, 1);
+      targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+    }
 
     if (this.facultyHighlightScope === 'day') {
       filtered = classes.filter(e => e.isoDate === targetDayIso);
@@ -1373,7 +1648,44 @@ class AdminDashboardController {
     container.classList.remove('flex-wrap');
     container.classList.add('flex-nowrap', 'whitespace-nowrap', 'min-w-max');
 
-    const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const allBtn = document.getElementById('btnSubjectFilterAll');
+    if (allBtn) {
+      const isAll = this.selectedSubject === 'all';
+      allBtn.className = `px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+        isAll ? 'btn-3d-primary pill-3d-active text-white' : 'pill-3d text-[#3b6347] bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#cde0d3]'
+      }`;
+      if (!allBtn._clickBound) {
+        allBtn._clickBound = true;
+        allBtn.addEventListener('click', () => {
+          this.selectedSubject = 'all';
+          const moved = this.syncPeriodToFilters();
+          this.updateSubjectFilterButtons();
+          this.refreshPeriodChrome();
+          if (moved) {
+            this.showToast(`No classes in view - jumped to ${this.formatMonthLabel(moved.year, moved.month)}`);
+          }
+          const scrollWrapper = document.getElementById('adminSubjectFiltersScroll');
+          if (scrollWrapper && typeof scrollWrapper.scrollTo === 'function') {
+            scrollWrapper.scrollTo({ left: 0, behavior: 'smooth' });
+          } else if (scrollWrapper) {
+            scrollWrapper.scrollLeft = 0;
+          }
+          setTimeout(() => this.updateSubjectArrows?.(), 250);
+        });
+      }
+    }
+
+    let allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    if (this.selectedFaculty && this.selectedFaculty !== 'all') {
+      const targetFac = this.selectedFaculty.trim().toLowerCase();
+      const normTarget = targetFac.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
+      allEvents = allEvents.filter(e => {
+        if (!e.faculty) return false;
+        const facClean = e.faculty.trim().toLowerCase();
+        const normFac = facClean.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '').trim();
+        return facClean === targetFac || normFac === normTarget || normFac.includes(normTarget) || normTarget.includes(facClean);
+      });
+    }
     const subjectCounts = {};
     allEvents.filter(e => e.eventType === 'class').forEach(e => {
       if (e.subject) {
@@ -1381,11 +1693,14 @@ class AdminDashboardController {
       }
     });
 
-    let html = `
-      <button class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap ${this.selectedSubject === 'all' ? 'btn-3d-primary pill-3d-active text-white' : 'pill-3d text-[#3b6347] bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#cde0d3]'}" data-subject="all">
-        All Subjects
-      </button>
-    `;
+    let html = '';
+    if (!allBtn) {
+      html += `
+        <button class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap ${this.selectedSubject === 'all' ? 'btn-3d-primary pill-3d-active text-white' : 'pill-3d text-[#3b6347] bg-[#eef4f0] hover:bg-[#e2ede6] border border-[#cde0d3]'}" data-subject="all">
+          All Subjects
+        </button>
+      `;
+    }
 
     const colorConfig = {
       Biochemistry: { text: '#3b6347', bg: '#eef4f0', border: '#cde0d3', dot: '#4a7c59' },
@@ -1443,6 +1758,7 @@ class AdminDashboardController {
         }
         document.querySelector(`#adminSubjectFilters [data-subject="${this.selectedSubject}"]`)
           ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        setTimeout(() => this.updateSubjectArrows?.(), 250);
       });
     });
 
@@ -1463,11 +1779,23 @@ class AdminDashboardController {
       if (parent && !parent.classList.contains('subject-nav-wrapped')) {
         parent.classList.add('subject-nav-wrapped', 'relative', 'flex', 'items-center', 'gap-1.5', 'py-0.5', 'w-full');
         
+        let allBtn = document.getElementById('btnSubjectFilterAll');
+        if (!allBtn) {
+          allBtn = document.createElement('button');
+          allBtn.id = 'btnSubjectFilterAll';
+          allBtn.type = 'button';
+          allBtn.className = 'px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap btn-3d-primary pill-3d-active text-white';
+          allBtn.setAttribute('data-subject', 'all');
+          allBtn.title = 'Show All Subjects';
+          allBtn.textContent = 'All Subjects';
+          parent.insertBefore(allBtn, container);
+        }
+
         if (!leftBtn) {
           leftBtn = document.createElement('button');
           leftBtn.id = 'btnSubjectScrollLeft';
           leftBtn.type = 'button';
-          leftBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed';
+          leftBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer hidden';
           leftBtn.setAttribute('aria-label', 'Scroll left');
           leftBtn.title = 'Scroll subjects left';
           leftBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">chevron_left</span>';
@@ -1487,7 +1815,7 @@ class AdminDashboardController {
           rightBtn = document.createElement('button');
           rightBtn.id = 'btnSubjectScrollRight';
           rightBtn.type = 'button';
-          rightBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed';
+          rightBtn.className = 'w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer';
           rightBtn.setAttribute('aria-label', 'Scroll right');
           rightBtn.title = 'Scroll subjects right';
           rightBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">chevron_right</span>';
@@ -1502,22 +1830,43 @@ class AdminDashboardController {
 
     const updateArrows = () => {
       if (!scrollWrapper) return;
-      const scrollLeft = scrollWrapper.scrollLeft;
-      const maxScroll = Math.max(0, scrollWrapper.scrollWidth - scrollWrapper.clientWidth);
+      const scrollLeft = scrollWrapper.scrollLeft || 0;
+      const maxScroll = Math.max(0, (scrollWrapper.scrollWidth || 0) - (scrollWrapper.clientWidth || 0));
 
+      // Left scroll button placed after All Subjects: ONLY appears when scrolling is actually required (scrollLeft > 2 && maxScroll > 0)
       if (leftBtn) {
-        const canLeft = scrollLeft > 3;
-        leftBtn.disabled = !canLeft;
-        leftBtn.style.opacity = canLeft ? '1' : '0.25';
-        leftBtn.style.pointerEvents = canLeft ? 'auto' : 'none';
+        const canLeft = scrollLeft > 2 && maxScroll > 0;
+        if (canLeft) {
+          leftBtn.classList.remove('hidden');
+          leftBtn.disabled = false;
+          leftBtn.style.opacity = '1';
+          leftBtn.style.pointerEvents = 'auto';
+        } else {
+          leftBtn.classList.add('hidden');
+          leftBtn.disabled = true;
+          leftBtn.style.opacity = '0';
+          leftBtn.style.pointerEvents = 'none';
+        }
       }
+
+      // Right scroll button: appears when scrolling right is possible
       if (rightBtn) {
-        const canRight = scrollLeft < maxScroll - 3;
-        rightBtn.disabled = !canRight;
-        rightBtn.style.opacity = canRight ? '1' : '0.25';
-        rightBtn.style.pointerEvents = canRight ? 'auto' : 'none';
+        const canRight = scrollLeft < maxScroll - 2 && maxScroll > 0;
+        if (canRight) {
+          rightBtn.classList.remove('hidden');
+          rightBtn.disabled = false;
+          rightBtn.style.opacity = '1';
+          rightBtn.style.pointerEvents = 'auto';
+        } else {
+          rightBtn.classList.add('hidden');
+          rightBtn.disabled = true;
+          rightBtn.style.opacity = '0';
+          rightBtn.style.pointerEvents = 'none';
+        }
       }
     };
+
+    this.updateSubjectArrows = updateArrows;
 
     if (leftBtn && !leftBtn._scrollBound) {
       leftBtn._scrollBound = true;
@@ -1549,8 +1898,9 @@ class AdminDashboardController {
       }
     }
 
-    // Run arrow state check
+    // Run arrow state checks
     setTimeout(updateArrows, 60);
+    setTimeout(updateArrows, 250);
   }
 
   // --- 5. Main Content Dispatcher ---
@@ -4672,16 +5022,121 @@ class AdminDashboardController {
     container.querySelectorAll('.btn-filter-fac-in-cal').forEach(btn => {
       btn.addEventListener('click', () => {
         const facName = btn.getAttribute('data-faculty');
-        this.searchQuery = facName;
+        this.selectedFaculty = facName;
+        this.selectedSubject = 'all';
+        this.searchQuery = '';
         const searchInput = document.getElementById('adminSearchInput');
-        if (searchInput) searchInput.value = facName;
+        if (searchInput) searchInput.value = '';
         this.mainTab = 'calendar';
         this.updateDockState('calendar');
-        this.renderMainContent();
+        this.updateTeacherFilterLabel();
+        this.syncPeriodToFilters();
+        this.renderAll();
         this.showToast(`Filtered calendar for ${facName}`);
       });
     });
 
+  }
+
+  /**
+   * Automatically extracts all unique subject names from schedule data,
+   * batch curriculums, and faculty directory, and dynamically populates:
+   * 1. #subject-dropdown-select ("Teaching Department & Subjects" dropdown in Onboarding Drawer)
+   * 2. #dept-filter-select ("All Subjects" filter dropdown in Onboarding Directory)
+   * 3. #subject-chips-container (Interactive subject selection chips)
+   */
+  populateOnboardingSubjects() {
+    const deptFilter = document.getElementById('dept-filter-select');
+    const subjectDropdown = document.getElementById('subject-dropdown-select');
+    const chipsContainer = document.getElementById('subject-chips-container');
+
+    const subjectsSet = new Set();
+
+    // 1. Collect from all events across all batches in the calendar
+    if (this.batchManager) {
+      try {
+        const allEvents = this.batchManager.getAllEvents('all');
+        if (Array.isArray(allEvents)) {
+          allEvents.forEach(ev => {
+            if (ev.subject && typeof ev.subject === 'string') {
+              const clean = ev.subject.trim();
+              if (clean && clean !== 'General' && clean !== 'TBD') {
+                subjectsSet.add(clean);
+              }
+            }
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 2. Collect from faculty onboarding directory
+    const facultyList = this.facultyOnboardingList || reminderEmailService.getFacultyOnboardingList() || [];
+    facultyList.forEach(f => {
+      if (f.dept && typeof f.dept === 'string') {
+        const parts = f.dept.split(/[,&/]/).map(s => s.trim()).filter(Boolean);
+        parts.forEach(p => {
+          if (p && p.length > 1) subjectsSet.add(p);
+        });
+      }
+    });
+
+    // 3. Base Standard Medical Subjects ensuring completeness
+    const standardSubjects = [
+      'Anatomy', 'Physiology', 'Biochemistry', 'Pathology', 'Pharmacology', 
+      'Microbiology', 'Forensic Med', 'Community Med', 'ENT', 'Ophthalmology', 
+      'General Medicine', 'General Surgery', 'Pediatrics', 'Obstetrics & Gynecology', 
+      'Orthopedics', 'Dermatology', 'Psychiatry', 'Radiology', 'Anesthesia'
+    ];
+    standardSubjects.forEach(s => subjectsSet.add(s));
+
+    // Sort alphabetically
+    const sortedSubjects = Array.from(subjectsSet).sort((a, b) => a.localeCompare(b));
+
+    // 1. Populate #subject-dropdown-select (Teaching Department & Subjects drawer dropdown)
+    if (subjectDropdown) {
+      const currentSelected = subjectDropdown.value;
+      subjectDropdown.innerHTML = `
+        <option value="" disabled selected>Choose additional subject...</option>
+        ${sortedSubjects.map(s => `<option value="${s}">${s}</option>`).join('')}
+      `;
+      if (currentSelected && sortedSubjects.includes(currentSelected)) {
+        subjectDropdown.value = currentSelected;
+      }
+    }
+
+    // 2. Populate #dept-filter-select (Directory filter)
+    if (deptFilter) {
+      const currentFilter = this.onboardingDeptFilter || deptFilter.value || 'All';
+      deptFilter.innerHTML = `
+        <option value="All">All Subjects</option>
+        ${sortedSubjects.map(s => `<option value="${s}">${s}</option>`).join('')}
+      `;
+      if (currentFilter && (currentFilter === 'All' || sortedSubjects.includes(currentFilter))) {
+        deptFilter.value = currentFilter;
+      }
+    }
+
+    // 3. Populate #subject-chips-container (Interactive Chips)
+    if (chipsContainer && chipsContainer.children.length <= 14) {
+      const activeSubjects = new Set(
+        Array.from(chipsContainer.querySelectorAll('.subject-chip.active, .subject-chip[data-selected="true"]'))
+          .map(c => c.getAttribute('data-subject'))
+          .filter(Boolean)
+      );
+
+      if (activeSubjects.size === 0) {
+        activeSubjects.add('Anatomy');
+      }
+
+      chipsContainer.innerHTML = sortedSubjects.map(s => {
+        const isActive = activeSubjects.has(s);
+        if (isActive) {
+          return `<span class="subject-chip active inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] font-bold text-[11px] cursor-pointer hover:opacity-90 transition-opacity" data-subject="${s}" data-selected="true"><span class="material-symbols-outlined text-[13px]">check</span> ${s}</span>`;
+        } else {
+          return `<span class="subject-chip inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#f7f4ed] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] font-medium text-[11px] cursor-pointer transition-colors" data-subject="${s}" data-selected="false">${s}</span>`;
+        }
+      }).join('');
+    }
   }
 
   // --- 10b. Faculty Onboarding View Handler ---
@@ -4700,6 +5155,9 @@ class AdminDashboardController {
       this.facultyOnboardingList = [];
     }
 
+    // Auto-populate dynamic subjects from data
+    this.populateOnboardingSubjects();
+
     // Filter list
     const q = (this.onboardingSearchQuery || '').trim().toLowerCase();
     const dept = this.onboardingDeptFilter || 'All';
@@ -4710,8 +5168,7 @@ class AdminDashboardController {
         (f.name && f.name.toLowerCase().includes(q)) ||
         (f.email && f.email.toLowerCase().includes(q)) ||
         (f.phone && f.phone.replace(/\s+/g, '').includes(q.replace(/\s+/g, ''))) ||
-        (f.dept && f.dept.toLowerCase().includes(q)) ||
-        (f.cohorts && f.cohorts.some(c => c.toLowerCase().includes(q)));
+        (f.dept && f.dept.toLowerCase().includes(q));
 
       const matchesDept = dept === 'All' || 
         (f.dept && (f.dept.toLowerCase() === dept.toLowerCase() || 
@@ -4771,7 +5228,6 @@ class AdminDashboardController {
       const isVerified = f.status === 'Verified';
       const canReschedule = f.canRescheduleCancel !== false;
       const initials = (f.name || '').replace(/^(Dr\.|Prof\.)\s*/i, '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
-      const cohortsHtml = (f.cohorts || []).map(c => `<span class="px-2 py-0.5 rounded-md bg-[#f4efe6] border border-[#ded5c6] text-[10px] font-semibold text-[#2c332d] whitespace-nowrap">${c}</span>`).join(' ');
 
       const statusBadge = isVerified
         ? `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] font-bold border border-[#cde0d3] badge-3d shrink-0">
@@ -4837,7 +5293,7 @@ class AdminDashboardController {
             </div>
           </div>
 
-          <!-- Bottom Section: Email, Phone, Cohorts & Permission Toggle -->
+          <!-- Bottom Section: Email, Phone & Permission Toggle -->
           <div class="pt-3 border-t border-[#ded5c6]/60 flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
             <div class="flex flex-wrap items-center gap-2 text-[#68736a] min-w-0">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-mono text-[#4a524b] whitespace-nowrap">
@@ -4848,10 +5304,6 @@ class AdminDashboardController {
                 <span class="material-symbols-outlined text-[14px] text-[#8b958c]">phone_iphone</span>
                 <span>+91 ${f.phone}</span>
               </span>
-              <div class="flex items-center gap-1.5 flex-wrap pl-0.5">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-[#8b958c]">Cohorts:</span>
-                ${cohortsHtml || '<span class="text-[11px] text-[#8b958c]">None</span>'}
-              </div>
             </div>
             <div class="shrink-0 flex items-center justify-start md:justify-end pt-1 md:pt-0">
               ${rescheduleToggleHtml}
@@ -4867,92 +5319,119 @@ class AdminDashboardController {
 
   /**
    * Renders the embedded, Excel-style live Master Spreadsheet table view directly
-   * in the Faculty Master Spreadsheet section for instant view and verification.
+   * in both the Faculty Master Spreadsheet card and the Master Spreadsheet Popup Modal.
    */
   renderSpreadsheetTableView() {
-    const tbody = document.getElementById('spreadsheet-table-body');
+    const inlineTbody = document.getElementById('spreadsheet-table-body');
+    const modalTbody = document.getElementById('spreadsheet-modal-table-body');
     const totalBadge = document.getElementById('spreadsheet-total-rows-badge');
+    const modalTotalBadge = document.getElementById('spreadsheet-modal-total-badge');
     const footerInfo = document.getElementById('spreadsheet-footer-info');
-    if (!tbody) return;
+    const modalFooterInfo = document.getElementById('spreadsheet-modal-footer-info');
 
     if (!this.facultyOnboardingList) {
       this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList() || [];
     }
 
     const list = this.facultyOnboardingList;
-    if (totalBadge) totalBadge.textContent = `${list.length} Rows`;
+    const rowCountText = `${list.length} Rows`;
+    if (totalBadge) totalBadge.textContent = rowCountText;
+    if (modalTotalBadge) modalTotalBadge.textContent = rowCountText;
 
-    const searchQ = (this.spreadsheetTableSearchQuery || '').trim().toLowerCase();
     const testEmailQ = (this.spreadsheetVerifyEmailQuery || '').trim().toLowerCase();
 
-    const filtered = list.filter((f, idx) => {
-      if (!searchQ) return true;
-      const text = `${idx + 1} ${f.id} ${f.name} ${f.email} ${f.secondaryEmail || ''} ${f.phone || ''} ${f.dept || ''} ${f.role || ''} ${f.status || ''} ${f.cohorts ? f.cohorts.join(' ') : ''}`.toLowerCase();
-      return text.includes(searchQ);
-    });
+    const generateRowsHtml = (query) => {
+      const searchQ = (query || '').trim().toLowerCase();
+      const filtered = list.filter((f, idx) => {
+        if (!searchQ) return true;
+        const text = `${idx + 1} ${f.id} ${f.name} ${f.email} ${f.secondaryEmail || ''} ${f.phone || ''} ${f.dept || ''} ${f.role || ''} ${f.status || ''} ${f.cohorts ? f.cohorts.join(' ') : ''}`.toLowerCase();
+        return text.includes(searchQ);
+      });
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="12" class="py-8 text-center text-[#8b958c]">
-            <span class="material-symbols-outlined text-[24px] block mb-1">search_off</span>
-            No matching spreadsheet rows found for "${searchQ}".
-          </td>
-        </tr>
-      `;
-      return;
+      if (filtered.length === 0) {
+        return {
+          html: `
+            <tr>
+              <td colspan="12" class="py-10 text-center text-[#8b958c]">
+                <span class="material-symbols-outlined text-[28px] block mb-1 text-[#a3ada5]">search_off</span>
+                <span class="font-bold text-xs text-[#2c332d]">No matching spreadsheet rows found</span>
+                <p class="text-[11px] text-[#8b958c] mt-0.5">Try searching with a different name, email, department, or ID.</p>
+              </td>
+            </tr>
+          `,
+          count: 0
+        };
+      }
+
+      const rows = filtered.map((f, idx) => {
+        const isMatchedTest = testEmailQ && (
+          (f.email && f.email.toLowerCase() === testEmailQ) ||
+          (f.secondaryEmail && f.secondaryEmail.toLowerCase() === testEmailQ) ||
+          (f.id && f.id.toLowerCase() === testEmailQ) ||
+          (f.name && f.name.toLowerCase().includes(testEmailQ))
+        );
+        const rowBg = isMatchedTest 
+          ? 'bg-emerald-50 font-medium' 
+          : idx % 2 === 0 ? 'bg-white hover:bg-[#f6faf7]' : 'bg-[#faf9f5] hover:bg-[#f2f7f3]';
+        
+        const statusBadge = f.status === 'Verified'
+          ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Verified</span>`
+          : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca]"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>`;
+        
+        const reschedBadge = f.canRescheduleCancel !== false
+          ? `<span class="text-[11px] font-bold text-[#2d4d37] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">TRUE</span>`
+          : `<span class="text-[11px] font-bold text-[#b91c1c] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">FALSE</span>`;
+
+        const cohortsHtml = (f.cohorts || ["Prarambh '26"]).map(c => 
+          `<span class="inline-block bg-[#f0ede6] text-[#2c332d] text-[10px] font-semibold px-1.5 py-0.5 rounded mr-1 mb-0.5 border border-[#ded5c6]/60">${c}</span>`
+        ).join('');
+
+        const updatedStr = f.lastUpdated ? new Date(f.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Live Synced';
+
+        return `
+          <tr class="${rowBg} transition-colors border-b border-[#ded5c6]/50">
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center font-mono text-[11px] text-[#8b958c] bg-[#f9faf9] select-none">${idx + 1}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] font-bold text-[#3b6347] whitespace-nowrap">${f.id}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-bold text-[#2c332d] whitespace-nowrap">${f.name}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] text-[#1c3225] whitespace-nowrap font-semibold">${f.email}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] text-[#68736a] whitespace-nowrap">${f.secondaryEmail || '<span class="text-neutral-300">-</span>'}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] text-[#576058] whitespace-nowrap">${f.phone || '-'}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-semibold text-[#2c332d] whitespace-nowrap">${f.dept || 'Medicine'}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-[#576058] text-[11px] whitespace-nowrap">${f.role || `Professor • ${f.dept || 'Medicine'}`}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center whitespace-nowrap">${statusBadge}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center whitespace-nowrap font-mono">${reschedBadge}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-[11px]">${cohortsHtml}</td>
+            <td class="py-2.5 px-3 text-[10px] text-[#8b958c] font-mono whitespace-nowrap">${updatedStr}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return { html: rows, count: filtered.length };
+    };
+
+    if (inlineTbody) {
+      const inlineRes = generateRowsHtml(this.spreadsheetTableSearchQuery);
+      inlineTbody.innerHTML = inlineRes.html;
+      if (footerInfo) {
+        footerInfo.textContent = `Showing ${inlineRes.count} of ${list.length} mapped spreadsheet entries in data_faculty_onboarding.csv`;
+      }
     }
 
-    tbody.innerHTML = filtered.map((f, idx) => {
-      const isMatchedTest = testEmailQ && (
-        (f.email && f.email.toLowerCase() === testEmailQ) ||
-        (f.secondaryEmail && f.secondaryEmail.toLowerCase() === testEmailQ) ||
-        (f.name && f.name.toLowerCase().includes(testEmailQ))
-      );
-      const rowBg = isMatchedTest 
-        ? 'bg-emerald-100 font-medium' 
-        : idx % 2 === 0 ? 'bg-white hover:bg-[#f6faf7]' : 'bg-[#faf9f5] hover:bg-[#f2f7f3]';
-      
-      const statusBadge = f.status === 'Verified'
-        ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Verified</span>`
-        : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca]"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>`;
-      
-      const reschedBadge = f.canRescheduleCancel !== false
-        ? `<span class="text-[11px] font-bold text-[#2d4d37] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">TRUE</span>`
-        : `<span class="text-[11px] font-bold text-[#b91c1c] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">FALSE</span>`;
-
-      const cohortsHtml = (f.cohorts || ["Prarambh '26"]).map(c => 
-        `<span class="inline-block bg-[#f0ede6] text-[#2c332d] text-[10px] font-semibold px-1.5 py-0.5 rounded mr-1 mb-0.5">${c}</span>`
-      ).join('');
-
-      const updatedStr = f.lastUpdated ? new Date(f.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Live Synced';
-
-      return `
-        <tr class="${rowBg} transition-colors border-b border-[#eef4f0]">
-          <td class="py-2 px-3 border-r border-[#eef4f0] text-center font-mono text-[11px] text-[#8b958c] bg-[#f9faf9] select-none">${idx + 1}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] font-bold text-[#3b6347] whitespace-nowrap">${f.id}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-bold text-[#2c332d] whitespace-nowrap">${f.name}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#1c3225] whitespace-nowrap font-semibold">${f.email}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#68736a] whitespace-nowrap">${f.secondaryEmail || '<span class="text-neutral-300">-</span>'}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-mono text-[11px] text-[#576058] whitespace-nowrap">${f.phone || '-'}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] font-semibold text-[#2c332d] whitespace-nowrap">${f.dept || 'Medicine'}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] text-[#576058] text-[11px] whitespace-nowrap">${f.role || `Professor • ${f.dept || 'Medicine'}`}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] text-center whitespace-nowrap">${statusBadge}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] text-center whitespace-nowrap font-mono">${reschedBadge}</td>
-          <td class="py-2 px-3 border-r border-[#eef4f0] text-[11px]">${cohortsHtml}</td>
-          <td class="py-2 px-3 text-[10px] text-[#8b958c] font-mono whitespace-nowrap">${updatedStr}</td>
-        </tr>
-      `;
-    }).join('');
-
-    if (footerInfo) {
-      footerInfo.textContent = `Showing ${filtered.length} of ${list.length} mapped spreadsheet entries in data_faculty_onboarding.csv`;
+    if (modalTbody) {
+      const modalRes = generateRowsHtml(this.spreadsheetModalSearchQuery);
+      modalTbody.innerHTML = modalRes.html;
+      if (modalFooterInfo) {
+        modalFooterInfo.textContent = `Showing ${modalRes.count} of ${list.length} mapped entries • Real-time synchronization active.`;
+      }
     }
   }
 
   initOnboardingHandlers() {
     if (this._onboardingInitialized) return;
     this._onboardingInitialized = true;
+
+    // Dynamically populate subjects from batches and faculty directory
+    this.populateOnboardingSubjects();
 
     const searchInput = document.getElementById('faculty-search-input');
     const searchClearBtn = document.getElementById('faculty-search-clear');
@@ -5011,72 +5490,72 @@ class AdminDashboardController {
     const emailVerifyInput = document.getElementById('spreadsheet-email-verify-input');
     const emailVerifyResult = document.getElementById('spreadsheet-verify-result');
 
-    // 1. Toggle Table View
-    toggleSpreadsheetBtn?.addEventListener('click', () => {
-      if (!spreadsheetWrapper) return;
-      const isHidden = spreadsheetWrapper.classList.toggle('hidden');
-      if (toggleSpreadsheetText) {
-        toggleSpreadsheetText.textContent = isHidden ? 'View Spreadsheet Table' : 'Hide Spreadsheet Table';
+    // Master Spreadsheet Popup Modal Elements
+    const openSpreadsheetModalBtn = document.getElementById('btn-open-spreadsheet-modal');
+    const spreadsheetModal = document.getElementById('modalFacultySpreadsheet');
+    const spreadsheetBackdrop = document.getElementById('backdropFacultySpreadsheet');
+    const closeSpreadsheetModalBtn = document.getElementById('btnCloseSpreadsheetModal');
+    const dismissSpreadsheetModalBtn = document.getElementById('btnDismissSpreadsheetModal');
+    const modalSearchInput = document.getElementById('spreadsheet-modal-search-input');
+    const modalRefreshBtn = document.getElementById('btn-modal-refresh-spreadsheet');
+    const modalDownloadCsvBtn = document.getElementById('btn-modal-download-csv');
+
+    const openSpreadsheetModal = () => {
+      if (!spreadsheetModal) return;
+      this.renderSpreadsheetTableView();
+      spreadsheetModal.classList.remove('hidden');
+      spreadsheetModal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      if (modalSearchInput) {
+        modalSearchInput.value = this.spreadsheetModalSearchQuery || '';
+        modalSearchInput.focus();
+      }
+    };
+
+    const closeSpreadsheetModal = () => {
+      if (!spreadsheetModal) return;
+      spreadsheetModal.classList.add('hidden');
+      spreadsheetModal.classList.remove('flex');
+      document.body.style.overflow = '';
+    };
+
+    openSpreadsheetModalBtn?.addEventListener('click', openSpreadsheetModal);
+    closeSpreadsheetModalBtn?.addEventListener('click', closeSpreadsheetModal);
+    dismissSpreadsheetModalBtn?.addEventListener('click', closeSpreadsheetModal);
+    spreadsheetBackdrop?.addEventListener('click', closeSpreadsheetModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && spreadsheetModal && !spreadsheetModal.classList.contains('hidden')) {
+        closeSpreadsheetModal();
       }
     });
 
-    // 2. Search inside spreadsheet grid
-    tableSearchInput?.addEventListener('input', (e) => {
-      this.spreadsheetTableSearchQuery = e.target.value;
+    modalSearchInput?.addEventListener('input', (e) => {
+      this.spreadsheetModalSearchQuery = e.target.value;
       this.renderSpreadsheetTableView();
     });
 
-    // 3. Refresh Spreadsheet Table from Server
-    refreshTableBtn?.addEventListener('click', async () => {
+    const triggerRefresh = async () => {
       this.showToast('Refreshing master spreadsheet rows from server...');
       try {
         const res = await fetch('/api/faculty-onboarding');
         const data = await res.json();
-        if (Array.isArray(data)) {
-          this.facultyOnboardingList = data;
-          reminderEmailService.saveFacultyOnboardingList(data);
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
+        if (list) {
+          this.facultyOnboardingList = list;
+          reminderEmailService.saveFacultyOnboardingList(list);
           this.renderOnboardingList();
           this.showToast('Master spreadsheet synchronized with server data.');
         }
       } catch (e) {
         this.renderSpreadsheetTableView();
       }
-    });
-
-    // 4. Live Email Login Verification Tester
-    const updateVerifyResult = (val) => {
-      const q = (val || '').trim().toLowerCase();
-      this.spreadsheetVerifyEmailQuery = q;
-      this.renderSpreadsheetTableView();
-
-      if (!q) {
-        if (emailVerifyResult) {
-          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-white/15 border border-white/20 rounded-lg px-3 py-1.5 text-white/70 shrink-0';
-          emailVerifyResult.innerHTML = '<span class="material-symbols-outlined text-white/60 text-[16px]">info</span><span>Type an email above to test mapped login credentials</span>';
-        }
-        return;
-      }
-
-      const matched = reminderEmailService.findFacultyByEmail(q);
-      if (matched) {
-        if (emailVerifyResult) {
-          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-emerald-950/80 border border-emerald-500/50 rounded-lg px-3 py-1.5 text-emerald-200 shrink-0';
-          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-emerald-400 text-[16px]">check_circle</span><span>${matched.name} • ${matched.dept || 'Faculty'} (${matched.status}) [Authorized Login]</span>`;
-        }
-      } else {
-        if (emailVerifyResult) {
-          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-red-950/80 border border-red-500/50 rounded-lg px-3 py-1.5 text-red-200 shrink-0';
-          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-red-400 text-[16px]">block</span><span>No faculty record found for "${q}" [Login Blocked]</span>`;
-        }
-      }
     };
 
-    emailVerifyInput?.addEventListener('input', (e) => updateVerifyResult(e.target.value));
-    if (emailVerifyInput && emailVerifyInput.value) {
-      updateVerifyResult(emailVerifyInput.value);
-    }
+    refreshTableBtn?.addEventListener('click', triggerRefresh);
+    modalRefreshBtn?.addEventListener('click', triggerRefresh);
 
-    downloadCsvBtn?.addEventListener('click', () => {
+    const triggerCsvDownload = () => {
       this.showToast('Downloading Faculty Onboarding Master Spreadsheet (.csv)...');
       try {
         const link = document.createElement('a');
@@ -5088,7 +5567,61 @@ class AdminDashboardController {
       } catch (err) {
         window.open('/api/faculty-onboarding-csv', '_blank');
       }
+    };
+
+    downloadCsvBtn?.addEventListener('click', triggerCsvDownload);
+    modalDownloadCsvBtn?.addEventListener('click', triggerCsvDownload);
+
+    // 1. Toggle Table View
+    toggleSpreadsheetBtn?.addEventListener('click', () => {
+      if (!spreadsheetWrapper) return;
+      const isHidden = spreadsheetWrapper.classList.toggle('hidden');
+      if (toggleSpreadsheetText) {
+        toggleSpreadsheetText.textContent = isHidden ? 'View Inline Table' : 'Hide Inline Table';
+      }
+      if (!isHidden) {
+        this.renderSpreadsheetTableView();
+      }
     });
+
+    // 2. Search inside spreadsheet grid
+    tableSearchInput?.addEventListener('input', (e) => {
+      this.spreadsheetTableSearchQuery = e.target.value;
+      this.renderSpreadsheetTableView();
+    });
+
+    // 4. Live Email Login Verification Tester
+    const updateVerifyResult = (val) => {
+      const q = (val || '').trim().toLowerCase();
+      this.spreadsheetVerifyEmailQuery = q;
+      this.renderSpreadsheetTableView();
+
+      if (!q) {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-[#faf7f2] border border-[#ded5c6] rounded-lg px-3 py-1.5 text-[#576058] shrink-0';
+          emailVerifyResult.innerHTML = '<span class="material-symbols-outlined text-[#8b958c] text-[16px]">info</span><span>Type an email above to test mapped login credentials</span>';
+        }
+        return;
+      }
+
+      const matched = reminderEmailService.findFacultyByEmail(q);
+      if (matched) {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-[#eef4f0] border border-[#cde0d3] rounded-lg px-3 py-1.5 text-[#2d4d37] shrink-0';
+          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-[#4a7c59] text-[16px]">check_circle</span><span>${matched.name} • ${matched.dept || 'Faculty'} (${matched.status}) [Authorized Login]</span>`;
+        }
+      } else {
+        if (emailVerifyResult) {
+          emailVerifyResult.className = 'flex items-center gap-2 text-xs font-semibold bg-[#fdf2f2] border border-[#f5c6c6] rounded-lg px-3 py-1.5 text-[#b83230] shrink-0';
+          emailVerifyResult.innerHTML = `<span class="material-symbols-outlined text-[#b83230] text-[16px]">block</span><span>No faculty record found for "${q}" [Login Blocked]</span>`;
+        }
+      }
+    };
+
+    emailVerifyInput?.addEventListener('input', (e) => updateVerifyResult(e.target.value));
+    if (emailVerifyInput && emailVerifyInput.value) {
+      updateVerifyResult(emailVerifyInput.value);
+    }
 
     syncGoogleSheetBtn?.addEventListener('click', async () => {
       const defaultUrl = 'https://docs.google.com/spreadsheets/d/1X5X.../edit';
@@ -5338,16 +5871,6 @@ class AdminDashboardController {
           if (chip) setChipState(chip, true);
         });
 
-        // Set cohort checkboxes properly (matching "Prarambh" or "Sushruta")
-        form?.querySelectorAll('input[name="cohort"]').forEach(cb => {
-          const isPrarambh = cb.value.toLowerCase().includes('prarambh');
-          const isSushruta = cb.value.toLowerCase().includes('sushruta');
-          cb.checked = (fac.cohorts || []).some(c => {
-            const cLower = c.toLowerCase();
-            return (isPrarambh && cLower.includes('prarambh')) || (isSushruta && cLower.includes('sushruta'));
-          });
-        });
-
         // Update form UI
         if (submitBtnText) submitBtnText.textContent = `Update Mapping (${fac.name})`;
         if (submitIcon) submitIcon.textContent = 'save';
@@ -5409,12 +5932,6 @@ class AdminDashboardController {
       const activeChips = Array.from(subjectChips?.querySelectorAll('.subject-chip.active, .subject-chip[data-selected="true"]') || []);
       const selectedSubjects = activeChips.map(c => c.getAttribute('data-subject')).filter(Boolean);
       const primarySubject = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'General Medicine';
-
-      // Collect active cohorts
-      const checkedCohorts = Array.from(form.querySelectorAll('input[name="cohort"]:checked')).map(cb => {
-        return cb.value.includes('Prarambh') ? "Prarambh '26" : "Sushruta '26";
-      });
-      if (checkedCohorts.length === 0) checkedCohorts.push("Prarambh '26");
 
       const cleanName = nameVal.startsWith('Dr.') || nameVal.startsWith('Prof.') ? nameVal : `Dr. ${nameVal}`;
 

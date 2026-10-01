@@ -301,8 +301,36 @@
           </h2>
         </div>
 
-        <!-- Right: Filters (Date Navigation & View Mode Switcher) -->
-        <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
+        <!-- Right: Filters (Teacher Filter, Date Navigation & View Mode Switcher) -->
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap ml-auto">
+          <!-- Teacher / Faculty Filter Dropdown Pill -->
+          <div class="relative">
+            <button
+              id="calActionFacultyBtn"
+              type="button"
+              class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#2c332d] select-none transition-all shadow-xs"
+              title="Filter by Teacher"
+            >
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">person</span>
+              <span class="text-[10.5px] uppercase tracking-wider text-[#68736a] font-bold">Teacher:</span>
+              <span class="font-bold text-xs truncate max-w-[125px] sm:max-w-[170px]" id="calActionFacultyLabel">All Faculty</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
+            </button>
+            <!-- Dropdown Menu for Faculty -->
+            <div id="calActionFacultyDropdown" class="hidden absolute top-full mt-1.5 right-0 sm:right-auto sm:left-0 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-2 z-50 modal-3d text-xs">
+              <div class="px-2 py-1.5 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between mb-1.5">
+                <span>Filter by Teacher</span>
+                <span id="calActionFacultyTotalBadge" class="text-[#4a7c59] font-bold">Faculty</span>
+              </div>
+              <div class="px-1 pb-2">
+                <input id="calFacultySearchInput" type="text" placeholder="Search teacher name..." class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#ded5c6] bg-[#fbf9f5] focus:outline-none focus:border-[#4a7c59]">
+              </div>
+              <div id="calActionFacultyList" class="space-y-1 max-h-60 overflow-y-auto pr-1">
+                <!-- Injected dynamically by adminApp.js -->
+              </div>
+            </div>
+          </div>
+
           <!-- Date Navigation (< Today >) -->
           <div class="track-3d flex items-center rounded-xl overflow-hidden">
             <button id="prevMonthBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous">
@@ -323,13 +351,24 @@
         </div>
       </div>
 
-      <!-- Second Row: Subject Filter Navigation Bar (Single line with Left & Right scroll arrows) -->
+      <!-- SUBJECT FILTER NAVIGATION BAR (Single line with Left & Right scroll arrows) -->
       <div class="relative flex items-center gap-1.5 py-0.5 w-full">
-        <!-- Scroll Left Arrow Button -->
+        <!-- All Subjects Filter Button -->
+        <button
+          id="btnSubjectFilterAll"
+          type="button"
+          class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 whitespace-nowrap btn-3d-primary pill-3d-active text-white"
+          data-subject="all"
+          title="Show All Subjects"
+        >
+          All Subjects
+        </button>
+
+        <!-- Scroll Left Arrow Button (placed after All Subjects filter, dynamic) -->
         <button
           id="btnSubjectScrollLeft"
           type="button"
-          class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+          class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer hidden"
           aria-label="Scroll left"
           title="Scroll subjects left"
         >

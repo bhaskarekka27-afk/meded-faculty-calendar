@@ -613,3 +613,21 @@ export function exportFacultyOnboardingAsCode(customList) {
 export const DEFAULT_FACULTY_ONBOARDING = ${JSON.stringify(data, null, 2)};
 `;
 }
+
+// Quietly check and sync from server json/csv if available
+if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+  fetch('/api/faculty-onboarding')
+    .then(r => r.json())
+    .then(data => {
+      const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
+      if (list && list.length > 0) {
+        const current = getFacultyOnboardingData();
+        // If current is default or different length, sync cleanly
+        if (current.length !== list.length) {
+          localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(list));
+          window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
+        }
+      }
+    })
+    .catch(() => {});
+}

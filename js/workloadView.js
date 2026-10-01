@@ -68,19 +68,20 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="font-headline font-bold text-lg text-[#2c332d]">Faculty Workload Analytics</h2>
-                <span class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">
-                  Live Sheet Sync
-                </span>
+                <a href="https://docs.google.com/spreadsheets/d/1dXhAe2a-1Veks15_4QxftrEe2iDhwQKWVmBgllMk2cI/edit?gid=711486978#gid=711486978" target="_blank" rel="noopener noreferrer" class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d hover:bg-[#dfeee3] flex items-center gap-1 no-underline transition-colors" title="Open Google Sheet in new tab">
+                  <span class="material-symbols-outlined text-[13px]">table_chart</span>
+                  <span>Live Sheet Sync</span>
+                </a>
               </div>
               <p class="text-[11.5px] text-[#68736a] mt-0.5">
-                Faculty teaching hours breakdown split by App (Mobile) &amp; YouTube Channel
+                Verified faculty teaching hours breakdown sourced from official workload sheet (24 Faculty • 772 Sessions)
               </p>
             </div>
           </div>
 
           <button id="wlRefreshBtn" class="btn-3d-secondary px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#2c332d] flex items-center gap-1.5 cursor-pointer">
             <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">sync</span>
-            <span>Refresh Data</span>
+            <span id="wlRefreshBtnText">Sync Sheet Data</span>
           </button>
         </div>
 
@@ -316,6 +317,10 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
       const val = opt.getAttribute('data-val');
       if (type && val !== null) {
         state[type] = val;
+        if (type === 'month') state.selectedMonth = val;
+        if (type === 'platform') state.selectedPlatform = val;
+        if (type === 'faculty') state.selectedFaculty = val;
+        if (type === 'batch') state.selectedBatch = val;
         renderWorkloadView(container, workloadManager, state);
       }
     });
@@ -324,12 +329,32 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
   // Search input handler
   document.getElementById('wlSearchInput')?.addEventListener('input', (e) => {
     state.search = e.target.value;
+    state.facultyQuery = e.target.value;
     renderWorkloadView(container, workloadManager, state);
   });
 
-  // Refresh handler
-  document.getElementById('wlRefreshBtn')?.addEventListener('click', () => {
-    workloadManager.loadFromStorage();
-    renderWorkloadView(container, workloadManager, state);
+  // Refresh / Live Sync handler
+  document.getElementById('wlRefreshBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('wlRefreshBtn');
+    const btnText = document.getElementById('wlRefreshBtnText');
+    const syncIcon = btn?.querySelector('.material-symbols-outlined');
+    if (syncIcon) syncIcon.classList.add('animate-spin');
+    if (btnText) btnText.textContent = 'Syncing...';
+    if (btn) btn.disabled = true;
+
+    try {
+      if (typeof workloadManager.syncFromGoogleSheet === 'function') {
+        await workloadManager.syncFromGoogleSheet((p) => {
+          if (btnText) btnText.textContent = `Syncing (${p.current}/${p.total})...`;
+        });
+      } else {
+        workloadManager.loadFromStorage();
+      }
+    } catch (e) {
+      console.warn('Sync failed:', e);
+      workloadManager.loadFromStorage();
+    } finally {
+      renderWorkloadView(container, workloadManager, state);
+    }
   });
 }
