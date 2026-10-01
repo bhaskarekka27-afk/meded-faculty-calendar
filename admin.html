@@ -512,7 +512,7 @@
                   <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">download</span>
                   <span>Download .csv</span>
                 </button>
-                <button id="btn-sync-google-sheet" type="button" onclick="window.openFacultySyncModal ? window.openFacultySyncModal() : (function(){ const m = document.getElementById('modalSyncFacultySheet'); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); document.body.style.overflow = 'hidden'; } })()" class="bg-[#f4efe6] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all w-full sm:w-auto" title="Connect Google Sheet">
+                <button id="btn-sync-google-sheet" type="button" onclick="window.openFacultySyncModal ? window.openFacultySyncModal() : (function(){ const m = document.getElementById('modalSyncFacultySheet'); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); m.style.display = 'flex'; document.body.style.overflow = 'hidden'; } })()" class="bg-[#f4efe6] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all w-full sm:w-auto" title="Connect Google Sheet">
                   <span class="material-symbols-outlined text-[18px]">sync</span>
                   <span>Sync Google Sheet</span>
                 </button>

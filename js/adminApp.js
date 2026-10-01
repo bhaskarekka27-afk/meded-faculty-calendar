@@ -5687,6 +5687,7 @@ class AdminDashboardController {
       if (alertEl) alertEl.classList.add('hidden');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
       setTimeout(() => urlInput?.focus(), 50);
     };
@@ -5696,6 +5697,7 @@ class AdminDashboardController {
       if (!modal) return;
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      modal.style.display = 'none';
       document.body.style.overflow = '';
     };
 

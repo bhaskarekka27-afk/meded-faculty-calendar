@@ -878,19 +878,23 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
   }
 
   // Strategy 2: Direct Google Visualization API (GViz) CSV export (Works in browser if sheet is public)
-  const gvizUrls = [
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
+  const gvizUrls = [];
+  if (gid) {
+    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
+  }
+  gvizUrls.push(
     `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty%20Directory`,
     `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
     `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`
-  ];
+  );
 
   for (const targetUrl of gvizUrls) {
     try {
       const res = await fetch(targetUrl, { mode: 'cors' });
       if (res.ok) {
         const text = await res.text();
-        if (text && text.trim().length > 30 && !text.startsWith('<!DOCTYPE') && !text.startsWith('<html')) {
+        if (text && text.trim().length > 15 && !text.startsWith('<!DOCTYPE') && !text.startsWith('<html')) {
           csvText = text;
           fetchedVia = 'gviz_direct';
           break;
@@ -903,7 +907,7 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
 
   // Strategy 3: Client-side JSONP (Bypasses all CORS limitations on production)
   if (!csvText && typeof window !== 'undefined' && typeof document !== 'undefined') {
-    const candidateTabs = ['Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1', ''];
+    const candidateTabs = gid ? [null, 'Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1'] : ['Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1', null];
     for (const tab of candidateTabs) {
       try {
         const jsonpCsv = await new Promise((resolve, reject) => {
