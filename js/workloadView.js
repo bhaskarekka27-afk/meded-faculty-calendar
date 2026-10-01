@@ -74,7 +74,7 @@ export function renderWorkloadView(container, workloadManager, state = {}) {
                 </a>
               </div>
               <p class="text-[11.5px] text-[#68736a] mt-0.5">
-                Verified faculty teaching hours breakdown sourced from official workload sheet (24 Faculty • 772 Sessions)
+                Verified faculty teaching hours breakdown sourced from official workload sheet (24 Faculty • ${workloadManager.getAllEntries().length} Sessions)
               </p>
             </div>
           </div>
