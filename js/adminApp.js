@@ -5923,6 +5923,7 @@ class AdminDashboardController {
         if (fac) {
           const newVal = fac.canRescheduleCancel === false ? true : false;
           fac.canRescheduleCancel = newVal;
+          fac.lastUpdated = new Date().toISOString();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
           autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
           this.renderOnboardingList();

@@ -995,28 +995,51 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
     };
   }
 
+  // Preserve any local state that has been modified more recently than the remote sheet snapshot
+  const localList = getFacultyOnboardingData();
+  const mergedList = parsedList.map(remoteF => {
+    const localMatch = localList.find(l => (l.id && l.id === remoteF.id) || (l.email && l.email.toLowerCase() === (remoteF.email || '').toLowerCase()));
+    if (localMatch) {
+      const localTime = localMatch.lastUpdated ? new Date(localMatch.lastUpdated).getTime() : 0;
+      const remoteTime = remoteF.lastUpdated ? new Date(remoteF.lastUpdated).getTime() : 0;
+      // If local edit has occurred and is newer, keep local state
+      if (localTime > remoteTime) {
+        return { ...remoteF, ...localMatch };
+      }
+    }
+    return remoteF;
+  });
+
+  // Also include any local-only faculty that haven't been added to the sheet yet
+  localList.forEach(localF => {
+    const existsInRemote = mergedList.some(r => (r.id && r.id === localF.id) || (r.email && r.email.toLowerCase() === (localF.email || '').toLowerCase()));
+    if (!existsInRemote) {
+      mergedList.push(localF);
+    }
+  });
+
   // Persist synced data locally and broadcast to all tabs
-  saveFacultyOnboardingData(parsedList);
+  saveFacultyOnboardingData(mergedList);
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
   }
 
   return {
     success: true,
-    count: parsedList.length,
-    list: parsedList,
+    count: mergedList.length,
+    list: mergedList,
     method: fetchedVia
   };
 }
 
 /**
- * Automatically syncs from the embedded Google Sheet URL.
+ * Automatically syncs from the embedded Google Sheet URL without clobbering recent local edits.
  */
 export async function syncFacultyFromConnectedSheet() {
   try {
     const connectedUrl = getConnectedFacultySheetUrl();
     if (!connectedUrl) return null;
-    return await syncFacultyFromGoogleSheet(connectedUrl);
+    return await syncFacultyFromGoogleSheet(connectedUrl, false);
   } catch (err) {
     console.warn('Background faculty sheet sync notice:', err.message);
     return null;
@@ -1034,7 +1057,12 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
     list = getFacultyOnboardingData();
   }
 
-  // 1. Persist locally
+  // Ensure targetFaculty has updated timestamp
+  if (targetFaculty) {
+    targetFaculty.lastUpdated = new Date().toISOString();
+  }
+
+  // 1. Persist locally immediately
   saveFacultyOnboardingData(list);
 
   // 2. Broadcast event across tabs and components
@@ -1043,23 +1071,27 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
   }
 
   // 3. Automated Sheet / Apps Script Writeback
-  const scriptUrl = typeof localStorage !== 'undefined' ? localStorage.getItem('meded_sheet_writer_url') : null;
-  const token = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_token') || 'CHANGE-ME-to-a-long-random-string') : '';
+  const scriptUrl = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_url') || localStorage.getItem('pw_faculty_script_url')) : null;
+  const token = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_token') || 'pw-meded-token-2026') : 'pw-meded-token-2026';
 
   if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
     try {
+      const payload = JSON.stringify({
+        action: action === 'delete' ? 'delete_faculty' : (action === 'add' ? 'add_faculty' : (action === 'batch' ? 'batch_update_faculty' : 'update_faculty')),
+        token,
+        faculty: targetFaculty,
+        fullList: list
+      });
+
+      // Use text/plain and no-cors for robust Apps Script execution without CORS preflight failures
       await fetch(scriptUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: action === 'delete' ? 'delete_faculty' : (action === 'add' ? 'add_faculty' : (action === 'batch' ? 'batch_update_faculty' : 'update_faculty')),
-          token,
-          faculty: targetFaculty,
-          fullList: list
-        })
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload
       });
     } catch (e) {
-      console.warn('Background sheet mutation writeback skipped:', e);
+      console.warn('Background sheet mutation writeback notice:', e);
     }
   }
 
