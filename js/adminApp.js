@@ -5341,6 +5341,10 @@ class AdminDashboardController {
     const footerInfo = document.getElementById('spreadsheet-footer-info');
     const modalFooterInfo = document.getElementById('spreadsheet-modal-footer-info');
 
+    if (!inlineTbody && !modalTbody && !totalBadge && !modalTotalBadge) {
+      return;
+    }
+
     if (!this.facultyOnboardingList) {
       this.facultyOnboardingList = reminderEmailService.getFacultyOnboardingList() || [];
     }
@@ -5491,105 +5495,11 @@ class AdminDashboardController {
       this.showToast('Filtered by: Pending Mapping faculty');
     });
 
-    // Master Spreadsheet Action Controls & Email Mapping Tester
+    // Optional Master Spreadsheet Action Controls
     const downloadCsvBtn = document.getElementById('btn-download-onboarding-csv');
-    const syncGoogleSheetBtn = document.getElementById('btn-sync-google-sheet');
-    const toggleSpreadsheetBtn = document.getElementById('btn-toggle-spreadsheet-view');
-    const toggleSpreadsheetText = document.getElementById('btn-toggle-spreadsheet-text');
-    const spreadsheetWrapper = document.getElementById('spreadsheet-table-wrapper');
-    const tableSearchInput = document.getElementById('spreadsheet-table-search-input');
     const refreshTableBtn = document.getElementById('btn-refresh-spreadsheet-table');
     const emailVerifyInput = document.getElementById('spreadsheet-email-verify-input');
     const emailVerifyResult = document.getElementById('spreadsheet-verify-result');
-
-    // Master Spreadsheet Popup Modal Elements
-    const openSpreadsheetModalBtn = document.getElementById('btn-open-spreadsheet-modal');
-    const spreadsheetModal = document.getElementById('modalFacultySpreadsheet');
-    const spreadsheetBackdrop = document.getElementById('backdropFacultySpreadsheet');
-    const closeSpreadsheetModalBtn = document.getElementById('btnCloseSpreadsheetModal');
-    const dismissSpreadsheetModalBtn = document.getElementById('btnDismissSpreadsheetModal');
-    const modalSearchInput = document.getElementById('spreadsheet-modal-search-input');
-    const modalRefreshBtn = document.getElementById('btn-modal-refresh-spreadsheet');
-    const modalDownloadCsvBtn = document.getElementById('btn-modal-download-csv');
-
-    const openSpreadsheetModal = () => {
-      if (!spreadsheetModal) return;
-      this.renderSpreadsheetTableView();
-      spreadsheetModal.classList.remove('hidden');
-      spreadsheetModal.classList.add('flex');
-      document.body.style.overflow = 'hidden';
-      if (modalSearchInput) {
-        modalSearchInput.value = this.spreadsheetModalSearchQuery || '';
-        modalSearchInput.focus();
-      }
-    };
-
-    const closeSpreadsheetModal = () => {
-      if (!spreadsheetModal) return;
-      spreadsheetModal.classList.add('hidden');
-      spreadsheetModal.classList.remove('flex');
-      document.body.style.overflow = '';
-    };
-
-    openSpreadsheetModalBtn?.addEventListener('click', openSpreadsheetModal);
-    closeSpreadsheetModalBtn?.addEventListener('click', closeSpreadsheetModal);
-    dismissSpreadsheetModalBtn?.addEventListener('click', closeSpreadsheetModal);
-    spreadsheetBackdrop?.addEventListener('click', closeSpreadsheetModal);
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && spreadsheetModal && !spreadsheetModal.classList.contains('hidden')) {
-        closeSpreadsheetModal();
-      }
-    });
-
-    modalSearchInput?.addEventListener('input', (e) => {
-      this.spreadsheetModalSearchQuery = e.target.value;
-      this.renderSpreadsheetTableView();
-    });
-
-    const triggerRefresh = async () => {
-      this.showToast('Refreshing master spreadsheet rows...');
-      try {
-        const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
-        if (connectedUrl) {
-          const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
-          if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
-            this.facultyOnboardingList = syncRes.list;
-            this.renderOnboardingList();
-            this.renderSpreadsheetTableView();
-            this.showToast(`Master spreadsheet synced (${syncRes.count} records) from Google Sheet.`);
-            return;
-          }
-        }
-
-        // Try local server if running
-        try {
-          const res = await fetch('/api/faculty-onboarding');
-          if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
-            const data = await res.json();
-            const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
-            if (list) {
-              this.facultyOnboardingList = list;
-              reminderEmailService.saveFacultyOnboardingList(list);
-              this.renderOnboardingList();
-              this.renderSpreadsheetTableView();
-              this.showToast('Master spreadsheet synchronized with server data.');
-              return;
-            }
-          }
-        } catch (_) {}
-
-        this.facultyOnboardingList = getFacultyOnboardingData();
-        this.renderOnboardingList();
-        this.renderSpreadsheetTableView();
-        this.showToast('Master spreadsheet synchronized.');
-      } catch (e) {
-        this.renderSpreadsheetTableView();
-      }
-    };
-
-    refreshTableBtn?.addEventListener('click', triggerRefresh);
-    modalRefreshBtn?.addEventListener('click', triggerRefresh);
 
     const triggerCsvDownload = () => {
       this.showToast('Generating and downloading Faculty Onboarding Master Spreadsheet (.csv)...');
@@ -5613,27 +5523,8 @@ class AdminDashboardController {
     };
 
     downloadCsvBtn?.addEventListener('click', triggerCsvDownload);
-    modalDownloadCsvBtn?.addEventListener('click', triggerCsvDownload);
 
-    // 1. Toggle Table View
-    toggleSpreadsheetBtn?.addEventListener('click', () => {
-      if (!spreadsheetWrapper) return;
-      const isHidden = spreadsheetWrapper.classList.toggle('hidden');
-      if (toggleSpreadsheetText) {
-        toggleSpreadsheetText.textContent = isHidden ? 'View Inline Table' : 'Hide Inline Table';
-      }
-      if (!isHidden) {
-        this.renderSpreadsheetTableView();
-      }
-    });
-
-    // 2. Search inside spreadsheet grid
-    tableSearchInput?.addEventListener('input', (e) => {
-      this.spreadsheetTableSearchQuery = e.target.value;
-      this.renderSpreadsheetTableView();
-    });
-
-    // 4. Live Email Login Verification Tester
+    // Live Email Login Verification Tester (if present)
     const updateVerifyResult = (val) => {
       const q = (val || '').trim().toLowerCase();
       this.spreadsheetVerifyEmailQuery = q;
@@ -5709,7 +5600,7 @@ class AdminDashboardController {
       window.closeFacultySyncModal = closeSyncModal;
     }
 
-    syncGoogleSheetBtn?.addEventListener('click', openSyncModal);
+    document.getElementById('btn-sync-google-sheet')?.addEventListener('click', openSyncModal);
     syncModalCloseBtn?.addEventListener('click', closeSyncModal);
     syncModalCancelBtn?.addEventListener('click', closeSyncModal);
     syncModalBackdrop?.addEventListener('click', closeSyncModal);

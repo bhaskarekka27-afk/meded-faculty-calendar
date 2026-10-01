@@ -4,28 +4,24 @@ const path = require('path');
 
 console.log('--- Testing Faculty Onboarding Master Spreadsheet UI & Login Verification ---');
 
-// 1. Check admin.html for new warm 3D UI card and popup modal
+// 1. Check admin.html for clean Onboarding view & metric cards
 const adminHtml = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf-8');
 
-assert(adminHtml.includes('id="btn-open-spreadsheet-modal"'), 'Missing #btn-open-spreadsheet-modal button');
-assert(adminHtml.includes('id="modalFacultySpreadsheet"'), 'Missing #modalFacultySpreadsheet popup modal');
-assert(adminHtml.includes('id="spreadsheet-modal-table-body"'), 'Missing #spreadsheet-modal-table-body');
-assert(adminHtml.includes('id="spreadsheet-modal-search-input"'), 'Missing #spreadsheet-modal-search-input');
-assert(adminHtml.includes('id="spreadsheet-email-verify-input"'), 'Missing #spreadsheet-email-verify-input');
-assert(adminHtml.includes('id="spreadsheet-verify-result"'), 'Missing #spreadsheet-verify-result');
+assert(adminHtml.includes('id="faculty-search-input"'), 'Missing #faculty-search-input');
+assert(adminHtml.includes('id="faculty-list-container"'), 'Missing #faculty-list-container');
+assert(adminHtml.includes('id="stat-total-faculty"'), 'Missing #stat-total-faculty');
+assert(!adminHtml.includes('id="modalFacultySpreadsheet"'), 'modalFacultySpreadsheet should be removed');
+assert(!adminHtml.includes('id="btn-open-spreadsheet-modal"'), 'btn-open-spreadsheet-modal should be removed');
 
-console.log('✓ admin.html contains clean 3D Master Spreadsheet card, email verifier, and popup modal');
+console.log('✓ admin.html contains clean Faculty Onboarding workspace with search, stats, and directory');
 
-// 2. Check adminApp.js for modal handlers and real-time synchronization
+// 2. Check adminApp.js for real-time synchronization
 const adminAppJs = fs.readFileSync(path.join(__dirname, 'js', 'adminApp.js'), 'utf-8');
 
-assert(adminAppJs.includes('modalFacultySpreadsheet'), 'adminApp.js should reference modalFacultySpreadsheet');
-assert(adminAppJs.includes('openSpreadsheetModal'), 'adminApp.js should have openSpreadsheetModal logic');
-assert(adminAppJs.includes('spreadsheet-modal-table-body'), 'adminApp.js should populate spreadsheet-modal-table-body');
-assert(adminAppJs.includes('spreadsheetModalSearchQuery'), 'adminApp.js should support modal search query');
-assert(adminAppJs.includes('renderSpreadsheetTableView'), 'adminApp.js should call renderSpreadsheetTableView');
+assert(adminAppJs.includes('renderOnboardingList'), 'adminApp.js should have renderOnboardingList');
+assert(adminAppJs.includes('initOnboardingHandlers'), 'adminApp.js should have initOnboardingHandlers');
 
-console.log('✓ adminApp.js contains real-time modal and inline rendering with search and sync handlers');
+console.log('✓ adminApp.js contains real-time faculty onboarding and synchronization handlers');
 
 // 3. Test reminderEmailService email verification logic
 const facultyDataModule = require('./data_faculty_onboarding.json');
