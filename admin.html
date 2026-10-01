@@ -2059,6 +2059,131 @@
     </div>
   </div>
 
+  <!-- 7. SYNC & AUTO-FORMAT GOOGLE SHEET MODAL -->
+  <div aria-modal="true" class="hidden fixed inset-0 z-[99995] flex items-center justify-center p-4 sm:p-6 overflow-y-auto" id="modalSyncFacultySheet" role="dialog">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" id="backdropSyncFacultySheet"></div>
+    <div class="relative w-full max-w-2xl bg-[#fbf9f5] rounded-2xl shadow-2xl border border-[#ded5c6] p-5 sm:p-6 text-left z-10 transition-all animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[92vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3.5 border-b border-[#ded5c6] mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center justify-center shrink-0 shadow-xs">
+            <span class="material-symbols-outlined text-[24px]">sync_saved_locally</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-headline text-base sm:text-lg font-bold text-[#2c332d]">Connect &amp; Sync Faculty Master Google Sheet</h3>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">
+                Production Ready
+              </span>
+            </div>
+            <p class="text-xs text-[#576058] mt-0.5">
+              Syncs live faculty credentials, email login mappings, and permissions directly from Google Sheets.
+            </p>
+          </div>
+        </div>
+        <button id="btnCloseSyncFacultySheetModal" type="button" class="w-8 h-8 rounded-xl hover:bg-[#ede7da] flex items-center justify-center text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="space-y-4 text-xs">
+        
+        <!-- Sheet URL Input -->
+        <div class="p-3.5 bg-white rounded-xl border border-[#ded5c6] space-y-2">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-[#2c332d]">
+            Google Spreadsheet Link or Apps Script Web App URL *
+          </label>
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8b958c] text-[16px]">link</span>
+              <input id="inputFacultySheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit or Apps Script /exec" class="w-full pl-9 pr-3 py-2 bg-[#fcfbfa] border border-[#ded5c6] text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none focus:border-[#4a7c59] focus:bg-white transition-all">
+            </div>
+            <button id="btnQuickTestFacultySheet" type="button" class="px-3.5 py-2 bg-[#f4efe6] hover:bg-[#ede7da] text-[#2c332d] border border-[#ded5c6] rounded-xl font-bold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer transition-colors">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">network_check</span>
+              <span>Test Link</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-[#68736a] flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-[#4a7c59]">lock_open</span>
+            <span>Make sure sharing is set to <strong>"Anyone with the link can view"</strong> (or deploy via Apps Script for 2-way writeback).</span>
+          </p>
+          <div id="facultySheetStatusAlert" class="hidden p-2.5 rounded-xl text-xs flex items-start gap-2"></div>
+        </div>
+
+        <!-- 1-Click Auto-Creation & Formatting Tools -->
+        <div class="p-3.5 bg-gradient-to-br from-[#f5fbf7] to-[#eef4f0] rounded-xl border border-[#cde0d3] space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-[#2d4d37] font-bold text-xs">
+              <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">auto_fix_high</span>
+              <span>Automatic Sheet Setup &amp; Format Generator</span>
+            </div>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-[#2d4d37] border border-[#cde0d3]">
+              1-Click Format
+            </span>
+          </div>
+          <p class="text-[11px] text-[#425246] leading-relaxed">
+            Starting with a blank Google Sheet? You can automatically copy all required headers and 34 verified faculty records directly to your clipboard, or download a pre-formatted template.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+            <button id="btnCopySheetFormatTsv" type="button" class="btn-3d-secondary bg-white hover:bg-[#faf7f2] text-[#2c332d] border border-[#cde0d3] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-all shadow-xs">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">content_copy</span>
+              <span>Copy Data (Paste in A1)</span>
+            </button>
+            <button id="btnDownloadSheetTemplateCsv" type="button" class="btn-3d-secondary bg-white hover:bg-[#faf7f2] text-[#2c332d] border border-[#cde0d3] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-all shadow-xs">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">download</span>
+              <span>Download .CSV Template</span>
+            </button>
+            <button id="btnAppsScriptAutoWrite" type="button" class="btn-3d-primary bg-[#4a7c59] hover:bg-[#3c6749] text-white px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-all shadow-xs">
+              <span class="material-symbols-outlined text-[16px]">bolt</span>
+              <span>Apps Script Auto-Write</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Format & Header Guide Accordion -->
+        <div class="p-3 bg-white rounded-xl border border-[#ded5c6] space-y-2">
+          <div class="flex items-center justify-between text-[#2c332d] font-bold text-xs">
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">view_column</span>
+              <span>Required Column Headers (11 Columns)</span>
+            </span>
+            <span class="text-[10px] text-[#68736a] font-mono">Row 1 in Google Sheets</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">A: Faculty ID</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">B: Name</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">C: Primary Email</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">D: Secondary Email</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">E: Phone</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">F: Department</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">G: Designation Role</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">H: Status</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">I: Can Reschedule Cancel</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">J: Assigned Cohorts</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">K: Last Updated</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-4 mt-4 border-t border-[#ded5c6] flex items-center justify-between gap-3 shrink-0">
+        <button id="btnCancelSyncFacultySheet" type="button" class="btn-3d-secondary bg-white hover:bg-[#ede7da] text-[#576058] px-4 py-2 rounded-xl text-xs font-bold border border-[#ded5c6] cursor-pointer">
+          Cancel
+        </button>
+        <button id="btnExecuteSyncFacultySheet" type="button" class="btn-3d-primary bg-[#4a7c59] hover:bg-[#3c6749] text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm">
+          <span class="material-symbols-outlined text-[16px]">sync</span>
+          <span>Sync &amp; Validate Faculty Sheet</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
   <!-- Admin Controller Application Script -->
   <script type="module" src="js/adminApp.js"></script>
 </body>

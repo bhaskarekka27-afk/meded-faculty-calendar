@@ -61,6 +61,8 @@ columns freely.
 | `Rescheduled Duration` | e.g. `2 Hours` | cleared |
 | `Status Updated At` | timestamp in the sheet's timezone | timestamp |
 
+| `Status Updated At` | timestamp in the sheet's timezone | timestamp |
+
 The original date, faculty, subject, chapter, topic and timings are **never**
 modified — the planned slot stays as the record of what was originally
 scheduled, and the new slot lives alongside it.
@@ -68,6 +70,20 @@ scheduled, and the new slot lives alongside it.
 Every action is also appended to a `Reschedule Log` tab (created automatically)
 with the actor, reason and request id. Set `ENABLE_LOG_TAB = false` in
 `Code.gs` if you would rather not keep that.
+
+---
+
+## 4. Faculty Directory Auto-Initialization & Formatting
+
+`Code.gs` can also automatically create and format your **Faculty Master Spreadsheet** tab (`Faculty Directory`):
+
+1. It automatically creates the **"Faculty Directory"** tab if missing.
+2. Applies institutional dark forest green styling (`#2D4D37`), bold white text, and freezes Row 1.
+3. Automatically writes the 11 required column headers:
+   `Faculty ID`, `Name`, `Primary Email`, `Secondary Email`, `Phone`, `Department`, `Designation Role`, `Status`, `Can Reschedule Cancel`, `Assigned Cohorts`, `Last Updated`.
+4. Populates all verified initial faculty records for instant login authorization.
+
+In the admin portal, open **Faculty Master Spreadsheet → Sync Google Sheet → Apps Script Auto-Write** or call the Web App URL with `action=setup_faculty_sheet`.
 
 ## How the right row is found
 
@@ -96,3 +112,4 @@ how many are outstanding.
 
 After editing `Code.gs` you must **Deploy → Manage deployments → Edit → Deploy**
 again; saving alone does not update the live Web App.
+

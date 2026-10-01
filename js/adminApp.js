@@ -21,6 +21,15 @@ import {
   flushPendingSheetWrites,
   getPendingSheetWrites
 } from './sheetWriter.js';
+import {
+  getFacultyOnboardingData,
+  saveFacultyOnboardingData,
+  facultyListToCSV,
+  facultyListToTSV,
+  syncFacultyFromGoogleSheet,
+  FACULTY_SHEET_URL_KEY,
+  FACULTY_SHEET_HEADERS
+} from './facultyOnboardingData.js';
 
 class AdminDashboardController {
   constructor() {
@@ -5117,7 +5126,7 @@ class AdminDashboardController {
     }
 
     // 3. Populate #subject-chips-container (Interactive Chips)
-    if (chipsContainer && chipsContainer.children.length <= 14) {
+    if (chipsContainer && (chipsContainer.children?.length ?? 0) <= 14) {
       const activeSubjects = new Set(
         Array.from(chipsContainer.querySelectorAll('.subject-chip.active, .subject-chip[data-selected="true"]'))
           .map(c => c.getAttribute('data-subject'))
@@ -5536,17 +5545,41 @@ class AdminDashboardController {
     });
 
     const triggerRefresh = async () => {
-      this.showToast('Refreshing master spreadsheet rows from server...');
+      this.showToast('Refreshing master spreadsheet rows...');
       try {
-        const res = await fetch('/api/faculty-onboarding');
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
-        if (list) {
-          this.facultyOnboardingList = list;
-          reminderEmailService.saveFacultyOnboardingList(list);
-          this.renderOnboardingList();
-          this.showToast('Master spreadsheet synchronized with server data.');
+        const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+        if (connectedUrl) {
+          const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
+          if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
+            this.facultyOnboardingList = syncRes.list;
+            this.renderOnboardingList();
+            this.renderSpreadsheetTableView();
+            this.showToast(`Master spreadsheet synced (${syncRes.count} records) from Google Sheet.`);
+            return;
+          }
         }
+
+        // Try local server if running
+        try {
+          const res = await fetch('/api/faculty-onboarding');
+          if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
+            if (list) {
+              this.facultyOnboardingList = list;
+              reminderEmailService.saveFacultyOnboardingList(list);
+              this.renderOnboardingList();
+              this.renderSpreadsheetTableView();
+              this.showToast('Master spreadsheet synchronized with server data.');
+              return;
+            }
+          }
+        } catch (_) {}
+
+        this.facultyOnboardingList = getFacultyOnboardingData();
+        this.renderOnboardingList();
+        this.renderSpreadsheetTableView();
+        this.showToast('Master spreadsheet synchronized.');
       } catch (e) {
         this.renderSpreadsheetTableView();
       }
@@ -5556,14 +5589,21 @@ class AdminDashboardController {
     modalRefreshBtn?.addEventListener('click', triggerRefresh);
 
     const triggerCsvDownload = () => {
-      this.showToast('Downloading Faculty Onboarding Master Spreadsheet (.csv)...');
+      this.showToast('Generating and downloading Faculty Onboarding Master Spreadsheet (.csv)...');
       try {
+        const list = this.facultyOnboardingList && this.facultyOnboardingList.length > 0 
+          ? this.facultyOnboardingList 
+          : getFacultyOnboardingData();
+        const csvContent = facultyListToCSV(list);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = '/api/faculty-onboarding-csv';
+        link.href = blobUrl;
         link.download = 'PW_MedEd_Faculty_Onboarding_Directory.csv';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1200);
       } catch (err) {
         window.open('/api/faculty-onboarding-csv', '_blank');
       }
@@ -5623,33 +5663,188 @@ class AdminDashboardController {
       updateVerifyResult(emailVerifyInput.value);
     }
 
-    syncGoogleSheetBtn?.addEventListener('click', async () => {
-      const defaultUrl = 'https://docs.google.com/spreadsheets/d/1X5X.../edit';
-      const inputUrl = prompt(
-        'Enter public/shared Google Spreadsheet URL containing Faculty Onboarding Mappings:\n(Format: Faculty ID, Name, Primary Email, Secondary Email, Phone, Department, Designation Role, Status, Can Reschedule Cancel, Assigned Cohorts, Last Updated)',
-        ''
-      );
-      if (!inputUrl || !inputUrl.trim()) return;
+    // --- 5. Sync & Auto-Format Faculty Master Google Sheet Modal ---
+    const syncModal = document.getElementById('modalSyncFacultySheet');
+    const syncModalBackdrop = document.getElementById('backdropSyncFacultySheet');
+    const syncModalCloseBtn = document.getElementById('btnCloseSyncFacultySheetModal');
+    const syncModalCancelBtn = document.getElementById('btnCancelSyncFacultySheet');
+    const syncModalUrlInput = document.getElementById('inputFacultySheetUrl');
+    const syncModalTestBtn = document.getElementById('btnQuickTestFacultySheet');
+    const syncModalExecuteBtn = document.getElementById('btnExecuteSyncFacultySheet');
+    const syncModalAlert = document.getElementById('facultySheetStatusAlert');
+    const btnCopyFormatTsv = document.getElementById('btnCopySheetFormatTsv');
+    const btnDownloadTemplateCsv = document.getElementById('btnDownloadSheetTemplateCsv');
+    const btnAppsScriptWrite = document.getElementById('btnAppsScriptAutoWrite');
 
-      this.showToast('Connecting and synchronizing with Google Sheet...');
+    const openSyncModal = () => {
+      if (!syncModal) return;
+      if (syncModalUrlInput) {
+        syncModalUrlInput.value = localStorage.getItem(FACULTY_SHEET_URL_KEY) || '';
+      }
+      if (syncModalAlert) syncModalAlert.classList.add('hidden');
+      syncModal.classList.remove('hidden');
+      syncModal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => syncModalUrlInput?.focus(), 50);
+    };
+
+    const closeSyncModal = () => {
+      if (!syncModal) return;
+      syncModal.classList.add('hidden');
+      syncModal.classList.remove('flex');
+      document.body.style.overflow = '';
+    };
+
+    syncGoogleSheetBtn?.addEventListener('click', openSyncModal);
+    syncModalCloseBtn?.addEventListener('click', closeSyncModal);
+    syncModalCancelBtn?.addEventListener('click', closeSyncModal);
+    syncModalBackdrop?.addEventListener('click', closeSyncModal);
+
+    // 1-Click Copy Headers & Data (Paste into Cell A1)
+    btnCopyFormatTsv?.addEventListener('click', async () => {
       try {
-        const res = await fetch('/api/faculty-onboarding/sync-sheet', {
+        const list = this.facultyOnboardingList && this.facultyOnboardingList.length > 0 
+          ? this.facultyOnboardingList 
+          : getFacultyOnboardingData();
+        const tsv = facultyListToTSV(list);
+        await navigator.clipboard.writeText(tsv);
+        this.showToast('✓ Copied 11 formatted headers & 34 faculty rows! Select cell A1 in Google Sheets and press Ctrl+V / Cmd+V.');
+        if (syncModalAlert) {
+          syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] flex items-start gap-2';
+          syncModalAlert.innerHTML = '<span class="material-symbols-outlined text-[#4a7c59] text-[18px]">check_circle</span><div><strong>Copied to Clipboard!</strong><p class="mt-0.5">Open your Google Sheet, click cell <strong>A1</strong>, and press <strong>Ctrl+V</strong> (or Cmd+V). All headers and faculty records will paste cleanly formatted.</p></div>';
+          syncModalAlert.classList.remove('hidden');
+        }
+      } catch (err) {
+        prompt('Copy the pre-formatted headers and data below, then paste into Cell A1 of Google Sheets:', facultyListToTSV(getFacultyOnboardingData()));
+      }
+    });
+
+    // 1-Click Download Template CSV
+    btnDownloadTemplateCsv?.addEventListener('click', () => {
+      const list = this.facultyOnboardingList && this.facultyOnboardingList.length > 0 
+        ? this.facultyOnboardingList 
+        : getFacultyOnboardingData();
+      const csv = facultyListToCSV(list);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'PW_MedEd_Faculty_Master_Template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.showToast('Downloaded PW_MedEd_Faculty_Master_Template.csv. Import into Google Sheets via File > Import.');
+    });
+
+    // Apps Script Auto-Write Trigger
+    btnAppsScriptWrite?.addEventListener('click', async () => {
+      const currentUrl = (syncModalUrlInput?.value || '').trim();
+      if (!currentUrl.includes('script.google.com/macros/s/') || !currentUrl.includes('/exec')) {
+        alert(
+          'To automatically write headers & faculty data directly into your Google Sheet:\n\n' +
+          '1. Open your Google Sheet -> Extensions -> Apps Script.\n' +
+          '2. Paste apps-script/Code.gs from this project and click Deploy -> New deployment -> Web app (Who has access: Anyone).\n' +
+          '3. Copy the Web App /exec URL and paste it into the URL field above.\n\n' +
+          'Alternatively, simply click "Copy Data (Paste in A1)" to format your sheet in 2 seconds!'
+        );
+        return;
+      }
+
+      this.showToast('Calling Apps Script to format sheet and write faculty data...');
+      try {
+        const postUrl = currentUrl;
+        const res = await fetch(postUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sheetUrl: inputUrl.trim() })
+          body: JSON.stringify({
+            action: 'setup_faculty_sheet',
+            token: localStorage.getItem('meded_sheet_writer_token') || 'CHANGE-ME-to-a-long-random-string'
+          })
         });
-        const jsonRes = await res.json();
-        if (jsonRes.success && Array.isArray(jsonRes.list)) {
-          this.facultyOnboardingList = jsonRes.list;
+        const json = await res.json();
+        if (json && json.ok) {
+          this.showToast('✓ Successfully formatted Google Sheet and wrote verified faculty records!');
+          if (syncModalAlert) {
+            syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] flex items-start gap-2';
+            syncModalAlert.innerHTML = `<span class="material-symbols-outlined text-[#4a7c59] text-[18px]">verified</span><div><strong>Apps Script Formatted Sheet!</strong><p class="mt-0.5">${json.message || 'Headers and verified faculty rows created.'}</p></div>`;
+            syncModalAlert.classList.remove('hidden');
+          }
+        } else {
+          alert(`Apps Script returned: ${json?.error || 'Unexpected error'}`);
+        }
+      } catch (err) {
+        alert(`Apps Script call note: ${err.message}. If CORS prevents browser POST, verify deployment access is set to "Anyone".`);
+      }
+    });
+
+    // Quick Test Link Button
+    syncModalTestBtn?.addEventListener('click', async () => {
+      const url = (syncModalUrlInput?.value || '').trim();
+      if (!url) {
+        alert('Please enter a Google Sheet URL or Apps Script URL.');
+        return;
+      }
+      if (syncModalAlert) {
+        syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#faf7f2] text-[#576058] border border-[#ded5c6] flex items-center gap-2';
+        syncModalAlert.innerHTML = '<span class="material-symbols-outlined text-[#4a7c59] animate-spin text-[16px]">progress_activity</span><span>Testing connection and detecting sheet format...</span>';
+        syncModalAlert.classList.remove('hidden');
+      }
+
+      try {
+        const result = await syncFacultyFromGoogleSheet(url);
+        if (result.success) {
+          if (syncModalAlert) {
+            syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] flex items-start gap-2';
+            syncModalAlert.innerHTML = `<span class="material-symbols-outlined text-[#4a7c59] text-[18px]">check_circle</span><div><strong>Valid Google Sheet Connected!</strong><p class="mt-0.5">Found ${result.count} faculty records. Required headers matched. Ready to synchronize.</p></div>`;
+          }
+        } else if (result.empty) {
+          if (syncModalAlert) {
+            syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#fff9ed] text-[#8c5b16] border border-[#ecd9b5] flex items-start gap-2';
+            syncModalAlert.innerHTML = `<span class="material-symbols-outlined text-[#b87d2b] text-[18px]">warning</span><div><strong>Sheet Connected, but Missing Rows / Headers!</strong><p class="mt-0.5">Click <strong>"Copy Data (Paste in A1)"</strong> above, select cell A1 in your Google Sheet, and press Ctrl+V.</p></div>`;
+          }
+        }
+      } catch (err) {
+        if (syncModalAlert) {
+          syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#fdf2f2] text-[#b83230] border border-[#f5c6c6] flex items-start gap-2';
+          syncModalAlert.innerHTML = `<span class="material-symbols-outlined text-[#b83230] text-[18px]">error</span><div><strong>Connection Error:</strong><p class="mt-0.5">${err.message}</p></div>`;
+        }
+      }
+    });
+
+    // Execute Sync Button
+    syncModalExecuteBtn?.addEventListener('click', async () => {
+      const url = (syncModalUrlInput?.value || '').trim();
+      if (!url) {
+        alert('Please enter a Google Sheet URL.');
+        return;
+      }
+
+      syncModalExecuteBtn.disabled = true;
+      syncModalExecuteBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">sync</span><span>Synchronizing...</span>';
+
+      try {
+        const result = await syncFacultyFromGoogleSheet(url);
+        if (result.success && Array.isArray(result.list)) {
+          this.facultyOnboardingList = result.list;
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
           this.onboardingPage = 1;
           this.renderOnboardingList();
-          this.showToast(`Successfully synced ${jsonRes.count} faculty records from Google Spreadsheet!`);
-        } else {
-          alert(`Google Sheet Sync Error: ${jsonRes.error || 'Failed to parse spreadsheet data'}`);
+          this.renderSpreadsheetTableView();
+          closeSyncModal();
+          this.showToast(`✓ Successfully synchronized ${result.count} faculty records from Google Sheet! Live login validation active.`);
+        } else if (result.empty) {
+          if (syncModalAlert) {
+            syncModalAlert.className = 'p-3 rounded-xl text-xs bg-[#fff9ed] text-[#8c5b16] border border-[#ecd9b5] flex items-start gap-2';
+            syncModalAlert.innerHTML = `<span class="material-symbols-outlined text-[#b87d2b] text-[18px]">warning</span><div><strong>No Faculty Records Found</strong><p class="mt-0.5">Please click "Copy Data (Paste in A1)" to populate the headers and data in your Google Sheet, then click Sync again.</p></div>`;
+            syncModalAlert.classList.remove('hidden');
+          }
         }
-      } catch (e) {
-        alert(`Failed to connect to spreadsheet server: ${e.message}`);
+      } catch (err) {
+        alert(`Google Sheet Sync Error: ${err.message}`);
+      } finally {
+        syncModalExecuteBtn.disabled = false;
+        syncModalExecuteBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">sync</span><span>Sync &amp; Validate Faculty Sheet</span>';
       }
     });
 

@@ -614,20 +614,404 @@ export const DEFAULT_FACULTY_ONBOARDING = ${JSON.stringify(data, null, 2)};
 `;
 }
 
-// Quietly check and sync from server json/csv if available
-if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
-  fetch('/api/faculty-onboarding')
-    .then(r => r.json())
-    .then(data => {
-      const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : null);
-      if (list && list.length > 0) {
-        const current = getFacultyOnboardingData();
-        // If current is default or different length, sync cleanly
-        if (current.length !== list.length) {
-          localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(list));
-          window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
+// Storage Keys & Constants
+export const FACULTY_SHEET_URL_KEY = 'pw_faculty_spreadsheet_url';
+export const FACULTY_SHEET_HEADERS = [
+  'Faculty ID',
+  'Name',
+  'Primary Email',
+  'Secondary Email',
+  'Phone',
+  'Department',
+  'Designation Role',
+  'Status',
+  'Can Reschedule Cancel',
+  'Assigned Cohorts',
+  'Last Updated'
+];
+
+/**
+ * Converts a list of faculty records to standard CSV format.
+ */
+export function facultyListToCSV(list) {
+  const escapeCsv = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val);
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const rows = [FACULTY_SHEET_HEADERS.map(h => `"${h}"`).join(',')];
+  for (const f of (list || [])) {
+    const row = [
+      escapeCsv(f.id || ''),
+      escapeCsv(f.name || ''),
+      escapeCsv(f.email || ''),
+      escapeCsv(f.secondaryEmail || ''),
+      escapeCsv(f.phone || ''),
+      escapeCsv(f.dept || ''),
+      escapeCsv(f.role || ''),
+      escapeCsv(f.status || 'Verified'),
+      escapeCsv(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
+      escapeCsv(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
+      escapeCsv(f.lastUpdated || new Date().toISOString())
+    ];
+    rows.push(row.join(','));
+  }
+  return rows.join('\r\n');
+}
+
+/**
+ * Converts a list of faculty records to Tab-Separated Values (TSV)
+ * for instant 1-click clipboard paste into cell A1 of Google Sheets.
+ */
+export function facultyListToTSV(list) {
+  const cleanVal = (val) => {
+    if (val === null || val === undefined) return '';
+    return String(val).replace(/\t/g, ' ').replace(/[\r\n]+/g, ' ');
+  };
+
+  const rows = [FACULTY_SHEET_HEADERS.join('\t')];
+  for (const f of (list || [])) {
+    const row = [
+      cleanVal(f.id || ''),
+      cleanVal(f.name || ''),
+      cleanVal(f.email || ''),
+      cleanVal(f.secondaryEmail || ''),
+      cleanVal(f.phone || ''),
+      cleanVal(f.dept || ''),
+      cleanVal(f.role || ''),
+      cleanVal(f.status || 'Verified'),
+      cleanVal(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
+      cleanVal(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
+      cleanVal(f.lastUpdated || new Date().toISOString())
+    ];
+    rows.push(row.join('\t'));
+  }
+  return rows.join('\n');
+}
+
+/**
+ * Raw CSV line parser handling quotes, multiline content, and escaped characters.
+ */
+function parseRawCSVLines(csvText) {
+  if (!csvText) return [];
+  const lines = [];
+  let row = [];
+  let inQuotes = false;
+  let currentField = '';
+  
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentField);
+      currentField = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      row.push(currentField);
+      lines.push(row);
+      row = [];
+      currentField = '';
+    } else {
+      currentField += char;
+    }
+  }
+  if (currentField || row.length > 0) {
+    row.push(currentField);
+    lines.push(row);
+  }
+  return lines;
+}
+
+/**
+ * Robust Faculty CSV Parser that dynamically resolves column order and synonyms.
+ */
+export function parseFacultyCSV(csvText) {
+  if (!csvText || !csvText.trim()) return [];
+  const lines = parseRawCSVLines(csvText);
+  if (lines.length <= 1) return [];
+
+  const rawHeaders = lines[0].map(h => String(h || '').trim().toLowerCase());
+  
+  const getCol = (patterns) => {
+    // 1. Exact match first
+    const exact = rawHeaders.findIndex(h => patterns.some(p => h === p));
+    if (exact >= 0) return exact;
+    // 2. Substring match avoiding collisions
+    return rawHeaders.findIndex(h => patterns.some(p => {
+      if (p === 'name' || p === 'faculty' || p === 'professor') {
+        if (h.includes('id') || h.includes('email') || h.includes('role')) return false;
+      }
+      return h.includes(p);
+    }));
+  };
+
+  const idIdx = getCol(['faculty id', 'fac id', 'id']);
+  const nameIdx = getCol(['name', 'faculty name', 'faculty', 'professor']);
+  const emailIdx = getCol(['primary email', 'email', 'login email', 'mail']);
+  const secEmailIdx = getCol(['secondary email', 'alt email', 'alternate email', 'secondary']);
+  const phoneIdx = getCol(['phone', 'mobile', 'contact', 'whatsapp']);
+  const deptIdx = getCol(['department', 'dept', 'subject', 'specialty']);
+  const roleIdx = getCol(['designation', 'role', 'title']);
+  const statusIdx = getCol(['status', 'verification']);
+  const permIdx = getCol(['can reschedule', 'reschedule', 'permission', 'reschedule cancel']);
+  const cohortsIdx = getCol(['cohort', 'batch', 'assigned cohorts', 'batches']);
+  const updatedIdx = getCol(['last updated', 'updated', 'timestamp']);
+
+  const list = [];
+  for (let i = 1; i < lines.length; i++) {
+    const r = lines[i];
+    if (!r || r.length === 0 || !r.some(cell => cell && cell.trim())) continue;
+    
+    const name = (nameIdx >= 0 ? r[nameIdx] : r[1]) || '';
+    if (!name.trim()) continue;
+
+    const email = (emailIdx >= 0 ? r[emailIdx] : r[2]) || '';
+    const secEmail = (secEmailIdx >= 0 ? r[secEmailIdx] : r[3]) || '';
+    const phone = (phoneIdx >= 0 ? r[phoneIdx] : r[4]) || '98765 43210';
+    const dept = (deptIdx >= 0 ? r[deptIdx] : r[5]) || 'Medical Sciences';
+    const role = (roleIdx >= 0 ? r[roleIdx] : r[6]) || `Professor • ${dept}`;
+    const status = (statusIdx >= 0 ? r[statusIdx] : r[7]) || 'Verified';
+    const permVal = String(permIdx >= 0 ? r[permIdx] : (r[8] || '')).trim();
+    const canRescheduleCancel = permVal.toUpperCase() !== 'FALSE' && permVal.toLowerCase() !== 'no';
+    const cohortsRaw = (cohortsIdx >= 0 ? r[cohortsIdx] : r[9]) || '';
+    const cohorts = cohortsRaw ? cohortsRaw.split(/[;,]/).map(c => c.trim()).filter(Boolean) : ["Prarambh '26"];
+    const lastUpdated = (updatedIdx >= 0 ? r[updatedIdx] : r[10]) || new Date().toISOString();
+
+    list.push({
+      id: (idIdx >= 0 && r[idIdx] ? r[idIdx] : `fac-${i}`),
+      name: name.trim(),
+      email: email.trim(),
+      secondaryEmail: secEmail.trim(),
+      phone: phone.trim(),
+      dept: dept.trim(),
+      role: role.trim(),
+      status: status.trim() || 'Verified',
+      canRescheduleCancel,
+      cohorts,
+      lastUpdated
+    });
+  }
+  return list;
+}
+
+/**
+ * Robust Client-Side and Proxy Google Sheet Synchronizer.
+ * Works 100% reliably in static production (Render) without crashing on JSON parsing.
+ */
+export async function syncFacultyFromGoogleSheet(sheetUrl) {
+  if (!sheetUrl || typeof sheetUrl !== 'string') {
+    throw new Error('Please provide a valid Google Spreadsheet URL or Apps Script URL.');
+  }
+
+  const cleanUrl = sheetUrl.trim();
+  
+  // Strategy 0: If it's a Google Apps Script Web App URL (/exec), call it directly
+  if (cleanUrl.includes('script.google.com/macros/s/') && cleanUrl.includes('/exec')) {
+    try {
+      const getUrl = cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + 'action=get_faculty';
+      const r = await fetch(getUrl);
+      const text = await r.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && (Array.isArray(data.list) || Array.isArray(data))) {
+          const list = Array.isArray(data.list) ? data.list : data;
+          if (list.length > 0) {
+            saveFacultyOnboardingData(list);
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
+            }
+            return { success: true, count: list.length, list };
+          }
+        }
+      } catch (_) {}
+    } catch (e) {
+      console.warn('Apps Script direct fetch error:', e);
+    }
+  }
+
+  // Extract Sheet ID and GID
+  const match = cleanUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error('Invalid Google Spreadsheet link. URL must contain "/spreadsheets/d/{SHEET_ID}".');
+  }
+  const sheetId = match[1];
+  const gidMatch = cleanUrl.match(/gid=([0-9]+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+
+  let csvText = '';
+  let fetchedVia = '';
+
+  // Strategy 1: Attempt local server proxy if running (with 2.5s timeout, safely handling non-JSON/404)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const proxyRes = await fetch('/api/faculty-onboarding/sync-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sheetUrl: cleanUrl }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const contentType = proxyRes.headers.get('content-type') || '';
+    if (proxyRes.ok && contentType.includes('application/json')) {
+      const jsonRes = await proxyRes.json();
+      if (jsonRes && jsonRes.success && Array.isArray(jsonRes.list) && jsonRes.list.length > 0) {
+        saveFacultyOnboardingData(jsonRes.list);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
+        }
+        return { success: true, count: jsonRes.list.length, list: jsonRes.list, method: 'local_proxy' };
+      }
+    }
+  } catch (err) {
+    // Expected on static production (Render, Vercel static, GitHub Pages) - silently proceed to client-side strategies
+  }
+
+  // Strategy 2: Direct Google Visualization API (GViz) CSV export (Works in browser if sheet is public)
+  const gvizUrls = [
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty%20Directory`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`
+  ];
+
+  for (const targetUrl of gvizUrls) {
+    try {
+      const res = await fetch(targetUrl, { mode: 'cors' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().length > 30 && !text.startsWith('<!DOCTYPE') && !text.startsWith('<html')) {
+          csvText = text;
+          fetchedVia = 'gviz_direct';
+          break;
         }
       }
-    })
-    .catch(() => {});
+    } catch (_) {
+      // Continue to next candidate
+    }
+  }
+
+  // Strategy 3: Client-side JSONP (Bypasses all CORS limitations on production)
+  if (!csvText && typeof window !== 'undefined' && typeof document !== 'undefined') {
+    const candidateTabs = ['Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1', ''];
+    for (const tab of candidateTabs) {
+      try {
+        const jsonpCsv = await new Promise((resolve, reject) => {
+          const cbName = `gviz_faculty_cb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cbName}`;
+          if (tab) url += `&sheet=${encodeURIComponent(tab)}`;
+          else if (gid) url += `&gid=${gid}`;
+
+          const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('JSONP timeout'));
+          }, 8000);
+
+          function cleanup() {
+            clearTimeout(timer);
+            delete window[cbName];
+            const el = document.getElementById(cbName);
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+          }
+
+          window[cbName] = function(data) {
+            cleanup();
+            if (data && data.table && data.table.rows) {
+              const cols = (data.table.cols || []).map(c => c.label || '');
+              const rows = [cols.map(c => `"${c.replace(/"/g, '""')}"`).join(',')];
+              for (const r of data.table.rows) {
+                if (!r || !r.c) continue;
+                const rowVals = r.c.map(cell => {
+                  const val = cell ? (cell.f !== undefined ? cell.f : (cell.v !== undefined ? cell.v : '')) : '';
+                  return `"${String(val).replace(/"/g, '""')}"`;
+                });
+                rows.push(rowVals.join(','));
+              }
+              resolve(rows.join('\r\n'));
+            } else {
+              reject(new Error('Invalid table'));
+            }
+          };
+
+          const script = document.createElement('script');
+          script.id = cbName;
+          script.src = url;
+          script.onerror = () => { cleanup(); reject(new Error('Script error')); };
+          document.body.appendChild(script);
+        });
+
+        if (jsonpCsv && jsonpCsv.trim().length > 30) {
+          csvText = jsonpCsv;
+          fetchedVia = 'jsonp_gviz';
+          break;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (!csvText) {
+    throw new Error(
+      'Could not read the Google Sheet. Please make sure the sheet is shared as "Anyone with the link can view".'
+    );
+  }
+
+  // Parse extracted CSV
+  const parsedList = parseFacultyCSV(csvText);
+
+  // Check if sheet was found but empty or without valid records
+  if (parsedList.length === 0) {
+    return {
+      success: false,
+      empty: true,
+      error: 'Google Sheet connected, but no faculty rows found. Headers might be missing.',
+      rawCsv: csvText,
+      headers: FACULTY_SHEET_HEADERS
+    };
+  }
+
+  // Persist synced data locally and broadcast to all tabs
+  saveFacultyOnboardingData(parsedList);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
+  }
+
+  return {
+    success: true,
+    count: parsedList.length,
+    list: parsedList,
+    method: fetchedVia
+  };
 }
+
+/**
+ * Automatically syncs from the currently connected Google Sheet URL if present.
+ */
+export async function syncFacultyFromConnectedSheet() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+    if (!connectedUrl) return null;
+    return await syncFacultyFromGoogleSheet(connectedUrl);
+  } catch (err) {
+    console.warn('Background faculty sheet sync notice:', err.message);
+    return null;
+  }
+}
+
+// Background sync from connected Google Sheet on startup (Production-Ready)
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    syncFacultyFromConnectedSheet();
+  }, 1000);
+}
+

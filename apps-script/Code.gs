@@ -45,13 +45,24 @@ var ENABLE_LOG_TAB = true;
 // ---------------------------------------------------------------------------
 
 function doGet(e) {
-  // Health check so the portal can verify the URL before saving it.
+  var action = (e && e.parameter && e.parameter.action) || 'ping';
   var token = (e && e.parameter && e.parameter.token) || '';
+
+  if (action === 'get_faculty') {
+    return json_(getFacultyRecords_());
+  }
+
+  if (action === 'setup_faculty_sheet') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    return json_(setupFacultySheet_({}));
+  }
+
+  // Health check so the portal can verify the URL before saving it.
   if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
   return json_({
     ok: true,
     service: 'meded-status-writeback',
-    version: 1,
+    version: 2,
     spreadsheet: SpreadsheetApp.getActiveSpreadsheet().getName(),
     tabs: SpreadsheetApp.getActiveSpreadsheet().getSheets().map(function (s) { return s.getName(); })
   });
@@ -72,6 +83,15 @@ function doPost(e) {
 
     var action = String(body.action || '').toLowerCase();
     if (action === 'ping') return json_({ ok: true, pong: true });
+
+    if (action === 'setup_faculty_sheet' || action === 'init_faculty_sheet') {
+      return json_(setupFacultySheet_(body));
+    }
+
+    if (action === 'get_faculty') {
+      return json_(getFacultyRecords_());
+    }
+
     if (action !== 'reschedule' && action !== 'cancel' && action !== 'revert') {
       return json_({ ok: false, error: 'Unknown action: ' + action });
     }
@@ -319,4 +339,113 @@ function json_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------------------------------------------------------------------------
+// Faculty Directory Sheet Auto-Initialization & Formatting
+// ---------------------------------------------------------------------------
+
+var FACULTY_DIRECTORY_TAB = 'Faculty Directory';
+var FACULTY_COLUMNS = [
+  'Faculty ID',
+  'Name',
+  'Primary Email',
+  'Secondary Email',
+  'Phone',
+  'Department',
+  'Designation Role',
+  'Status',
+  'Can Reschedule Cancel',
+  'Assigned Cohorts',
+  'Last Updated'
+];
+
+var DEFAULT_FACULTY_SEED = [
+  ["fac-1", "Dr. Rajesh Jambhulkar", "bhaskarekka27@gmail.com", "rajesh.j@pwmeded.edu.in", "98234 56710", "Biochemistry", "Professor • Biochemistry", "Verified", "TRUE", "Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-2", "Dr. Pradeep Pawar", "pradeep.p@pwmeded.edu.in", "", "98450 12389", "Anatomy", "Professor • Anatomy", "Verified", "TRUE", "Prarambh '26; INI-CET '26; FMGE '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-3", "Dr. Vivek Nalgirkar", "vivek.physio@pwmeded.edu.in", "", "99881 23411", "Physiology", "Professor • Physiology", "Verified", "TRUE", "Sushruta '26; INI-CET '26; FMGE '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-4", "Dr. Sanchit Sir", "sanchit.path@pwmeded.edu.in", "", "98721 54320", "Pathology", "Assoc. Professor • Pathology", "Verified", "TRUE", "Sushruta '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-5", "Dr. Ashwani Sir", "ashwani.psm@pwmeded.edu.in", "", "98112 34509", "Community Med", "Assoc. Professor • Community Med", "Verified", "TRUE", "Sushruta '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-6", "Dr. Sudha Ma'am", "sudha.optha@pwmeded.edu.in", "", "97654 32100", "Ophthalmology", "Assistant Professor • Ophthalmology", "Pending", "TRUE", "Sushruta '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-7", "Dr. Gobind Rai Garg", "gobind.garg@pwmeded.edu.in", "", "98100 45678", "Pharmacology", "Professor • Pharmacology", "Verified", "TRUE", "Prarambh '26; Sushruta '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-8", "Dr. Preeti Sharma", "preeti.micro@pwmeded.edu.in", "", "98711 22334", "Microbiology", "Professor • Microbiology", "Verified", "TRUE", "Prarambh '26; Sushruta '26", "2026-09-24T12:00:00.000Z"],
+  ["fac-admin-1", "Dr. Bhaskar Ekka", "bhaskarekka27@gmail.com", "dean@pw.live", "98765 43210", "Dean Office", "Dean & Academic Director", "Verified", "TRUE", "Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26", "2026-09-24T12:00:00.000Z"]
+];
+
+function setupFacultySheet_(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tabName = body.tabName || FACULTY_DIRECTORY_TAB;
+  var sheet = ss.getSheetByName(tabName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(tabName);
+  }
+
+  // Set up header row
+  var headerRange = sheet.getRange(1, 1, 1, FACULTY_COLUMNS.length);
+  headerRange.setValues([FACULTY_COLUMNS]);
+  headerRange.setFontWeight('bold');
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setBackground('#2D4D37');
+  headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+
+  // Determine rows to write
+  var rowsToWrite = DEFAULT_FACULTY_SEED;
+  if (body.rows && Array.isArray(body.rows) && body.rows.length > 0) {
+    rowsToWrite = body.rows;
+  }
+
+  if (rowsToWrite.length > 0) {
+    var dataRange = sheet.getRange(2, 1, rowsToWrite.length, FACULTY_COLUMNS.length);
+    dataRange.setValues(rowsToWrite);
+  }
+
+  // Format columns
+  for (var i = 1; i <= FACULTY_COLUMNS.length; i++) {
+    sheet.autoResizeColumn(i);
+  }
+
+  return {
+    ok: true,
+    message: 'Faculty Directory sheet initialized and formatted successfully with required headers and verified records.',
+    tabName: tabName,
+    rowCount: rowsToWrite.length,
+    columns: FACULTY_COLUMNS
+  };
+}
+
+function getFacultyRecords_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
+  if (!sheet) return { ok: false, error: 'No sheet found' };
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow <= 1) return { ok: true, list: [] };
+
+  var values = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  var headers = values[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+
+  var list = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r || !r[1]) continue;
+    list.push({
+      id: r[0] || ('fac-' + i),
+      name: r[1],
+      email: r[2] || '',
+      secondaryEmail: r[3] || '',
+      phone: r[4] || '',
+      dept: r[5] || 'Medical Sciences',
+      role: r[6] || 'Faculty',
+      status: r[7] || 'Verified',
+      canRescheduleCancel: String(r[8]).toUpperCase() !== 'FALSE',
+      cohorts: r[9] ? r[9].split(/[;,]/).map(function (c) { return c.trim(); }) : ["Prarambh '26"],
+      lastUpdated: r[10] || new Date().toISOString()
+    });
+  }
+  return { ok: true, list: list };
 }

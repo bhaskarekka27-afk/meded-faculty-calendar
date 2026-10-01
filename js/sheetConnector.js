@@ -425,7 +425,8 @@ export async function detectGoogleSheetTabs(sourceUrl) {
 
   try {
     const res = await fetch(`${apiBase}/api/detect-tabs?sheetId=${details.sheetId}`);
-    if (res.ok) {
+    const contentType = res.headers ? (res.headers.get('content-type') || '') : '';
+    if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       if (data && data.tabs && data.tabs.length > 0) {
         return data;
@@ -490,13 +491,18 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
   if (!candidates.includes('Lecture Planner ')) candidates.push('Lecture Planner ');
 
   // Strategy 1: Try local server proxy (Vite dev server)
+  const apiBase = (typeof window !== 'undefined' && window.location && window.location.origin) 
+    ? '' 
+    : 'http://localhost:5173';
+
   try {
     let proxyUrl = `${apiBase}/api/fetch-sheet?sheetId=${details.sheetId}&sheet=${encodeURIComponent(targetTab)}`;
     if (details.gid) {
       proxyUrl += `&gid=${details.gid}`;
     }
     const res = await fetch(proxyUrl);
-    if (res.ok) {
+    const contentType = res.headers ? (res.headers.get('content-type') || '') : '';
+    if (res.ok && !contentType.includes('text/html')) {
       const csv = await res.text();
       if (csv && csv.trim().length > 50 && !csv.includes('{"error"')) {
         if (!csv.startsWith('"Completion %') && !csv.startsWith('Completion %')) {

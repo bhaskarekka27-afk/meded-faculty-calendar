@@ -417,6 +417,10 @@
   <!-- Scripts -->
   <script type="module">
     import { reminderEmailService } from './js/reminderEmailService.js';
+    import { syncFacultyFromConnectedSheet, syncFacultyFromGoogleSheet, FACULTY_SHEET_URL_KEY } from './js/facultyOnboardingData.js';
+
+    // Quietly sync latest faculty sheet data on startup
+    syncFacultyFromConnectedSheet().catch(() => {});
 
     let currentPortal = 'admin'; // 'admin' or 'faculty'
 
@@ -706,7 +710,7 @@
       }
     };
 
-    window.handleInPageEmailSubmit = function() {
+    window.handleInPageEmailSubmit = async function() {
       const input = document.getElementById('fallbackGoogleEmail');
       const err = document.getElementById('inPageEmailError');
       const errText = document.getElementById('inPageEmailErrorText');
@@ -716,7 +720,21 @@
       const cleanInput = rawInput.toLowerCase();
 
       // Check registered faculty by ID (fac-1), email (rajesh.j@pwmeded.edu.in), or name
-      const matchedFaculty = reminderEmailService.findFacultyByEmail(cleanInput);
+      let matchedFaculty = reminderEmailService.findFacultyByEmail(cleanInput);
+
+      if (currentPortal === 'faculty' && !matchedFaculty) {
+        try {
+          const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+          if (connectedUrl) {
+            const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
+            if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
+              reminderEmailService.saveFacultyOnboardingList(syncRes.list);
+              matchedFaculty = reminderEmailService.findFacultyByEmail(cleanInput);
+            }
+          }
+        } catch (_) {}
+      }
+
       const isEmailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanInput);
 
       if (!matchedFaculty && !isEmailFormat) {
@@ -767,12 +785,27 @@
     };
 
     // --- HANDLE GOOGLE AUTHENTICATION RESULT ---
-    function handleGoogleAuthCallback(email, optionalName) {
+    async function handleGoogleAuthCallback(email, optionalName) {
       const cleanEmail = (email || '').trim().toLowerCase();
 
       if (currentPortal === 'faculty') {
         // Compare with Faculty Onboarding Directory
-        const faculty = reminderEmailService.findFacultyByEmail(cleanEmail);
+        let faculty = reminderEmailService.findFacultyByEmail(cleanEmail);
+
+        // If not immediately found in local cache, do a live background sync against the connected Google Sheet
+        if (!faculty) {
+          try {
+            const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+            if (connectedUrl) {
+              const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
+              if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
+                reminderEmailService.saveFacultyOnboardingList(syncRes.list);
+                faculty = reminderEmailService.findFacultyByEmail(cleanEmail);
+              }
+            }
+          } catch (_) {}
+        }
+
         const btnText = document.getElementById('facultySignInBtnText');
 
         if (!faculty) {
