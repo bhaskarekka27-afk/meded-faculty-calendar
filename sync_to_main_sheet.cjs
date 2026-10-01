@@ -36,7 +36,7 @@ function generateTSV(list) {
       f.status || 'Verified',
       f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
       Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || ''),
-      f.lastUpdated || new Date().toISOString()
+      f.lastUpdated || '2026-09-24T12:00:00.000Z'
     ];
     rows.push(row.join('\t'));
   }
@@ -46,5 +46,27 @@ function generateTSV(list) {
 const tsvContent = generateTSV(facultyList);
 fs.writeFileSync(path.join(__dirname, 'faculty_sheet_export.tsv'), tsvContent, 'utf-8');
 
-console.log(`✓ Exported ${facultyList.length} faculty entries to faculty_sheet_export.tsv`);
-console.log('--- Ready for 1-Click Paste into Google Sheet (A1) ---');
+// Also update DEFAULT_FACULTY_SEED in apps-script/Code.gs with all 34 rows!
+const seedRows = facultyList.map(f => [
+  f.id || '',
+  f.name || '',
+  f.email || '',
+  f.secondaryEmail || '',
+  f.phone || '',
+  f.dept || '',
+  f.role || '',
+  f.status || 'Verified',
+  f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
+  Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
+  f.lastUpdated || '2026-09-24T12:00:00.000Z'
+]);
+
+const codeGsPath = path.join(__dirname, 'apps-script', 'Code.gs');
+let codeGs = fs.readFileSync(codeGsPath, 'utf-8');
+
+const seedJs = 'var DEFAULT_FACULTY_SEED = ' + JSON.stringify(seedRows, null, 2) + ';';
+codeGs = codeGs.replace(/var DEFAULT_FACULTY_SEED = \[[\s\S]*?\];/, seedJs);
+fs.writeFileSync(codeGsPath, codeGs, 'utf-8');
+
+console.log(`✓ Exported all ${facultyList.length} faculty entries to faculty_sheet_export.tsv`);
+console.log(`✓ Updated apps-script/Code.gs with all ${facultyList.length} faculty entries in DEFAULT_FACULTY_SEED`);
