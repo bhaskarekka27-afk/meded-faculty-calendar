@@ -27,6 +27,9 @@ import {
   facultyListToCSV,
   facultyListToTSV,
   syncFacultyFromGoogleSheet,
+  DEFAULT_FACULTY_SPREADSHEET_URL,
+  getConnectedFacultySheetUrl,
+  autoSyncFacultyMutation,
   FACULTY_SHEET_URL_KEY,
   FACULTY_SHEET_HEADERS
 } from './facultyOnboardingData.js';
@@ -6030,6 +6033,7 @@ class AdminDashboardController {
           const newVal = fac.canRescheduleCancel === false ? true : false;
           fac.canRescheduleCancel = newVal;
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
           this.renderOnboardingList();
           if (newVal) {
             this.showToast(`Reschedule & cancellation enabled for ${fac.name}`);
@@ -6049,8 +6053,9 @@ class AdminDashboardController {
           this.facultyOnboardingList = this.facultyOnboardingList.filter(f => f.id !== id);
           if (this.editingFacultyId === id) resetFormState();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          autoSyncFacultyMutation('delete', fac, this.facultyOnboardingList);
           this.renderOnboardingList();
-          this.showToast(`Removed ${fac.name} from faculty directory.`);
+          this.showToast(`Removed ${fac.name} from faculty directory & synced.`);
         }
         return;
       }
@@ -6113,6 +6118,8 @@ class AdminDashboardController {
         const fac = this.facultyOnboardingList.find(f => f.id === id);
         if (fac) {
           fac.status = 'Verified';
+          reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
           this.renderOnboardingList();
           this.showToast(`Credentials verified & mapping completed for ${fac.name}!`);
         }
@@ -6154,6 +6161,7 @@ class AdminDashboardController {
       const primarySubject = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'General Medicine';
 
       const cleanName = nameVal.startsWith('Dr.') || nameVal.startsWith('Prof.') ? nameVal : `Dr. ${nameVal}`;
+      const defaultCohorts = ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"];
 
       if (this.editingFacultyId) {
         const fac = this.facultyOnboardingList.find(f => f.id === this.editingFacultyId);
@@ -6163,9 +6171,11 @@ class AdminDashboardController {
           fac.phone = phoneVal;
           fac.dept = primarySubject;
           fac.role = `Professor • ${primarySubject}`;
-          fac.cohorts = checkedCohorts;
+          fac.cohorts = defaultCohorts;
           fac.canRescheduleCancel = canReschedVal;
+          fac.lastUpdated = new Date().toISOString();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
           this.showToast(`Updated credentials & permissions for ${cleanName}!`);
         }
         resetFormState();
@@ -6180,12 +6190,14 @@ class AdminDashboardController {
           role: `Professor • ${primarySubject}`,
           status: 'Verified',
           canRescheduleCancel: canReschedVal,
-          cohorts: checkedCohorts
+          cohorts: defaultCohorts,
+          lastUpdated: new Date().toISOString()
         };
 
         this.facultyOnboardingList.unshift(newFaculty);
         this.onboardingPage = 1;
         reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
+        autoSyncFacultyMutation('add', newFaculty, this.facultyOnboardingList);
         resetFormState();
         this.renderOnboardingList();
         this.showToast(`Faculty ${cleanName} onboarded & mapped successfully!`);

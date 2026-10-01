@@ -92,6 +92,22 @@ function doPost(e) {
       return json_(getFacultyRecords_());
     }
 
+    if (action === 'add_faculty') {
+      return json_(addFacultyRecord_(body.faculty || {}));
+    }
+
+    if (action === 'update_faculty') {
+      return json_(updateFacultyRecord_(body.faculty || {}));
+    }
+
+    if (action === 'delete_faculty') {
+      return json_(deleteFacultyRecord_(body.faculty || {}));
+    }
+
+    if (action === 'batch_update_faculty' || action === 'sync_all_faculty') {
+      return json_(batchUpdateFacultyRecords_(body.fullList || body.list || []));
+    }
+
     if (action !== 'reschedule' && action !== 'cancel' && action !== 'revert') {
       return json_({ ok: false, error: 'Unknown action: ' + action });
     }
@@ -449,3 +465,125 @@ function getFacultyRecords_() {
   }
   return { ok: true, list: list };
 }
+
+function addFacultyRecord_(f) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
+  if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
+
+  var row = [
+    f.id || ('fac-' + Date.now()),
+    f.name || '',
+    f.email || '',
+    f.secondaryEmail || '',
+    f.phone || '',
+    f.dept || 'Medical Sciences',
+    f.role || 'Faculty',
+    f.status || 'Verified',
+    f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
+    Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { ok: true, message: 'Faculty record added successfully', facultyId: row[0] };
+}
+
+function updateFacultyRecord_(f) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
+  if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
+
+  var lastRow = sheet.getLastRow();
+  var values = sheet.getRange(1, 1, lastRow, 3).getDisplayValues(); // ID (col 1), Name (col 2), Email (col 3)
+
+  var targetRow = -1;
+  var targetId = String(f.id || '').trim().toLowerCase();
+  var targetEmail = String(f.email || '').trim().toLowerCase();
+
+  for (var i = 1; i < values.length; i++) {
+    var rId = String(values[i][0] || '').trim().toLowerCase();
+    var rEmail = String(values[i][2] || '').trim().toLowerCase();
+    if ((targetId && rId === targetId) || (targetEmail && rEmail === targetEmail)) {
+      targetRow = i + 1;
+      break;
+    }
+  }
+
+  var rowVals = [
+    f.id || ('fac-' + (targetRow > 0 ? targetRow - 1 : Date.now())),
+    f.name || '',
+    f.email || '',
+    f.secondaryEmail || '',
+    f.phone || '',
+    f.dept || 'Medical Sciences',
+    f.role || 'Faculty',
+    f.status || 'Verified',
+    f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
+    Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
+    new Date().toISOString()
+  ];
+
+  if (targetRow > 0) {
+    sheet.getRange(targetRow, 1, 1, FACULTY_COLUMNS.length).setValues([rowVals]);
+    return { ok: true, message: 'Faculty record updated at row ' + targetRow };
+  } else {
+    sheet.appendRow(rowVals);
+    return { ok: true, message: 'Faculty record appended' };
+  }
+}
+
+function deleteFacultyRecord_(f) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
+  if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
+
+  var lastRow = sheet.getLastRow();
+  var values = sheet.getRange(1, 1, lastRow, 3).getDisplayValues();
+
+  var targetId = String(f.id || '').trim().toLowerCase();
+  var targetEmail = String(f.email || '').trim().toLowerCase();
+
+  for (var i = 1; i < values.length; i++) {
+    var rId = String(values[i][0] || '').trim().toLowerCase();
+    var rEmail = String(values[i][2] || '').trim().toLowerCase();
+    if ((targetId && rId === targetId) || (targetEmail && rEmail === targetEmail)) {
+      sheet.deleteRow(i + 1);
+      return { ok: true, message: 'Faculty deleted from row ' + (i + 1) };
+    }
+  }
+
+  return { ok: false, error: 'Faculty not found to delete' };
+}
+
+function batchUpdateFacultyRecords_(fullList) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
+  if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
+
+  var rows = (fullList || []).map(function (f) {
+    return [
+      f.id || ('fac-' + Math.random().toString(36).slice(2, 8)),
+      f.name || '',
+      f.email || '',
+      f.secondaryEmail || '',
+      f.phone || '',
+      f.dept || 'Medical Sciences',
+      f.role || 'Faculty',
+      f.status || 'Verified',
+      f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
+      Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
+      f.lastUpdated || new Date().toISOString()
+    ];
+  });
+
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, FACULTY_COLUMNS.length).clearContent();
+  }
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, FACULTY_COLUMNS.length).setValues(rows);
+  }
+
+  return { ok: true, message: 'Synchronized ' + rows.length + ' faculty records.' };
+}
+

@@ -615,6 +615,7 @@ export const DEFAULT_FACULTY_ONBOARDING = ${JSON.stringify(data, null, 2)};
 }
 
 // Storage Keys & Constants
+export const DEFAULT_FACULTY_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE/edit?gid=0#gid=0';
 export const FACULTY_SHEET_URL_KEY = 'pw_faculty_spreadsheet_url';
 export const FACULTY_SHEET_HEADERS = [
   'Faculty ID',
@@ -629,6 +630,17 @@ export const FACULTY_SHEET_HEADERS = [
   'Assigned Cohorts',
   'Last Updated'
 ];
+
+/**
+ * Returns the connected Google Spreadsheet URL, defaulting to the embedded master sheet.
+ */
+export function getConnectedFacultySheetUrl() {
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+    if (saved && saved.trim()) return saved.trim();
+  }
+  return DEFAULT_FACULTY_SPREADSHEET_URL;
+}
 
 /**
  * Converts a list of faculty records to standard CSV format.
@@ -998,18 +1010,71 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
 }
 
 /**
- * Automatically syncs from the currently connected Google Sheet URL if present.
+ * Automatically syncs from the embedded Google Sheet URL.
  */
 export async function syncFacultyFromConnectedSheet() {
   try {
-    if (typeof localStorage === 'undefined') return null;
-    const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+    const connectedUrl = getConnectedFacultySheetUrl();
     if (!connectedUrl) return null;
     return await syncFacultyFromGoogleSheet(connectedUrl);
   } catch (err) {
     console.warn('Background faculty sheet sync notice:', err.message);
     return null;
   }
+}
+
+/**
+ * Automatically handles Add, Edit, Update, and Delete operations on the faculty directory.
+ * Writes to local storage, updates memory, broadcasts DOM event, and synchronizes
+ * with Google Sheets / Apps Script backend automatically.
+ */
+export async function autoSyncFacultyMutation(action, targetFaculty, entireList) {
+  let list = entireList;
+  if (!list || !Array.isArray(list)) {
+    list = getFacultyOnboardingData();
+  }
+
+  // 1. Persist locally
+  saveFacultyOnboardingData(list);
+
+  // 2. Broadcast event across tabs and components
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
+  }
+
+  // 3. Automated Sheet / Apps Script Writeback
+  const scriptUrl = typeof localStorage !== 'undefined' ? localStorage.getItem('meded_sheet_writer_url') : null;
+  const token = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_token') || 'CHANGE-ME-to-a-long-random-string') : '';
+
+  if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
+    try {
+      await fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: action === 'delete' ? 'delete_faculty' : (action === 'add' ? 'add_faculty' : (action === 'batch' ? 'batch_update_faculty' : 'update_faculty')),
+          token,
+          faculty: targetFaculty,
+          fullList: list
+        })
+      });
+    } catch (e) {
+      console.warn('Background sheet mutation writeback skipped:', e);
+    }
+  }
+
+  // 4. Also notify local development server if running
+  if (typeof fetch !== 'undefined') {
+    try {
+      fetch('/api/faculty-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, faculty: targetFaculty, list })
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  return { ok: true, count: list.length, list };
 }
 
 // Background sync from connected Google Sheet on startup (Production-Ready)

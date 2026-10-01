@@ -23,13 +23,16 @@ console.log('✓ adminApp.js correctly binds modalSyncFacultySheet and client-si
 
 // 3. Verify facultyOnboardingData.js exports and functions
 const facultyOnboardingJs = fs.readFileSync(path.join(__dirname, 'js', 'facultyOnboardingData.js'), 'utf-8');
+assert(facultyOnboardingJs.includes('DEFAULT_FACULTY_SPREADSHEET_URL'), 'Missing DEFAULT_FACULTY_SPREADSHEET_URL export');
+assert(facultyOnboardingJs.includes('1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE'), 'Must embed 1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE spreadsheet ID');
+assert(facultyOnboardingJs.includes('autoSyncFacultyMutation'), 'Missing autoSyncFacultyMutation export');
 assert(facultyOnboardingJs.includes('export const FACULTY_SHEET_URL_KEY'), 'Missing FACULTY_SHEET_URL_KEY export');
 assert(facultyOnboardingJs.includes('export const FACULTY_SHEET_HEADERS'), 'Missing FACULTY_SHEET_HEADERS export');
 assert(facultyOnboardingJs.includes('export function facultyListToCSV'), 'Missing facultyListToCSV export');
 assert(facultyOnboardingJs.includes('export function facultyListToTSV'), 'Missing facultyListToTSV export');
 assert(facultyOnboardingJs.includes('export function parseFacultyCSV'), 'Missing parseFacultyCSV export');
 assert(facultyOnboardingJs.includes('export async function syncFacultyFromGoogleSheet'), 'Missing syncFacultyFromGoogleSheet export');
-console.log('✓ facultyOnboardingData.js exports all required sync, parser, and format generation methods');
+console.log('✓ facultyOnboardingData.js embeds default spreadsheet and exports autoSyncFacultyMutation');
 
 // 4. Test parseFacultyCSV logic
 const sampleCsv = `Faculty ID,Name,Primary Email,Secondary Email,Phone,Department,Designation Role,Status,Can Reschedule Cancel,Assigned Cohorts,Last Updated
