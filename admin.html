@@ -512,7 +512,7 @@
                   <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">download</span>
                   <span>Download .csv</span>
                 </button>
-                <button id="btn-sync-google-sheet" type="button" class="bg-[#f4efe6] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all w-full sm:w-auto">
+                <button id="btn-sync-google-sheet" type="button" onclick="window.openFacultySyncModal ? window.openFacultySyncModal() : (function(){ const m = document.getElementById('modalSyncFacultySheet'); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); document.body.style.overflow = 'hidden'; } })()" class="bg-[#f4efe6] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all w-full sm:w-auto" title="Connect Google Sheet">
                   <span class="material-symbols-outlined text-[18px]">sync</span>
                   <span>Sync Google Sheet</span>
                 </button>
@@ -2004,6 +2004,10 @@
             <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8b958c] text-[14px]">search</span>
             <input id="spreadsheet-modal-search-input" type="text" placeholder="Filter spreadsheet..." class="w-full pl-7 pr-3 py-1.5 bg-[#fbf9f5] border border-[#ded5c6] text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none focus:border-[#4a7c59] focus:bg-white">
           </div>
+          <button id="btn-modal-sync-google-sheet" type="button" onclick="window.openFacultySyncModal ? window.openFacultySyncModal() : (function(){ const m = document.getElementById('modalSyncFacultySheet'); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); document.body.style.overflow = 'hidden'; } })()" class="px-3 py-1.5 bg-[#f4efe6] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl text-xs font-bold text-[#2c332d] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs" title="Sync Google Sheet">
+            <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">sync</span>
+            <span>Sync Sheet</span>
+          </button>
           <button id="btn-modal-refresh-spreadsheet" type="button" class="px-3 py-1.5 bg-[#f4efe6] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl text-xs font-bold text-[#2c332d] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs" title="Refresh from server">
             <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">refresh</span>
             <span>Refresh</span>

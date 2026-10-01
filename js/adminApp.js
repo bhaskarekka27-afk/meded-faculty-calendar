@@ -5677,28 +5677,51 @@ class AdminDashboardController {
     const btnAppsScriptWrite = document.getElementById('btnAppsScriptAutoWrite');
 
     const openSyncModal = () => {
-      if (!syncModal) return;
-      if (syncModalUrlInput) {
-        syncModalUrlInput.value = localStorage.getItem(FACULTY_SHEET_URL_KEY) || '';
+      const modal = document.getElementById('modalSyncFacultySheet') || syncModal;
+      if (!modal) return;
+      const urlInput = document.getElementById('inputFacultySheetUrl') || syncModalUrlInput;
+      if (urlInput) {
+        urlInput.value = localStorage.getItem(FACULTY_SHEET_URL_KEY) || '';
       }
-      if (syncModalAlert) syncModalAlert.classList.add('hidden');
-      syncModal.classList.remove('hidden');
-      syncModal.classList.add('flex');
+      const alertEl = document.getElementById('facultySheetStatusAlert') || syncModalAlert;
+      if (alertEl) alertEl.classList.add('hidden');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
       document.body.style.overflow = 'hidden';
-      setTimeout(() => syncModalUrlInput?.focus(), 50);
+      setTimeout(() => urlInput?.focus(), 50);
     };
 
     const closeSyncModal = () => {
-      if (!syncModal) return;
-      syncModal.classList.add('hidden');
-      syncModal.classList.remove('flex');
+      const modal = document.getElementById('modalSyncFacultySheet') || syncModal;
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
       document.body.style.overflow = '';
     };
+
+    if (typeof window !== 'undefined') {
+      window.openFacultySyncModal = openSyncModal;
+      window.closeFacultySyncModal = closeSyncModal;
+    }
 
     syncGoogleSheetBtn?.addEventListener('click', openSyncModal);
     syncModalCloseBtn?.addEventListener('click', closeSyncModal);
     syncModalCancelBtn?.addEventListener('click', closeSyncModal);
     syncModalBackdrop?.addEventListener('click', closeSyncModal);
+
+    // Document-level event delegation
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!target) return;
+      if (target.closest && target.closest('#btn-sync-google-sheet, #btn-modal-sync-google-sheet, [data-action="open-sync-faculty-sheet"]')) {
+        e.preventDefault();
+        openSyncModal();
+      }
+      if (target.closest && target.closest('#btnCloseSyncFacultySheetModal, #btnCancelSyncFacultySheet, #backdropSyncFacultySheet')) {
+        e.preventDefault();
+        closeSyncModal();
+      }
+    });
 
     // 1-Click Copy Headers & Data (Paste into Cell A1)
     btnCopyFormatTsv?.addEventListener('click', async () => {
