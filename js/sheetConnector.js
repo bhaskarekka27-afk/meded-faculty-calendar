@@ -369,7 +369,8 @@ export function fetchGoogleSheetJSONP(sheetId, tabName = 'Lecture Planner') {
   return new Promise((resolve, reject) => {
     const callbackName = `gviz_cb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const encodedTab = encodeURIComponent(tabName || 'Lecture Planner');
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodedTab}`;
+    const timestamp = Date.now();
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodedTab}&_t=${timestamp}`;
 
     const timer = setTimeout(() => {
       cleanup();
@@ -418,13 +419,17 @@ export async function detectGoogleSheetTabs(sourceUrl) {
     return { success: false, tabs: ['Lecture Planner'], recommendedTab: 'Lecture Planner' };
   }
 
+  const timestamp = Date.now();
   // Strategy 1: Local server proxy (Vite dev server)
   const apiBase = (typeof window !== 'undefined' && window.location && window.location.origin) 
     ? '' 
     : 'http://localhost:5173';
 
   try {
-    const res = await fetch(`${apiBase}/api/detect-tabs?sheetId=${details.sheetId}`);
+    const res = await fetch(`${apiBase}/api/detect-tabs?sheetId=${details.sheetId}&_t=${timestamp}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
     const contentType = res.headers ? (res.headers.get('content-type') || '') : '';
     if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
@@ -438,7 +443,10 @@ export async function detectGoogleSheetTabs(sourceUrl) {
 
   // Strategy 2: Direct htmlview fetch (fallback)
   try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${details.sheetId}/htmlview`);
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${details.sheetId}/htmlview?_t=${timestamp}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
     if (res.ok) {
       const html = await res.text();
       const regex = /docs-sheet-tab-caption">([^<]+)<\/div>/g;
@@ -460,13 +468,15 @@ export async function detectGoogleSheetTabs(sourceUrl) {
 }
 
 /**
- * Fetch live CSV from Google Sheets via Visualization API
+ * Fetch live CSV from Google Sheets via Visualization API with cache-busting
  */
 export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
   const details = extractSheetDetails(sourceUrl);
   if (!details || !details.sheetId) {
     throw new Error('Invalid Google Sheet link. Please ensure it is a valid Google Sheets URL.');
   }
+
+  const timestamp = Date.now();
 
   // Auto-detect tab if not specified or defaults to generic "Lecture Planner"
   let targetTab = (tabName || '').trim();
@@ -496,11 +506,14 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
     : 'http://localhost:5173';
 
   try {
-    let proxyUrl = `${apiBase}/api/fetch-sheet?sheetId=${details.sheetId}&sheet=${encodeURIComponent(targetTab)}`;
+    let proxyUrl = `${apiBase}/api/fetch-sheet?sheetId=${details.sheetId}&sheet=${encodeURIComponent(targetTab)}&_t=${timestamp}`;
     if (details.gid) {
       proxyUrl += `&gid=${details.gid}`;
     }
-    const res = await fetch(proxyUrl);
+    const res = await fetch(proxyUrl, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
     const contentType = res.headers ? (res.headers.get('content-type') || '') : '';
     if (res.ok && !contentType.includes('text/html')) {
       const csv = await res.text();
@@ -530,18 +543,22 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
     }
   }
 
-  // Strategy 3: Direct GViz CSV fetch
+  // Strategy 3: Direct GViz CSV fetch with cache-busting
   const gvizUrls = [];
   if (details.gid) {
-    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${details.sheetId}/gviz/tq?tqx=out:csv&gid=${details.gid}`);
+    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${details.sheetId}/gviz/tq?tqx=out:csv&gid=${details.gid}&_t=${timestamp}`);
   }
   for (const cand of candidates) {
-    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${details.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cand)}`);
+    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${details.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cand)}&_t=${timestamp}`);
   }
 
   for (const u of gvizUrls) {
     try {
-      const res = await fetch(u, { mode: 'cors' });
+      const res = await fetch(u, {
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (res.ok) {
         const csv = await res.text();
         if (csv && csv.trim().length > 50) {
@@ -558,41 +575,169 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
   throw new Error(`Unable to load tab "${targetTab}" from Google Sheets. Make sure the sheet is shared as "Anyone with the link can view".`);
 }
 
+export const SYNC_SETTINGS_KEY = 'meded_sync_settings_v1';
+
 /**
- * Sheet & Batch Manager class
+ * Sheet & Batch Manager class with Real-Time Background Synchronization Engine
  */
 export class BatchManager {
   constructor() {
     this.batches = [];
+    this.autoSyncTimer = null;
+    this.isSyncing = false;
+    this.syncSettings = this.loadSyncSettings();
     this.loadFromStorage();
+    this.initRealTimeSync();
+  }
+
+  loadSyncSettings() {
+    const defaults = {
+      autoSyncEnabled: true,
+      intervalSeconds: 30, // 15, 30, 60, 120, 300
+      lastSyncedAt: null,
+      syncStatus: 'idle' // 'idle' | 'syncing' | 'success' | 'error'
+    };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(SYNC_SETTINGS_KEY);
+        if (stored) {
+          return { ...defaults, ...JSON.parse(stored) };
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load sync settings:', e);
+    }
+    return defaults;
+  }
+
+  saveSyncSettings(settingsUpdate = {}) {
+    this.syncSettings = { ...this.syncSettings, ...settingsUpdate };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify(this.syncSettings));
+      }
+    } catch (e) {
+      console.error('Failed to save sync settings:', e);
+    }
+    this.broadcastSyncStatus();
+    if (this.syncSettings.autoSyncEnabled) {
+      this.startAutoSync();
+    } else {
+      this.stopAutoSync();
+    }
+    return this.syncSettings;
+  }
+
+  getSyncSettings() {
+    return { ...this.syncSettings, isSyncing: this.isSyncing };
+  }
+
+  initRealTimeSync() {
+    if (typeof window === 'undefined') return;
+
+    // Start auto-sync timer if enabled
+    if (this.syncSettings.autoSyncEnabled) {
+      this.startAutoSync();
+    }
+
+    // Trigger immediate background sync on initial page load
+    setTimeout(() => {
+      this.syncAllBatches({ background: true }).catch(() => {});
+    }, 1200);
+
+    // Refresh instantly when user switches back to this browser tab
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.syncSettings.autoSyncEnabled) {
+        this.syncAllBatches({ background: true }).catch(() => {});
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (this.syncSettings.autoSyncEnabled) {
+        this.syncAllBatches({ background: true }).catch(() => {});
+      }
+    });
+  }
+
+  startAutoSync(intervalSeconds = null) {
+    this.stopAutoSync();
+    if (intervalSeconds) {
+      this.syncSettings.intervalSeconds = intervalSeconds;
+    }
+    const intervalMs = Math.max(10, this.syncSettings.intervalSeconds || 30) * 1000;
+    this.autoSyncTimer = setInterval(() => {
+      if (!this.isSyncing && (typeof document === 'undefined' || document.visibilityState === 'visible')) {
+        this.syncAllBatches({ background: true }).catch(() => {});
+      }
+    }, intervalMs);
+  }
+
+  stopAutoSync() {
+    if (this.autoSyncTimer) {
+      clearInterval(this.autoSyncTimer);
+      this.autoSyncTimer = null;
+    }
+  }
+
+  broadcastSyncStatus() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('meded:sync_status', {
+        detail: {
+          status: this.isSyncing ? 'syncing' : (this.syncSettings.syncStatus || 'idle'),
+          lastSyncedAt: this.syncSettings.lastSyncedAt,
+          intervalSeconds: this.syncSettings.intervalSeconds,
+          autoSyncEnabled: this.syncSettings.autoSyncEnabled,
+          batchCount: this.batches.length
+        }
+      }));
+    }
+  }
+
+  broadcastBatchesUpdated(changed = true, sourceBatchId = null) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('meded:batches_updated', {
+        detail: {
+          batches: this.batches,
+          changed,
+          sourceBatchId,
+          lastSyncedAt: this.syncSettings.lastSyncedAt
+        }
+      }));
+    }
   }
 
   loadFromStorage() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        let parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filter out corrupt batches (e.g. named "Completion %" or having 0 events)
-          parsed = parsed.filter(b => b && b.name && !b.name.toLowerCase().includes('completion %') && Array.isArray(b.events) && b.events.length > 0);
-          if (parsed.length > 0) {
-            // Ensure newly introduced default batches (e.g. INI-CET & FMGE) are merged in
-            for (const defBatch of DEFAULT_BATCHES) {
-              const existingIdx = parsed.findIndex(b => b.id === defBatch.id);
-              if (existingIdx === -1) {
-                parsed.push(JSON.parse(JSON.stringify(defBatch)));
-              } else {
-                // Ensure platform flags are up to date
-                if (!parsed[existingIdx].platform && defBatch.platform) {
-                  parsed[existingIdx].platform = defBatch.platform;
-                  parsed[existingIdx].isYoutube = defBatch.isYoutube;
-                  parsed[existingIdx].isApp = defBatch.isApp;
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          let parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Filter out corrupt batches (e.g. named "Completion %" or having 0 events)
+            parsed = parsed.filter(b => b && b.name && !b.name.toLowerCase().includes('completion %') && Array.isArray(b.events) && b.events.length > 0);
+            if (parsed.length > 0) {
+              // Ensure newly introduced default batches (e.g. INI-CET & FMGE) are merged in
+              for (const defBatch of DEFAULT_BATCHES) {
+                const existingIdx = parsed.findIndex(b => b.id === defBatch.id);
+                if (existingIdx === -1) {
+                  parsed.push(JSON.parse(JSON.stringify(defBatch)));
+                } else {
+                  // Ensure platform flags & source URLs are up to date
+                  if (!parsed[existingIdx].platform && defBatch.platform) {
+                    parsed[existingIdx].platform = defBatch.platform;
+                    parsed[existingIdx].isYoutube = defBatch.isYoutube;
+                    parsed[existingIdx].isApp = defBatch.isApp;
+                  }
+                  if (!parsed[existingIdx].sourceUrl && defBatch.sourceUrl) {
+                    parsed[existingIdx].sourceUrl = defBatch.sourceUrl;
+                    parsed[existingIdx].sheetTabName = defBatch.sheetTabName;
+                  }
                 }
               }
+              this.batches = parsed;
+              this.saveToStorage();
+              return;
             }
-            this.batches = parsed;
-            this.saveToStorage();
-            return;
           }
         }
       }
@@ -605,7 +750,9 @@ export class BatchManager {
 
   saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.batches));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.batches));
+      }
     } catch (e) {
       console.error('Failed to save batches to localStorage:', e);
     }
@@ -652,6 +799,9 @@ export class BatchManager {
     return combined;
   }
 
+  /**
+   * Connect a new Google Sheet batch and immediately register it for real-time sync
+   */
   async addBatchFromUrl(url, tabName = 'Lecture Planner', customName = '') {
     const details = extractSheetDetails(url);
     if (!details) {
@@ -660,6 +810,7 @@ export class BatchManager {
     const newId = `batch-${Date.now()}`;
     const csv = await fetchGoogleSheetCSV(url, tabName);
     const newBatch = processRawCSVToBatch(csv, newId, url, tabName, customName);
+    newBatch.lastSynced = new Date().toISOString();
 
     // Check if batch with same sheet ID already exists
     const existingIdx = this.batches.findIndex(b => {
@@ -675,36 +826,76 @@ export class BatchManager {
     }
 
     this.saveToStorage();
+    this.broadcastBatchesUpdated(true, newBatch.id);
     return newBatch;
   }
 
-  async syncBatch(id) {
+  /**
+   * Sync a single batch with live Google Sheets data
+   */
+  async syncBatch(id, options = {}) {
     const batch = this.getBatch(id);
     if (!batch) throw new Error('Batch not found');
     if (!batch.sourceUrl) throw new Error('No source URL for this batch');
 
     const csv = await fetchGoogleSheetCSV(batch.sourceUrl, batch.sheetTabName || 'Lecture Planner');
     const updated = processRawCSVToBatch(csv, batch.id, batch.sourceUrl, batch.sheetTabName, batch.name);
+    updated.lastSynced = new Date().toISOString();
     
     const idx = this.batches.findIndex(b => b.id === id);
     if (idx >= 0) {
+      const oldEventsStr = JSON.stringify(this.batches[idx].events || []);
+      const newEventsStr = JSON.stringify(updated.events || []);
+      const changed = oldEventsStr !== newEventsStr || this.batches[idx].eventCount !== updated.eventCount;
+
       this.batches[idx] = updated;
       this.saveToStorage();
+
+      if (changed || options.forceBroadcast) {
+        this.broadcastBatchesUpdated(true, id);
+      }
     }
     return updated;
   }
 
-  async syncAllBatches() {
+  /**
+   * Real-time multi-sheet sync across all connected existing and attached batches
+   */
+  async syncAllBatches(options = {}) {
+    if (this.isSyncing) return [];
+    this.isSyncing = true;
+    this.broadcastSyncStatus();
+
     const results = [];
-    for (const b of this.batches) {
-      if (b.sourceUrl) {
-        try {
-          const res = await this.syncBatch(b.id);
-          results.push({ id: b.id, name: b.name, success: true });
-        } catch (err) {
-          results.push({ id: b.id, name: b.name, success: false, error: err.message });
+    let hasAnyChanges = false;
+
+    try {
+      for (const b of this.batches) {
+        if (b.sourceUrl) {
+          try {
+            const oldEventsStr = JSON.stringify(b.events || []);
+            const res = await this.syncBatch(b.id, { forceBroadcast: false });
+            const newEventsStr = JSON.stringify(res.events || []);
+            if (oldEventsStr !== newEventsStr) {
+              hasAnyChanges = true;
+            }
+            results.push({ id: b.id, name: b.name, success: true, count: res.eventCount });
+          } catch (err) {
+            results.push({ id: b.id, name: b.name, success: false, error: err.message });
+          }
         }
       }
+
+      this.syncSettings.lastSyncedAt = new Date().toISOString();
+      this.syncSettings.syncStatus = results.some(r => r.success) ? 'success' : 'error';
+      this.saveSyncSettings({ lastSyncedAt: this.syncSettings.lastSyncedAt, syncStatus: this.syncSettings.syncStatus });
+
+      if (hasAnyChanges) {
+        this.broadcastBatchesUpdated(true);
+      }
+    } finally {
+      this.isSyncing = false;
+      this.broadcastSyncStatus();
     }
     return results;
   }
@@ -715,11 +906,13 @@ export class BatchManager {
     }
     this.batches = this.batches.filter(b => b.id !== id);
     this.saveToStorage();
+    this.broadcastBatchesUpdated(true);
   }
 
   resetToDefaults() {
     this.batches = JSON.parse(JSON.stringify(DEFAULT_BATCHES));
     this.saveToStorage();
+    this.broadcastBatchesUpdated(true);
     return this.batches;
   }
 }

@@ -59,10 +59,17 @@ function json(res, code, body) {
 }
 
 async function detectTabs(res, q) {
-  const sheetId = q.sheetId;
+  let sheetId = q.sheetId;
+  if (!sheetId && q.url) {
+    const match = q.url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (match) sheetId = match[1];
+  }
   if (!sheetId) return json(res, 400, { error: 'Missing sheetId', tabs: ['Lecture Planner'], recommendedTab: 'Lecture Planner' });
   try {
-    const r = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+    const timestamp = Date.now();
+    const r = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit?_t=${timestamp}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
     const html = await r.text();
     const re = /docs-sheet-tab-caption">([^<]+)<\/div>/g;
     const tabs = [];
@@ -72,6 +79,9 @@ async function detectTabs(res, q) {
       tabs.find(t => /planner|lecture/i.test(t)) ||
       tabs.find(t => /schedule/i.test(t)) ||
       tabs[0] || 'Lecture Planner';
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return json(res, 200, { success: true, tabs, recommendedTab: recommended });
   } catch (err) {
     return json(res, 500, { error: err.message, tabs: ['Lecture Planner'], recommendedTab: 'Lecture Planner' });
@@ -79,27 +89,39 @@ async function detectTabs(res, q) {
 }
 
 async function fetchSheet(res, q) {
-  const sheetId = q.sheetId;
+  let sheetId = q.sheetId;
+  let gid = q.gid;
+  if (!sheetId && q.url) {
+    const match = q.url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (match) sheetId = match[1];
+    const gidMatch = q.url.match(/[#&]gid=([0-9]+)/);
+    if (!gid && gidMatch) gid = gidMatch[1];
+  }
   const sheet = q.sheet || 'Lecture Planner';
-  const gid = q.gid;
   if (!sheetId) return json(res, 400, { error: 'Missing sheetId' });
 
+  const timestamp = Date.now();
   const tries = [];
-  if (gid) tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
-  tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`);
+  if (gid) tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
+  tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
   tries.push(
     sheet.endsWith(' ')
-      ? `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}`
-      : `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}`
+      ? `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}&_t=${timestamp}`
+      : `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}&_t=${timestamp}`
   );
 
   for (const target of tries) {
     try {
-      const r = await fetch(target);
+      const r = await fetch(target, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       const text = await r.text();
       if (text && text.trim().length > 50 && !/^"?Completion %/.test(text)) {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.setHeader('Access-Control-Allow-Origin', '*');
         return res.end(text);
       }

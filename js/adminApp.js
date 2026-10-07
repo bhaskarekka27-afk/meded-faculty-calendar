@@ -121,9 +121,11 @@ class AdminDashboardController {
     this.setupConnectSheetModal();
     this.setupAdminSettingsModal();
     this.setupEmailPreviewModal();
+    this.setupWhatsAppPreviewModal();
     this.setupEventDetailModal();
     this.setupFacultyHighlightsCard();
     this.setupFacultyHighlightsModal();
+    this.setupBatchRealTimeSyncListener();
     this.initOnboardingHandlers();
     this.setupOnboardingSyncListener();
     this.renderOnboardingList();
@@ -136,6 +138,28 @@ class AdminDashboardController {
     setTimeout(() => this.flushSheetWriteQueue(), 1500);
   }
 
+  setupBatchRealTimeSyncListener() {
+    window.addEventListener('meded:batches_updated', (e) => {
+      // Refresh calendar, charts, and metric cards whenever real-time sync receives updated sheet data
+      const batches = this.batchManager.getBatches();
+      if (this.currentBatchId !== 'all' && !batches.some(b => b.id === this.currentBatchId)) {
+        this.currentBatchId = batches[0] ? batches[0].id : 'batch-prarambh-2026';
+      }
+      this.updateHeaderBatchSelector();
+      this.updateMonthTitle();
+      this.updateSummaryCards();
+      this.updateTeacherFilterLabel();
+      this.updateSubjectFilterButtons();
+      this.renderMainContent();
+      this.renderConnectedSheetsSettings();
+    });
+
+    window.addEventListener('meded:sync_status', (e) => {
+      this.updateHeaderSyncIndicator(e.detail);
+      this.updateSettingsSyncBadge(e.detail);
+    });
+  }
+
   setupOnboardingSyncListener() {
     window.addEventListener('meded:faculty_onboarding_updated', (e) => {
       if (e.detail && Array.isArray(e.detail)) {
@@ -145,6 +169,7 @@ class AdminDashboardController {
       }
       if (this.mainTab === 'onboarding') {
         this.renderOnboardingList();
+        this.renderSpreadsheetTableView();
       }
     });
 
@@ -158,6 +183,7 @@ class AdminDashboardController {
             reminderEmailService.saveFacultyOnboardingList(res.list);
             if (this.mainTab === 'onboarding') {
               this.renderOnboardingList();
+              this.renderSpreadsheetTableView();
             }
           }
         })
@@ -177,12 +203,12 @@ class AdminDashboardController {
   handleHashChange() {
     const hash = window.location.hash.toLowerCase();
     if (hash === '#requests') {
-      window.location.href = 'requests.html';
-      return;
+      this.mainTab = 'requests';
     } else if (hash === '#workload') {
       this.mainTab = 'workload';
     } else if (hash === '#onboarding') {
       this.mainTab = 'onboarding';
+      syncFacultyFromGoogleSheet(getConnectedFacultySheetUrl()).catch(() => {});
     } else if (hash === '#faculty') {
       this.mainTab = 'faculty';
     } else if (hash === '#dashboard') {
@@ -196,6 +222,10 @@ class AdminDashboardController {
     } else if (hash === '#calendar' || !hash) {
       this.mainTab = 'calendar';
       this.calendarSubView = 'month';
+    }
+    if (this._renderedViewKey === `${this.mainTab}|${this.calendarSubView}`) {
+      this.updateDockState(this.mainTab);
+      return;
     }
     this.updateDockState(this.mainTab);
     this.renderMainContent();
@@ -440,6 +470,11 @@ class AdminDashboardController {
     // Search Input
     searchInput?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.trim().toLowerCase();
+      if (this.mainTab === 'requests') {
+        this.requestsState.searchQuery = this.searchQuery;
+        renderRequestsView(document.getElementById('viewSectionRequests'), this.requestsState, this);
+        return;
+      }
       this.syncPeriodToFilters();
       this.refreshPeriodChrome();
     });
@@ -502,9 +537,14 @@ class AdminDashboardController {
       this.renderMainContent();
     });
 
-    document.getElementById('deanMenuRequestsBtn')?.addEventListener('click', () => {
+    document.getElementById('deanMenuRequestsBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
       deanDropdown?.classList.add('hidden');
-      window.location.href = 'requests.html';
+      this.mainTab = 'requests';
+      this.updateDockState('requests');
+      if (window.location.hash !== '#requests') window.history.pushState(null, '', '#requests');
+      this.renderMainContent();
+      window.scrollTo(0, 0);
     });
 
     document.getElementById('deanMenuSettingsBtn')?.addEventListener('click', () => {
@@ -1032,11 +1072,6 @@ class AdminDashboardController {
         const tab = item.getAttribute('data-dock');
         if (!tab) return;
 
-        if (tab === 'requests') {
-          window.location.href = 'requests.html';
-          return;
-        }
-
         if (tab === 'settings') {
           this.openAdminSettingsModal('email');
           return;
@@ -1045,14 +1080,16 @@ class AdminDashboardController {
         this.mainTab = tab;
         this.updateDockState(tab);
 
-        // Update URL hash for direct bookmarking
+        // Update URL hash for bookmarking / back button WITHOUT firing 'hashchange'
+        // (assigning location.hash would re-render the whole view a second time).
         if (tab === 'calendar') {
-          window.history.replaceState(null, '', window.location.pathname);
-        } else {
-          window.location.hash = tab;
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } else if (window.location.hash !== '#' + tab) {
+          window.history.pushState(null, '', '#' + tab);
         }
 
         this.renderMainContent();
+        window.scrollTo(0, 0);
       });
     });
 
@@ -1917,6 +1954,7 @@ class AdminDashboardController {
 
   // --- 5. Main Content Dispatcher ---
   renderMainContent() {
+    this._renderedViewKey = `${this.mainTab}|${this.calendarSubView}`;
     this.updateViewButtons?.();
     this.updateSubjectFilterButtons?.();
     const calendarSection = document.getElementById('viewSectionCalendar');
@@ -6149,6 +6187,8 @@ class AdminDashboardController {
       currentFilter = 'all';
       filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] cursor-pointer';
       if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
+      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
       this.renderAdminNotifications(currentFilter);
     });
 
@@ -6156,6 +6196,17 @@ class AdminDashboardController {
       currentFilter = 'emails';
       filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc] cursor-pointer';
       if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
+      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
+      this.renderAdminNotifications(currentFilter);
+    });
+
+    const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
+    filterWABtn?.addEventListener('click', () => {
+      currentFilter = 'whatsapp';
+      filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] cursor-pointer flex items-center gap-1';
+      if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
       this.renderAdminNotifications(currentFilter);
     });
 
@@ -6170,7 +6221,15 @@ class AdminDashboardController {
       this.renderAdminNotifications(currentFilter);
       const detail = e.detail;
       if (detail?.faculty?.name) {
-        this.showToast(`📧 Automated reminder sent to ${detail.faculty.name} (${detail.faculty.email})`);
+        this.showToast(`📧 Automated email reminder sent to ${detail.faculty.name} (${detail.faculty.email})`);
+      }
+    });
+
+    window.addEventListener('meded:whatsapp_dispatched', (e) => {
+      this.renderAdminNotifications(currentFilter);
+      const detail = e.detail;
+      if (detail?.faculty?.name) {
+        this.showToast(`💬 WhatsApp class reminder sent to ${detail.faculty.name} (${detail.phone?.formatted || ''})`);
       }
     });
 
@@ -6198,6 +6257,8 @@ class AdminDashboardController {
     let notifs = reminderEmailService.getAdminNotifications();
     if (filter === 'emails') {
       notifs = notifs.filter(n => n.type === 'email_reminder_sent');
+    } else if (filter === 'whatsapp') {
+      notifs = notifs.filter(n => n.type === 'whatsapp_reminder_sent');
     }
 
     const unreadCount = reminderEmailService.getAdminUnreadCount();
@@ -6223,6 +6284,43 @@ class AdminDashboardController {
     feed.innerHTML = notifs.map(n => {
       const timeAgo = this.formatTimeAgo(n.timestamp);
       const isUnread = !n.read;
+
+      if (n.type === 'whatsapp_reminder_sent') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#25D366] shadow-xs' : 'border-[#d8e5dc]'} card-3d space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-[#1b7a3e] bg-[#eefbf3] px-2 py-0.5 rounded uppercase border border-[#c2ecd0] badge-3d flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-[#25D366]">chat</span> Automated WhatsApp Dispatched
+              </span>
+              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-[#2c332d]">${n.topic || 'Medical Class Reminder'}</p>
+              <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">
+                Recipient: <strong class="text-[#2c332d]">${n.facultyName || 'Faculty'}</strong> (<span class="font-mono text-[#1b7a3e] font-semibold">${n.recipientPhone || 'Registered Mobile'}</span>)
+              </p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
+                <span class="font-medium text-[#2c332d]">⏰ ${n.timings || '7:00 PM'}</span>
+                <span>•</span>
+                <span class="bg-[#f4efe6] px-1.5 py-0.2 rounded border border-[#ded5c6]">Lead: ${n.leadDurationText || '30 Mins'}</span>
+                <span>•</span>
+                <span class="text-[#25D366] font-medium">🛡️ Anti-Bot Safe Jitter</span>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-[#e8e2d8] flex items-center justify-between">
+              <span class="text-[10px] text-[#788279] font-medium">Onboarding Phone Node</span>
+              <div class="flex items-center gap-2">
+                <a href="${n.waUrl || '#'}" target="_blank" class="text-xs font-bold text-[#1b7a3e] hover:text-[#075e54] flex items-center gap-1 text-decoration-none">
+                  <span class="material-symbols-outlined text-[15px] text-[#25D366]">open_in_new</span> Send in App
+                </a>
+                <button type="button" class="btn-preview-wa-item text-xs font-bold text-[#4a7c59] hover:text-[#2d4d37] flex items-center gap-1 cursor-pointer bg-transparent border-none" data-notif-id="${n.id}">
+                  <span class="material-symbols-outlined text-[15px]">visibility</span> View Message
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       if (n.type === 'email_reminder_sent') {
         return `
@@ -6296,6 +6394,25 @@ class AdminDashboardController {
       });
     });
 
+    // Bind "View WhatsApp Message" buttons
+    feed.querySelectorAll('.btn-preview-wa-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const notifId = btn.getAttribute('data-notif-id');
+        const notif = notifs.find(n => n.id === notifId);
+        if (notif) {
+          reminderEmailService.markNotificationAsRead(notifId);
+          this.openWhatsAppPreview({
+            facultyName: notif.facultyName,
+            phone: notif.recipientPhone,
+            messageText: notif.messageText,
+            waUrl: notif.waUrl,
+            time: notif.timings
+          });
+          this.renderAdminNotifications(filter);
+        }
+      });
+    });
+
     // Drawer sync button listener if present
     document.getElementById('drawerSyncSheetBtn')?.addEventListener('click', async () => {
       const btn = document.getElementById('drawerSyncSheetBtn');
@@ -6312,14 +6429,13 @@ class AdminDashboardController {
     });
   }
 
-  // --- 12b. Admin Settings Modal with Automated Email Configuration ---
+  // --- 12b. Admin Settings Modal with Automated Email & WhatsApp Configuration ---
   setupAdminSettingsModal() {
     const modal = document.getElementById('adminSettingsModal');
     const closeBtn = document.getElementById('closeAdminSettingsBtn');
     const tabEmailBtn = document.getElementById('tabSettingsEmailBtn');
+    const tabWhatsAppBtn = document.getElementById('tabSettingsWhatsAppBtn');
     const tabSheetBtn = document.getElementById('tabSettingsSheetBtn');
-    const tabEmailContent = document.getElementById('settingsTabContentEmail');
-    const tabSheetContent = document.getElementById('settingsTabContentSheet');
 
     const senderEmailInput = document.getElementById('settingSenderEmail');
     const autoToggle = document.getElementById('settingAutoReminderToggle');
@@ -6329,9 +6445,26 @@ class AdminDashboardController {
     const leadSummaryBadge = document.getElementById('settingLeadSummaryBadge');
     const presetBtns = document.querySelectorAll('.btn-lead-preset');
     const domainBtns = document.querySelectorAll('.btn-domain-preset');
-    const saveBtn = document.getElementById('btnSaveEmailSettings');
-    const previewBtn = document.getElementById('btnPreviewEmailTheme');
-    const testDispatchBtn = document.getElementById('btnTestEmailDispatch');
+    const saveEmailBtn = document.getElementById('btnSaveEmailSettings');
+    const previewEmailBtn = document.getElementById('btnPreviewEmailTheme');
+    const testDispatchEmailBtn = document.getElementById('btnTestEmailDispatch');
+
+    // WhatsApp elements
+    const waToggle = document.getElementById('settingWhatsAppToggle');
+    const waStatusBadge = document.getElementById('settingsWhatsAppStatusBadge');
+    const waCadenceNum = document.getElementById('settingWhatsAppCadenceNum');
+    const waJitterNum = document.getElementById('settingWhatsAppJitterNum');
+    const waCadenceBadge = document.getElementById('settingWhatsAppCadenceBadge');
+    const waSenderNameInput = document.getElementById('settingWhatsAppSenderName');
+    const waSenderNumberInput = document.getElementById('settingWhatsAppSenderNumber');
+    const waCountryCodeSelect = document.getElementById('settingWhatsAppCountryCode');
+    const waPresetBtns = document.querySelectorAll('.btn-wa-cadence');
+    const saveWABtn = document.getElementById('btnSaveWhatsAppSettings');
+    const previewWABtn = document.getElementById('btnPreviewWhatsAppTheme');
+    const testWADispatchBtn = document.getElementById('btnTestWhatsAppDispatch');
+
+    // Populate all settings values from storage on initial startup
+    this.populateEmailSettingsFields(true);
 
     // Close handlers
     closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
@@ -6341,9 +6474,50 @@ class AdminDashboardController {
 
     // Tab switcher
     tabEmailBtn?.addEventListener('click', () => this.switchSettingsTab('email'));
+    tabWhatsAppBtn?.addEventListener('click', () => this.switchSettingsTab('whatsapp'));
     tabSheetBtn?.addEventListener('click', () => this.switchSettingsTab('sheet'));
 
-    // Toggle switch
+    // Live auto-save helper
+    const autoSaveSettings = () => {
+      const senderEmail = (senderEmailInput?.value || '').trim();
+      const isEnabled = autoToggle?.checked !== false;
+      const val = parseInt(leadDurationNum?.value, 10) || 30;
+      const unit = leadDurationUnit?.value || 'minutes';
+
+      const waEnabled = waToggle?.checked !== false;
+      const cadenceSec = parseInt(waCadenceNum?.value, 10) || 25;
+      const jitterSec = parseInt(waJitterNum?.value, 10) || 10;
+      const waSender = (waSenderNameInput?.value || 'PW MedEd Academic Directorate').trim();
+      const waSenderNumber = (waSenderNumberInput?.value || '94234 07557').trim();
+      const countryCode = waCountryCodeSelect?.value || '+91';
+
+      reminderEmailService.saveSettings({
+        senderEmail,
+        isEnabled,
+        leadDurationValue: val,
+        leadDurationUnit: unit,
+        whatsappEnabled: waEnabled,
+        whatsappCadenceSeconds: cadenceSec,
+        whatsappJitterSeconds: jitterSec,
+        whatsappSenderName: waSender,
+        whatsappSenderNumber: waSenderNumber,
+        whatsappCountryCode: countryCode,
+        whatsappAutoDispatch: true
+      });
+    };
+
+    let emailDebounceTimer = null;
+    senderEmailInput?.addEventListener('input', () => {
+      clearTimeout(emailDebounceTimer);
+      emailDebounceTimer = setTimeout(autoSaveSettings, 400);
+    });
+    waSenderNumberInput?.addEventListener('input', autoSaveSettings);
+    waSenderNumberInput?.addEventListener('blur', autoSaveSettings);
+    waSenderNumberInput?.addEventListener('change', autoSaveSettings);
+    senderEmailInput?.addEventListener('blur', autoSaveSettings);
+    senderEmailInput?.addEventListener('change', autoSaveSettings);
+
+    // Email Toggle switch
     autoToggle?.addEventListener('change', () => {
       if (statusBadge) {
         statusBadge.textContent = autoToggle.checked ? 'Active' : 'Disabled';
@@ -6351,7 +6525,60 @@ class AdminDashboardController {
           ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d'
           : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
       }
+      autoSaveSettings();
     });
+
+    // WhatsApp Toggle switch
+    waToggle?.addEventListener('change', () => {
+      if (waStatusBadge) {
+        waStatusBadge.textContent = waToggle.checked ? 'Active' : 'Disabled';
+        waStatusBadge.className = waToggle.checked 
+          ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] badge-3d'
+          : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
+      }
+      autoSaveSettings();
+    });
+
+    // WhatsApp Cadence Presets
+    waPresetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        waPresetBtns.forEach(b => {
+          b.className = 'btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]';
+        });
+        btn.className = 'btn-wa-cadence active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#25D366] text-white border-[#1ebc57] shadow-xs';
+
+        const sec = parseInt(btn.getAttribute('data-sec'), 10);
+        const jitter = parseInt(btn.getAttribute('data-jitter'), 10);
+        if (waCadenceNum) waCadenceNum.value = sec;
+        if (waJitterNum) waJitterNum.value = jitter;
+        if (waCadenceBadge) {
+          waCadenceBadge.textContent = `${sec}s ± ${jitter}s Jitter (Anti-Bot Safe)`;
+        }
+        autoSaveSettings();
+      });
+    });
+
+    const updateWaCadenceFromInputs = () => {
+      const sec = parseInt(waCadenceNum?.value, 10) || 25;
+      const jitter = parseInt(waJitterNum?.value, 10) || 10;
+      if (waCadenceBadge) {
+        waCadenceBadge.textContent = `${sec}s ± ${jitter}s Jitter (Anti-Bot Safe)`;
+      }
+      waPresetBtns.forEach(b => {
+        const bSec = parseInt(b.getAttribute('data-sec'), 10);
+        const bJitter = parseInt(b.getAttribute('data-jitter'), 10);
+        const matches = bSec === sec && bJitter === jitter;
+        b.className = matches
+          ? 'btn-wa-cadence active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#25D366] text-white border-[#1ebc57] shadow-xs'
+          : 'btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]';
+      });
+      autoSaveSettings();
+    };
+
+    waCadenceNum?.addEventListener('input', updateWaCadenceFromInputs);
+    waJitterNum?.addEventListener('input', updateWaCadenceFromInputs);
+    waSenderNameInput?.addEventListener('change', autoSaveSettings);
+    waCountryCodeSelect?.addEventListener('change', autoSaveSettings);
 
     // Quick presets for lead duration
     presetBtns.forEach(btn => {
@@ -6370,6 +6597,7 @@ class AdminDashboardController {
         if (leadSummaryBadge) {
           leadSummaryBadge.textContent = `${reminderEmailService.getLeadDurationText(mins)} Prior`;
         }
+        autoSaveSettings();
       });
     });
 
@@ -6383,7 +6611,6 @@ class AdminDashboardController {
         leadSummaryBadge.textContent = `${reminderEmailService.getLeadDurationText(mins)} Prior`;
       }
 
-      // Update preset buttons active state
       presetBtns.forEach(b => {
         const bVal = parseInt(b.getAttribute('data-val'), 10);
         const bUnit = b.getAttribute('data-unit');
@@ -6392,6 +6619,7 @@ class AdminDashboardController {
           ? 'btn-lead-preset active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#4a7c59] text-white border-[#3d6b4b] shadow-xs'
           : 'btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]';
       });
+      autoSaveSettings();
     };
 
     leadDurationNum?.addEventListener('input', updateFromCustomInputs);
@@ -6406,42 +6634,32 @@ class AdminDashboardController {
         const prefix = atIdx > 0 ? current.substring(0, atIdx) : (current || 'academic-reminders');
         if (senderEmailInput) {
           senderEmailInput.value = `${prefix}${domain}`;
+          autoSaveSettings();
           senderEmailInput.focus();
         }
       });
     });
 
     // Save Email Settings
-    saveBtn?.addEventListener('click', () => {
-      const senderEmail = (senderEmailInput?.value || '').trim();
-      const isEnabled = autoToggle?.checked !== false;
-      const val = parseInt(leadDurationNum?.value, 10) || 30;
-      const unit = leadDurationUnit?.value || 'minutes';
+    saveEmailBtn?.addEventListener('click', () => {
+      autoSaveSettings();
+      modal?.classList.add('hidden');
+      this.showToast(`Automated email settings saved! Sender: ${(senderEmailInput?.value || '').trim()}`);
+      this.renderAdminNotifications();
+    });
 
-      if (!senderEmail || !senderEmail.includes('@') || !senderEmail.includes('.')) {
-        alert('Please enter a valid institutional sender email address.');
-        senderEmailInput?.focus();
-        return;
-      }
-
-      const res = reminderEmailService.saveSettings({
-        senderEmail,
-        isEnabled,
-        leadDurationValue: val,
-        leadDurationUnit: unit
-      });
-
-      if (res.success) {
-        modal?.classList.add('hidden');
-        this.showToast(`Automated reminder settings saved! Sender: ${senderEmail} (${reminderEmailService.getLeadDurationText()} prior)`);
-        this.renderAdminNotifications();
-      } else {
-        alert(`Failed to save settings: ${res.error}`);
-      }
+    // Save WhatsApp Settings
+    saveWABtn?.addEventListener('click', () => {
+      autoSaveSettings();
+      modal?.classList.add('hidden');
+      const sec = waCadenceNum?.value || 25;
+      const jit = waJitterNum?.value || 10;
+      this.showToast(`Automated WhatsApp settings saved! Anti-Bot Cadence: ${sec}s ± ${jit}s jitter.`);
+      this.renderAdminNotifications();
     });
 
     // Preview Email Template
-    previewBtn?.addEventListener('click', () => {
+    previewEmailBtn?.addEventListener('click', () => {
       const settings = reminderEmailService.getSettings();
       const senderEmail = (senderEmailInput?.value || settings.senderEmail).trim();
       const val = parseInt(leadDurationNum?.value, 10) || settings.leadDurationValue || 30;
@@ -6449,7 +6667,6 @@ class AdminDashboardController {
       const mins = unit === 'hours' ? val * 60 : val;
       const leadText = reminderEmailService.getLeadDurationText(mins);
 
-      // Find upcoming class or construct sample
       const batch = this.getActiveBatch();
       const sampleEvent = (batch?.events || []).find(e => e.eventType === 'class') || {
         chapter: 'Enzymes & Catalysis',
@@ -6480,11 +6697,50 @@ class AdminDashboardController {
       });
     });
 
-    // Test Dispatch Button
-    testDispatchBtn?.addEventListener('click', () => {
+    // Preview WhatsApp Message
+    previewWABtn?.addEventListener('click', () => {
+      const settings = reminderEmailService.getSettings();
+      const val = parseInt(leadDurationNum?.value, 10) || settings.leadDurationValue || 30;
+      const unit = leadDurationUnit?.value || settings.leadDurationUnit || 'minutes';
+      const mins = unit === 'hours' ? val * 60 : val;
+      const leadText = reminderEmailService.getLeadDurationText(mins);
+
       const batch = this.getActiveBatch();
-      const events = batch?.events || [];
-      const targetEvent = events.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off')) || {
+      const sampleEvent = (batch?.events || []).find(e => e.eventType === 'class') || {
+        chapter: 'Enzymes & Catalysis',
+        topic: 'Enzyme Kinetics, Lineweaver-Burk Plots & Clinical Inhibitors',
+        subject: 'Biochemistry',
+        faculty: 'Dr. Rajesh Jambhulkar',
+        dateRaw: 'Thursday, Oct 15, 2026',
+        isoDate: '2026-10-15',
+        timings: '7:00 PM - 9:00 PM',
+        duration: '2 Hours',
+        batchName: batch?.name || "Prarambh 2026 Batch • MBBS 1st Year"
+      };
+
+      const fac = reminderEmailService.resolveFacultyDetails(sampleEvent.faculty);
+      const phoneObj = reminderEmailService.cleanPhoneNumber(fac.phone, waCountryCodeSelect?.value || '+91');
+      const text = reminderEmailService.generateWhatsAppMessageText({
+        facultyName: fac.name,
+        facultyPhone: phoneObj.formatted,
+        event: sampleEvent,
+        leadDurationText: leadText
+      });
+      const waUrl = reminderEmailService.generateWhatsAppUrl(phoneObj.digits, text);
+
+      this.openWhatsAppPreview({
+        facultyName: fac.name,
+        phone: phoneObj.formatted,
+        messageText: text,
+        waUrl: waUrl,
+        time: sampleEvent.timings
+      });
+    });
+
+    // Test Email Dispatch
+    testDispatchEmailBtn?.addEventListener('click', () => {
+      const allEvents = this.batchManager.getAllEvents('all');
+      const targetEvent = allEvents.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off')) || {
         id: `test_class_${Date.now()}`,
         chapter: 'Enzymes',
         topic: 'Enzyme Kinetics & Clinical Regulation',
@@ -6494,7 +6750,7 @@ class AdminDashboardController {
         isoDate: '2026-10-15',
         timings: '7:00 PM - 9:00 PM',
         duration: '2 Hours',
-        batchName: batch?.name || "Prarambh 2026 Batch • MBBS 1st Year"
+        batchName: "Prarambh 2026 Batch • MBBS 1st Year"
       };
 
       const res = reminderEmailService.dispatchReminder(targetEvent, { force: true });
@@ -6512,14 +6768,398 @@ class AdminDashboardController {
       }
     });
 
-    // Sheet connection inside Settings
-    const sheetUrlInput = document.getElementById('settingsSheetUrl');
-    const sheetTabInput = document.getElementById('settingsSheetTab');
-    const sheetBatchNameInput = document.getElementById('settingsSheetBatchName');
-    const sheetConnectBtn = document.getElementById('settingsConnectSheetBtn');
-    const tabStatus = document.getElementById('settingsTabDetectStatus');
-    const detectedContainer = document.getElementById('settingsDetectedTabsContainer');
-    const detectedChips = document.getElementById('settingsDetectedTabsChips');
+    // Test WhatsApp Dispatch
+    testWADispatchBtn?.addEventListener('click', () => {
+      const allEvents = this.batchManager.getAllEvents('all');
+      const targetEvent = allEvents.find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off')) || {
+        id: `test_class_${Date.now()}`,
+        chapter: 'Enzymes',
+        topic: 'Enzyme Kinetics & Clinical Regulation',
+        subject: 'Biochemistry',
+        faculty: 'Dr. Rajesh Jambhulkar',
+        dateRaw: 'Thursday, Oct 15, 2026',
+        isoDate: '2026-10-15',
+        timings: '7:00 PM - 9:00 PM',
+        duration: '2 Hours',
+        batchName: "Prarambh 2026 Batch • MBBS 1st Year"
+      };
+
+      const res = reminderEmailService.dispatchWhatsAppReminder(targetEvent, { force: true });
+      if (res.success) {
+        this.renderAdminNotifications();
+        this.showToast(`💬 Automated WhatsApp reminder dispatched to ${res.facultyName} (${res.phone?.formatted})!`);
+        this.openWhatsAppPreview({
+          facultyName: res.facultyName,
+          phone: res.phone?.formatted,
+          messageText: res.messageText,
+          waUrl: res.waUrl,
+          time: targetEvent.timings
+        });
+      } else {
+        alert(`WhatsApp dispatch failed: ${res.reason}`);
+      }
+    });
+
+    // Real-Time Google Sheet Hub in Settings Modal
+    this.renderConnectedSheetsSettings();
+  }
+
+  populateEmailSettingsFields(force = false) {
+    const settings = reminderEmailService.getSettings();
+    const senderEmailInput = document.getElementById('settingSenderEmail');
+    const autoToggle = document.getElementById('settingAutoReminderToggle');
+    const statusBadge = document.getElementById('settingsStatusBadge');
+    const leadDurationNum = document.getElementById('settingLeadDurationNum');
+    const leadDurationUnit = document.getElementById('settingLeadDurationUnit');
+    const leadSummaryBadge = document.getElementById('settingLeadSummaryBadge');
+    const presetBtns = document.querySelectorAll('.btn-lead-preset');
+
+    // WhatsApp fields
+    const waToggle = document.getElementById('settingWhatsAppToggle');
+    const waStatusBadge = document.getElementById('settingsWhatsAppStatusBadge');
+    const waCadenceNum = document.getElementById('settingWhatsAppCadenceNum');
+    const waJitterNum = document.getElementById('settingWhatsAppJitterNum');
+    const waCadenceBadge = document.getElementById('settingWhatsAppCadenceBadge');
+    const waSenderNameInput = document.getElementById('settingWhatsAppSenderName');
+    const waCountryCodeSelect = document.getElementById('settingWhatsAppCountryCode');
+    const waPresetBtns = document.querySelectorAll('.btn-wa-cadence');
+
+    if (senderEmailInput && (force || document.activeElement !== senderEmailInput)) {
+      senderEmailInput.value = settings.senderEmail || 'academic-reminders@pwmeded.edu.in';
+    }
+    if (autoToggle && (force || document.activeElement !== autoToggle)) {
+      autoToggle.checked = settings.isEnabled !== false;
+    }
+    if (statusBadge) {
+      statusBadge.textContent = settings.isEnabled !== false ? 'Active' : 'Disabled';
+      statusBadge.className = settings.isEnabled !== false 
+        ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d'
+        : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
+    }
+
+    if (waToggle && (force || document.activeElement !== waToggle)) {
+      waToggle.checked = settings.whatsappEnabled !== false;
+    }
+    if (waStatusBadge) {
+      waStatusBadge.textContent = settings.whatsappEnabled !== false ? 'Active' : 'Disabled';
+      waStatusBadge.className = settings.whatsappEnabled !== false 
+        ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] badge-3d'
+        : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
+    }
+
+    const sec = settings.whatsappCadenceSeconds || 25;
+    const jitter = settings.whatsappJitterSeconds || 10;
+    if (waCadenceNum && (force || document.activeElement !== waCadenceNum)) {
+      waCadenceNum.value = sec;
+    }
+    if (waJitterNum && (force || document.activeElement !== waJitterNum)) {
+      waJitterNum.value = jitter;
+    }
+    if (waCadenceBadge) {
+      waCadenceBadge.textContent = `${sec}s ± ${jitter}s Jitter (Anti-Bot Safe)`;
+    }
+    const waSenderNumberInput = document.getElementById('settingWhatsAppSenderNumber');
+    if (waSenderNameInput && (force || document.activeElement !== waSenderNameInput)) {
+      waSenderNameInput.value = settings.whatsappSenderName || 'PW MedEd Academic Directorate';
+    }
+    if (waSenderNumberInput && (force || document.activeElement !== waSenderNumberInput)) {
+      waSenderNumberInput.value = settings.whatsappSenderNumber || '94234 07557';
+    }
+    if (waCountryCodeSelect && (force || document.activeElement !== waCountryCodeSelect)) {
+      waCountryCodeSelect.value = settings.whatsappCountryCode || '+91';
+    }
+
+    waPresetBtns.forEach(b => {
+      const bSec = parseInt(b.getAttribute('data-sec'), 10);
+      const bJitter = parseInt(b.getAttribute('data-jitter'), 10);
+      const matches = bSec === sec && bJitter === jitter;
+      b.className = matches
+        ? 'btn-wa-cadence active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#25D366] text-white border-[#1ebc57] shadow-xs'
+        : 'btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]';
+    });
+
+    const val = settings.leadDurationValue || 30;
+    const unit = settings.leadDurationUnit || 'minutes';
+    if (leadDurationNum && (force || document.activeElement !== leadDurationNum)) {
+      leadDurationNum.value = val;
+    }
+    if (leadDurationUnit && (force || document.activeElement !== leadDurationUnit)) {
+      leadDurationUnit.value = unit;
+    }
+
+    const mins = settings.leadDurationMinutes || (unit === 'hours' ? val * 60 : val);
+    if (leadSummaryBadge) {
+      leadSummaryBadge.textContent = `${reminderEmailService.getLeadDurationText(mins)} Prior`;
+    }
+
+    presetBtns.forEach(b => {
+      const bVal = parseInt(b.getAttribute('data-val'), 10);
+      const bUnit = b.getAttribute('data-unit');
+      const matches = bVal === val && bUnit === unit;
+      b.className = matches 
+        ? 'btn-lead-preset active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#4a7c59] text-white border-[#3d6b4b] shadow-xs'
+        : 'btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]';
+    });
+  }
+
+  /**
+   * Comprehensive Real-Time Sync & Connected Google Sheets Hub inside Settings
+   */
+  renderConnectedSheetsSettings() {
+    const host = document.getElementById('settingsTabContentSheet');
+    if (!host) return;
+
+    const batches = this.batchManager.getBatches();
+    const syncSettings = this.batchManager.getSyncSettings();
+    const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
+    const isSyncing = syncSettings.isSyncing;
+    const isAuto = syncSettings.autoSyncEnabled !== false;
+    const intervalSec = syncSettings.intervalSeconds || 30;
+
+    let timeAgoText = 'Never';
+    if (syncSettings.lastSyncedAt) {
+      const diffSec = Math.round((Date.now() - new Date(syncSettings.lastSyncedAt).getTime()) / 1000);
+      if (diffSec < 5) timeAgoText = 'Just now';
+      else if (diffSec < 60) timeAgoText = `${diffSec}s ago`;
+      else if (diffSec < 3600) timeAgoText = `${Math.floor(diffSec / 60)}m ago`;
+      else timeAgoText = new Date(syncSettings.lastSyncedAt).toLocaleTimeString();
+    }
+
+    host.innerHTML = `
+      <!-- 1. Real-Time Live Sync Engine Control Card -->
+      <div class="p-3.5 rounded-xl border border-[#ded5c6] bg-[#fbf9f4] space-y-3 card-3d">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+              <span class="material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}">sync</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-headline text-xs font-bold text-[#2c332d]">Real-Time Google Sheets Sync</span>
+                <span id="settingsRealTimeSyncBadge" class="text-[9.5px] font-bold px-2 py-0.5 rounded-md border ${isSyncing ? 'bg-[#fdf6e3] text-[#7a5c00] border-[#e8d9a8]' : isAuto ? 'bg-[#eef4f0] text-[#3b6347] border-[#cde0d3]' : 'bg-[#fdf2f2] text-[#b83230] border-[#fed7d7]'}">
+                  ${isSyncing ? 'Syncing Now...' : isAuto ? `Live (${intervalSec}s loop)` : 'Sync Disabled'}
+                </span>
+              </div>
+              <p class="text-[10px] text-[#68736a] mt-0.5">Background polling keeps schedule, topics, faculty & status up to date in real time.</p>
+            </div>
+          </div>
+          <button id="btnSettingsSyncAllSheets" type="button" class="btn-3d-primary px-3 py-1.5 rounded-lg text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0" ${isSyncing ? 'disabled' : ''}>
+            <span class="material-symbols-outlined text-[15px] ${isSyncing ? 'animate-spin' : ''}">refresh</span>
+            <span>${isSyncing ? 'Syncing...' : 'Sync All Now'}</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-[#ded5c6]">
+          <!-- Toggle Auto Sync -->
+          <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-[#e5dfd5]">
+            <div>
+              <span class="text-[11px] font-bold text-[#2c332d] block">Auto-Sync Enabled</span>
+              <span class="text-[9.5px] text-[#788279]">Polls Google Sheets automatically</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="settingAutoSyncSheetsToggle" class="sr-only peer" ${isAuto ? 'checked' : ''}>
+              <div class="w-9 h-5 bg-[#d8d2c4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#ded5c6] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#4a7c59]"></div>
+            </label>
+          </div>
+
+          <!-- Interval Selector -->
+          <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-[#e5dfd5]">
+            <div>
+              <span class="text-[11px] font-bold text-[#2c332d] block">Sync Frequency</span>
+              <span class="text-[9.5px] text-[#788279]">Last synced: <span id="settingsLastSyncedLabel" class="font-bold text-[#4a7c59]">${timeAgoText}</span></span>
+            </div>
+            <select id="settingSyncIntervalSelect" class="input-3d rounded-lg text-xs px-2 py-1 text-[#2c332d] font-bold focus:border-[#4a7c59] focus:outline-none">
+              <option value="15" ${intervalSec === 15 ? 'selected' : ''}>15s (Ultra)</option>
+              <option value="30" ${intervalSec === 30 ? 'selected' : ''}>30s (Default)</option>
+              <option value="60" ${intervalSec === 60 ? 'selected' : ''}>1 min</option>
+              <option value="120" ${intervalSec === 120 ? 'selected' : ''}>2 mins</option>
+              <option value="300" ${intervalSec === 300 ? 'selected' : ''}>5 mins</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Connected Google Sheets List (Existing & Newly Attached Sheets) -->
+      <div class="p-3.5 rounded-xl border border-[#ded5c6] bg-white space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[17px] text-[#4a7c59]">table_chart_view</span>
+            <span class="font-headline text-xs font-bold text-[#2c332d]">Connected Google Sheets</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">${batches.length} Active</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 max-h-64 overflow-y-auto pr-1" id="settingsBatchesListContainer">
+          ${batches.map(b => {
+            const isSelected = b.id === this.currentBatchId;
+            const canDelete = !defaultBatchIds.includes(b.id);
+            const eventCount = (b.events || []).length;
+            const bLastSynced = b.lastSynced ? new Date(b.lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Ready';
+
+            return `
+              <div class="p-2.5 rounded-xl border ${isSelected ? 'border-[#4a7c59] bg-[#f4f8f5]' : 'border-[#ded5c6] bg-[#fbf9f5]'} flex items-center justify-between gap-2.5 text-xs transition-all">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-bold text-[#2c332d] truncate">${b.name}</span>
+                    <span class="text-[9.5px] px-1.5 py-0.2 rounded bg-white text-[#576058] border border-[#ded5c6] font-semibold">${b.sheetTabName || 'Lecture Planner'}</span>
+                    ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#4a7c59] text-white">Active</span>' : ''}
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-[10px] text-[#68736a] flex-wrap">
+                    <span class="font-bold text-[#4a7c59]">${eventCount} lectures</span>
+                    <span>•</span>
+                    <span>Synced: ${bLastSynced}</span>
+                    ${b.sourceUrl ? `
+                      <span>•</span>
+                      <a href="${b.sourceUrl}" target="_blank" rel="noopener noreferrer" class="text-[#4a7c59] hover:underline flex items-center gap-0.5">
+                        <span>Open Sheet</span>
+                        <span class="material-symbols-outlined text-[11px]">open_in_new</span>
+                      </a>
+                    ` : ''}
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button type="button" class="btn-sync-single-batch px-2.5 py-1 rounded-lg border border-[#cde0d3] bg-white hover:bg-[#eef4f0] text-[11px] font-bold text-[#2d4d37] flex items-center gap-1 cursor-pointer transition-all shadow-2xs" data-batch-id="${b.id}" title="Fetch latest updates from Google Sheets">
+                    <span class="material-symbols-outlined text-[14px]">sync</span>
+                    <span>Sync</span>
+                  </button>
+                  ${canDelete ? `
+                    <button type="button" class="btn-remove-custom-batch p-1 rounded-lg border border-[#fed7d7] bg-white hover:bg-[#fdf2f2] text-[#b83230] cursor-pointer transition-all" data-batch-id="${b.id}" title="Remove attached sheet">
+                      <span class="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 3. Attach New Google Sheet Form -->
+      <div class="p-3.5 rounded-xl border border-[#ded5c6] bg-white space-y-3 card-3d">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[17px] text-[#4a7c59]">add_link</span>
+            <span class="font-headline text-xs font-bold text-[#2c332d]">Attach New Google Sheet</span>
+          </div>
+          <span class="text-[10px] text-[#4a7c59] font-semibold bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">Auto Tab Detection</span>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-[#576058] mb-1">Google Sheet URL *</label>
+          <input type="url" id="settingsSheetUrl" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+          <span class="text-[10px] text-[#68736a] mt-1 block">Ensure the Google Sheet is shared as "Anyone with the link can view".</span>
+          <div id="settingsTabDetectStatus" class="hidden mt-1.5 flex items-center gap-1.5 text-[11px]"></div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-[#576058] mb-1">Sheet Tab Name</label>
+          <input type="text" id="settingsSheetTab" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" value="Lecture Planner" placeholder="Lecture Planner">
+          <div id="settingsDetectedTabsContainer" class="hidden mt-2 p-2 bg-[#faf7f2] rounded-xl border border-[#e5dfd5]">
+            <span class="text-[10px] font-bold uppercase text-[#576058] block mb-1.5">Detected Sheet Tabs:</span>
+            <div id="settingsDetectedTabsChips" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-[#576058] mb-1">Batch / Cohort Name (Optional)</label>
+          <input type="text" id="settingsSheetBatchName" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none" placeholder="Auto-detected from sheet header">
+        </div>
+
+        <div class="flex justify-end pt-1">
+          <button type="button" id="settingsConnectSheetBtn" class="btn-3d-primary px-4 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">link</span>
+            <span>Connect &amp; Enable Real-Time Sync</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. Sheet Write-Back Card (apps-script/Code.gs) -->
+      <div id="sheetWriteBackCardContainer"></div>
+    `;
+
+    // Bind Auto-Sync Toggle
+    const autoToggle = host.querySelector('#settingAutoSyncSheetsToggle');
+    autoToggle?.addEventListener('change', () => {
+      const enabled = autoToggle.checked;
+      this.batchManager.saveSyncSettings({ autoSyncEnabled: enabled });
+      this.showToast(enabled ? `Real-time auto-sync enabled (${this.batchManager.getSyncSettings().intervalSeconds}s interval)` : 'Real-time auto-sync disabled', enabled ? 'success' : 'error');
+      this.renderConnectedSheetsSettings();
+    });
+
+    // Bind Sync Interval Select
+    const intervalSelect = host.querySelector('#settingSyncIntervalSelect');
+    intervalSelect?.addEventListener('change', () => {
+      const sec = parseInt(intervalSelect.value, 10) || 30;
+      this.batchManager.saveSyncSettings({ intervalSeconds: sec });
+      this.showToast(`Sync interval updated to ${sec} seconds`);
+      this.renderConnectedSheetsSettings();
+    });
+
+    // Bind "Sync All Now" button
+    const syncAllBtn = host.querySelector('#btnSettingsSyncAllSheets');
+    syncAllBtn?.addEventListener('click', async () => {
+      syncAllBtn.disabled = true;
+      syncAllBtn.innerHTML = '<span class="material-symbols-outlined text-[15px] animate-spin">sync</span><span>Syncing All...</span>';
+      try {
+        const results = await this.batchManager.syncAllBatches();
+        const successCount = results.filter(r => r.success).length;
+        this.renderAll();
+        this.renderConnectedSheetsSettings();
+        this.showToast(`Real-time sync complete: ${successCount} of ${results.length} Google Sheets updated!`);
+      } catch (err) {
+        this.showToast(`Sync failed: ${err.message}`, 'error');
+      } finally {
+        syncAllBtn.disabled = false;
+        syncAllBtn.innerHTML = '<span class="material-symbols-outlined text-[15px]">refresh</span><span>Sync All Now</span>';
+      }
+    });
+
+    // Bind single batch sync buttons
+    host.querySelectorAll('.btn-sync-single-batch').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const batchId = btn.getAttribute('data-batch-id');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[13px] animate-spin">sync</span><span>Syncing...</span>';
+        try {
+          const updated = await this.batchManager.syncBatch(batchId, { forceBroadcast: true });
+          this.renderAll();
+          this.renderConnectedSheetsSettings();
+          this.showToast(`"${updated.name}" synced live with ${updated.eventCount} lectures!`);
+        } catch (err) {
+          this.showToast(`Failed to sync batch: ${err.message}`, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">sync</span><span>Sync</span>';
+        }
+      });
+    });
+
+    // Bind remove batch buttons
+    host.querySelectorAll('.btn-remove-custom-batch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const batchId = btn.getAttribute('data-batch-id');
+        const b = this.batchManager.getBatch(batchId);
+        if (confirm(`Are you sure you want to disconnect "${b?.name || 'this sheet'}"?`)) {
+          this.batchManager.removeBatch(batchId);
+          if (this.currentBatchId === batchId) {
+            this.currentBatchId = this.batchManager.getBatches()[0]?.id || 'batch-prarambh-2026';
+          }
+          this.renderAll();
+          this.renderConnectedSheetsSettings();
+          this.showToast(`Disconnected sheet "${b?.name || ''}"`);
+        }
+      });
+    });
+
+    // Bind Attach New Sheet form & tab detection
+    const sheetUrlInput = host.querySelector('#settingsSheetUrl');
+    const sheetTabInput = host.querySelector('#settingsSheetTab');
+    const sheetBatchNameInput = host.querySelector('#settingsSheetBatchName');
+    const sheetConnectBtn = host.querySelector('#settingsConnectSheetBtn');
+    const tabStatus = host.querySelector('#settingsTabDetectStatus');
+    const detectedContainer = host.querySelector('#settingsDetectedTabsContainer');
+    const detectedChips = host.querySelector('#settingsDetectedTabsChips');
 
     const renderSheetTabChips = (tabs, activeTab) => {
       if (!detectedChips || !tabs || tabs.length === 0) {
@@ -6555,7 +7195,7 @@ class AdminDashboardController {
       }
 
       tabStatus?.classList.remove('hidden');
-      if (tabStatus) tabStatus.innerHTML = '<span class="material-symbols-outlined text-[14px] text-[#4a7c59] animate-spin">progress_activity</span><span class="text-[#576058] font-medium">Detecting tabs...</span>';
+      if (tabStatus) tabStatus.innerHTML = '<span class="material-symbols-outlined text-[14px] text-[#4a7c59] animate-spin">progress_activity</span><span class="text-[#576058] font-medium">Auto-detecting sheet tabs...</span>';
 
       try {
         const res = await detectGoogleSheetTabs(trimmed);
@@ -6585,7 +7225,7 @@ class AdminDashboardController {
       const customName = sheetBatchNameInput?.value?.trim() || '';
 
       if (!url) {
-        alert('Please provide a Google Sheet link.');
+        alert('Please provide a valid Google Sheet URL.');
         return;
       }
 
@@ -6596,15 +7236,41 @@ class AdminDashboardController {
         const newBatch = await this.batchManager.addBatchFromUrl(url, tab, customName);
         this.currentBatchId = newBatch.id;
         this.renderAll();
-        modal?.classList.add('hidden');
-        this.showToast(`Connected batch "${newBatch.name}" with ${newBatch.events.length} lectures!`);
+        this.renderConnectedSheetsSettings();
+        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! Real-time sync is now active.`);
       } catch (err) {
         alert(`Failed to connect sheet: ${err.message}`);
       } finally {
         sheetConnectBtn.disabled = false;
-        sheetConnectBtn.innerHTML = 'Connect &amp; Import';
+        sheetConnectBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">link</span><span>Connect &amp; Enable Real-Time Sync</span>';
       }
     });
+
+    // Render Write-Back Card inside container
+    const wbHost = host.querySelector('#sheetWriteBackCardContainer');
+    if (wbHost) {
+      this.renderSheetWriteBackSettings(wbHost);
+    }
+  }
+
+  updateHeaderSyncIndicator(detail) {
+    const badge = document.getElementById('headerLiveSyncBadge');
+    if (!badge) return;
+    const isSyncing = detail?.status === 'syncing';
+    badge.innerHTML = `
+      <span class="w-2 h-2 rounded-full ${isSyncing ? 'bg-[#c26d3e] animate-ping' : 'bg-[#4a7c59]'}"></span>
+      <span class="text-[10px] font-bold ${isSyncing ? 'text-[#c26d3e]' : 'text-[#2d4d37]'}">${isSyncing ? 'Syncing...' : 'Live Synced'}</span>
+    `;
+  }
+
+  updateSettingsSyncBadge(detail) {
+    const badge = document.getElementById('settingsRealTimeSyncBadge');
+    if (!badge) return;
+    const isSyncing = detail?.status === 'syncing';
+    const isAuto = detail?.autoSyncEnabled !== false;
+    const intervalSec = detail?.intervalSeconds || 30;
+    badge.className = `text-[9.5px] font-bold px-2 py-0.5 rounded-md border ${isSyncing ? 'bg-[#fdf6e3] text-[#7a5c00] border-[#e8d9a8]' : isAuto ? 'bg-[#eef4f0] text-[#3b6347] border-[#cde0d3]' : 'bg-[#fdf2f2] text-[#b83230] border-[#fed7d7]'}`;
+    badge.textContent = isSyncing ? 'Syncing Now...' : isAuto ? `Live (${intervalSec}s loop)` : 'Sync Disabled';
   }
 
   /**
@@ -6612,20 +7278,20 @@ class AdminDashboardController {
    * settings panel. Built from JS so the five HTML entry points stay in sync
    * automatically.
    */
-  renderSheetWriteBackSettings() {
-    const host = document.getElementById('settingsTabContentSheet');
+  renderSheetWriteBackSettings(targetContainer = null) {
+    const host = targetContainer || document.getElementById('settingsTabContentSheet');
     if (!host) return;
 
     let card = document.getElementById('sheetWriteBackCard');
     if (!card) {
       card = document.createElement('div');
       card.id = 'sheetWriteBackCard';
-      card.className = 'mt-4 p-3.5 rounded-xl border border-[#ded5c6] bg-[#fbf9f4]';
+      card.className = 'mt-3 p-3.5 rounded-xl border border-[#ded5c6] bg-[#fbf9f4]';
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 mb-2.5">
           <div class="flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">sync_alt</span>
-            <span class="font-headline text-xs font-bold text-[#2c332d]">Sheet Write-Back</span>
+            <span class="font-headline text-xs font-bold text-[#2c332d]">Sheet Write-Back (Apps Script)</span>
           </div>
           <span id="sheetWriteBackBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md border"></span>
         </div>
@@ -6671,7 +7337,7 @@ class AdminDashboardController {
         resultEl.textContent = cfg.endpoint && cfg.token
           ? 'Saved.'
           : 'Saved, but the URL or token is empty - approvals will stay local only.';
-        this.renderSheetWriteBackSettings();
+        this.renderSheetWriteBackSettings(targetContainer);
         this.flushSheetWriteQueue({ quiet: false });
       });
 
@@ -6687,7 +7353,7 @@ class AdminDashboardController {
         resultEl.textContent = 'Retrying...';
         const res = await flushPendingSheetWrites();
         resultEl.textContent = `Sent ${res.sent}, still pending ${res.remaining}.`;
-        this.renderSheetWriteBackSettings();
+        this.renderSheetWriteBackSettings(targetContainer);
       });
     }
 
@@ -6717,71 +7383,44 @@ class AdminDashboardController {
     const modal = document.getElementById('adminSettingsModal');
     if (!modal) return;
 
-    this.renderSheetWriteBackSettings();
-
-    // Load fresh settings from service
-    const settings = reminderEmailService.getSettings();
-    const senderEmailInput = document.getElementById('settingSenderEmail');
-    const autoToggle = document.getElementById('settingAutoReminderToggle');
-    const statusBadge = document.getElementById('settingsStatusBadge');
-    const leadDurationNum = document.getElementById('settingLeadDurationNum');
-    const leadDurationUnit = document.getElementById('settingLeadDurationUnit');
-    const leadSummaryBadge = document.getElementById('settingLeadSummaryBadge');
-    const presetBtns = document.querySelectorAll('.btn-lead-preset');
-
-    if (senderEmailInput) senderEmailInput.value = settings.senderEmail || 'academic-reminders@pwmeded.edu.in';
-    if (autoToggle) autoToggle.checked = settings.isEnabled !== false;
-    if (statusBadge) {
-      statusBadge.textContent = settings.isEnabled !== false ? 'Active' : 'Disabled';
-      statusBadge.className = settings.isEnabled !== false 
-        ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d'
-        : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
-    }
-
-    const val = settings.leadDurationValue || 30;
-    const unit = settings.leadDurationUnit || 'minutes';
-    if (leadDurationNum) leadDurationNum.value = val;
-    if (leadDurationUnit) leadDurationUnit.value = unit;
-
-    const mins = settings.leadDurationMinutes || (unit === 'hours' ? val * 60 : val);
-    if (leadSummaryBadge) {
-      leadSummaryBadge.textContent = `${reminderEmailService.getLeadDurationText(mins)} Prior`;
-    }
-
-    // Set preset buttons active state
-    presetBtns.forEach(b => {
-      const bVal = parseInt(b.getAttribute('data-val'), 10);
-      const bUnit = b.getAttribute('data-unit');
-      const matches = bVal === val && bUnit === unit;
-      b.className = matches 
-        ? 'btn-lead-preset active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#4a7c59] text-white border-[#3d6b4b] shadow-xs'
-        : 'btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]';
-    });
-
+    this.renderConnectedSheetsSettings();
+    this.populateEmailSettingsFields(true);
     this.switchSettingsTab(activeTab);
     modal.classList.remove('hidden');
   }
 
   switchSettingsTab(tab = 'email') {
     const tabEmailBtn = document.getElementById('tabSettingsEmailBtn');
+    const tabWhatsAppBtn = document.getElementById('tabSettingsWhatsAppBtn');
     const tabSheetBtn = document.getElementById('tabSettingsSheetBtn');
     const tabEmailContent = document.getElementById('settingsTabContentEmail');
+    const tabWhatsAppContent = document.getElementById('settingsTabContentWhatsApp');
     const tabSheetContent = document.getElementById('settingsTabContentSheet');
+
+    // Reset tab buttons
+    [tabEmailBtn, tabWhatsAppBtn, tabSheetBtn].forEach(btn => {
+      if (!btn) return;
+      btn.classList.remove('btn-3d-primary', 'text-white');
+      btn.classList.add('bg-transparent', 'text-[#576058]');
+    });
+
+    // Hide all tab contents
+    tabEmailContent?.classList.add('hidden');
+    tabWhatsAppContent?.classList.add('hidden');
+    tabSheetContent?.classList.add('hidden');
 
     if (tab === 'email') {
       tabEmailBtn?.classList.remove('bg-transparent', 'text-[#576058]');
       tabEmailBtn?.classList.add('btn-3d-primary', 'text-white');
-      tabSheetBtn?.classList.remove('btn-3d-primary', 'text-white');
-      tabSheetBtn?.classList.add('bg-transparent', 'text-[#576058]');
       tabEmailContent?.classList.remove('hidden');
-      tabSheetContent?.classList.add('hidden');
-    } else {
+    } else if (tab === 'whatsapp') {
+      tabWhatsAppBtn?.classList.remove('bg-transparent', 'text-[#576058]');
+      tabWhatsAppBtn?.classList.add('btn-3d-primary', 'text-white');
+      tabWhatsAppContent?.classList.remove('hidden');
+    } else if (tab === 'sheet') {
       tabSheetBtn?.classList.remove('bg-transparent', 'text-[#576058]');
       tabSheetBtn?.classList.add('btn-3d-primary', 'text-white');
-      tabEmailBtn?.classList.remove('btn-3d-primary', 'text-white');
-      tabEmailBtn?.classList.add('bg-transparent', 'text-[#576058]');
       tabSheetContent?.classList.remove('hidden');
-      tabEmailContent?.classList.add('hidden');
     }
   }
 
@@ -6814,11 +7453,54 @@ class AdminDashboardController {
 
     if (!modal || !container) return;
 
-    if (fromEl) fromEl.textContent = from || 'academic-reminders@pwmeded.edu.in';
+    const currentSender = from || reminderEmailService.getSettings().senderEmail || 'academic-reminders@pwmeded.edu.in';
+    if (fromEl) fromEl.textContent = currentSender;
     if (toEl) toEl.textContent = to || 'Faculty Member';
     if (subjectEl) subjectEl.textContent = subject || '[PW MedEd] Class Reminder';
 
     container.innerHTML = html || '<p class="text-xs text-[#68736a] text-center p-8">No email content generated.</p>';
+    modal.classList.remove('hidden');
+  }
+
+  // --- 12c-2. WhatsApp Simulation Preview Modal ---
+  setupWhatsAppPreviewModal() {
+    const modal = document.getElementById('whatsAppPreviewModal');
+    const closeBtn = document.getElementById('closeWhatsAppPreviewBtn');
+    const closeBottomBtn = document.getElementById('closeWhatsAppPreviewBottomBtn');
+
+    const closeModal = () => modal?.classList.add('hidden');
+    closeBtn?.addEventListener('click', closeModal);
+    closeBottomBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+  }
+
+  openWhatsAppPreview({ facultyName, phone, messageText, waUrl, time }) {
+    const modal = document.getElementById('whatsAppPreviewModal');
+    const bodyEl = document.getElementById('waPreviewBubbleBody');
+    const timeEl = document.getElementById('waPreviewTime');
+    const directLink = document.getElementById('waDirectTestLink');
+
+    if (!modal) return;
+
+    if (bodyEl) {
+      bodyEl.textContent = messageText || 'No WhatsApp message generated.';
+    }
+    if (timeEl) {
+      timeEl.textContent = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    if (directLink) {
+      directLink.href = waUrl || '#';
+      directLink.style.display = waUrl ? 'inline-flex' : 'none';
+    }
+
     modal.classList.remove('hidden');
   }
 
@@ -6835,15 +7517,19 @@ class AdminDashboardController {
 
   runAutomatedReminderCheck() {
     try {
-      const batch = this.getActiveBatch();
-      if (!batch || !batch.events) return;
+      const allEvents = this.batchManager.getAllEvents('all');
+      if (!allEvents || allEvents.length === 0) return;
 
-      const dispatched = reminderEmailService.checkAndDispatchUpcoming(batch.events, batch.name);
+      const dispatched = reminderEmailService.checkAndDispatchUpcoming(allEvents, 'PW MedEd Academic Schedule');
       if (dispatched && dispatched.length > 0) {
         this.renderAdminNotifications();
         dispatched.forEach(res => {
           if (res && res.success) {
-            this.showToast(`📧 Automated reminder dispatched to ${res.facultyName} (${res.recipient})`);
+            if (res.channel === 'whatsapp') {
+              this.showToast(`💬 WhatsApp class reminder queued/dispatched to ${res.facultyName} (${res.phone?.formatted || ''}) • Anti-Bot Safe`);
+            } else {
+              this.showToast(`📧 Automated reminder dispatched from ${res.senderEmail} to ${res.facultyName} (${res.recipient}) • ${res.leadDurationText} prior`);
+            }
           }
         });
       }
@@ -7034,13 +7720,14 @@ class AdminDashboardController {
         const newBatch = await this.batchManager.addBatchFromUrl(url, tab, customName);
         this.currentBatchId = newBatch.id;
         this.renderAll();
+        this.renderConnectedSheetsSettings();
         modal?.classList.add('hidden');
         if (urlInput) urlInput.value = '';
         if (nameInput) nameInput.value = '';
         if (statusDiv) statusDiv.classList.add('hidden');
         if (chipsContainer) chipsContainer.classList.add('hidden');
         lastDetectedUrl = '';
-        this.showToast(`Connected batch "${newBatch.name}" with ${newBatch.events.length} lectures!`);
+        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! Real-time sync is active.`);
       } catch (err) {
         alert(`Failed to connect sheet: ${err.message}`);
       } finally {
@@ -7055,6 +7742,8 @@ class AdminDashboardController {
     const modal = document.getElementById('adminEventDetailModal');
     const closeBtn = document.getElementById('closeAdminEventModal');
     const bottomCloseBtn = document.getElementById('modalDetailCloseBtn');
+    const btnSendWhatsApp = document.getElementById('btnModalSendWhatsApp');
+    const btnSendEmail = document.getElementById('btnModalSendEmail');
 
     closeBtn?.addEventListener('click', () => {
       modal?.classList.add('hidden');
@@ -7067,12 +7756,52 @@ class AdminDashboardController {
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
     });
+
+    btnSendWhatsApp?.addEventListener('click', () => {
+      if (!this.currentDetailEvent) return;
+      const ev = this.currentDetailEvent;
+      const res = reminderEmailService.dispatchWhatsAppReminder(ev, { force: true });
+      if (res.success) {
+        modal?.classList.add('hidden');
+        this.renderAdminNotifications();
+        this.showToast(`💬 WhatsApp reminder dispatched to ${res.facultyName} (${res.phone?.formatted})!`);
+        this.openWhatsAppPreview({
+          facultyName: res.facultyName,
+          phone: res.phone?.formatted,
+          messageText: res.messageText,
+          waUrl: res.waUrl,
+          time: ev.timings
+        });
+      } else {
+        alert(`WhatsApp dispatch failed: ${res.reason}`);
+      }
+    });
+
+    btnSendEmail?.addEventListener('click', () => {
+      if (!this.currentDetailEvent) return;
+      const ev = this.currentDetailEvent;
+      const res = reminderEmailService.dispatchReminder(ev, { force: true });
+      if (res.success) {
+        modal?.classList.add('hidden');
+        this.renderAdminNotifications();
+        this.showToast(`📧 Class reminder email dispatched to ${res.facultyName} (${res.recipient})!`);
+        this.openEmailPreview({
+          from: res.senderEmail,
+          to: `${res.facultyName} <${res.recipient}>`,
+          subject: `[PW MedEd] Class Reminder: ${ev.topic || ev.chapter}`,
+          html: res.emailHtml
+        });
+      } else {
+        alert(`Email dispatch failed: ${res.reason}`);
+      }
+    });
   }
 
   openEventDetail(ev) {
     const modal = document.getElementById('adminEventDetailModal');
     if (!modal) return;
 
+    this.currentDetailEvent = ev;
     document.getElementById('modalDetailTitle').textContent = ev.chapter || ev.topic;
     
     const batchEl = document.getElementById('modalDetailBatch');
@@ -7104,7 +7833,6 @@ class AdminDashboardController {
     if (platformEl) {
       platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
     }
-
 
     modal.classList.remove('hidden');
   }

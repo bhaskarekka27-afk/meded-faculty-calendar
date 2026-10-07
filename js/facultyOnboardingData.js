@@ -9,9 +9,9 @@ export const DEFAULT_FACULTY_ONBOARDING = [
   {
     id: 'fac-1',
     name: 'Dr. Rajesh Jambhulkar',
-    email: 'bhaskarekka27@gmail.com',
-    secondaryEmail: 'rajesh.j@pwmeded.edu.in',
-    phone: '98234 56710',
+    email: 'harshraj01@gmail.com',
+    secondaryEmail: 'harshraj01@gmail.com',
+    phone: '94234 07557',
     dept: 'Biochemistry',
     role: 'Professor • Biochemistry',
     status: 'Verified',
@@ -22,349 +22,221 @@ export const DEFAULT_FACULTY_ONBOARDING = [
   {
     id: 'fac-2',
     name: 'Dr. Pradeep Pawar',
-    email: 'pradeep.p@pwmeded.edu.in',
-    phone: '98450 12389',
+    email: 'pawarpradeep@gmail.com',
+    secondaryEmail: 'pawarpradeep@gmail.com',
+    phone: '99203 00794',
     dept: 'Anatomy',
     role: 'Professor • Anatomy',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["Prarambh '26", "INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-3',
     name: 'Dr. Vivek Nalgirkar',
-    email: 'vivek.physio@pwmeded.edu.in',
-    phone: '99881 23411',
+    email: 'viveknalgirkar@gmail.com',
+    secondaryEmail: 'viveknalgirkar@gmail.com',
+    phone: '97690 67069',
     dept: 'Physiology',
     role: 'Professor • Physiology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["Sushruta '26", "INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
-    id: 'fac-4',
-    name: 'Dr. Sanchit Sir',
-    email: 'sanchit.path@pwmeded.edu.in',
-    phone: '98721 54320',
-    dept: 'Pathology',
-    role: 'Assoc. Professor • Pathology',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-5',
-    name: 'Dr. Ashwani Sir',
-    email: 'ashwani.psm@pwmeded.edu.in',
-    phone: '98112 34509',
-    dept: 'Community Med',
-    role: 'Assoc. Professor • Community Med',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-6',
-    name: "Dr. Sudha Ma'am",
-    email: 'sudha.optha@pwmeded.edu.in',
-    phone: '97654 32100',
-    dept: 'Ophthalmology',
-    role: 'Assistant Professor • Ophthalmology',
-    status: 'Pending',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-7',
-    name: 'Dr. Gobind Rai Garg',
-    email: 'gobind.garg@pwmeded.edu.in',
-    phone: '98100 45678',
-    dept: 'Pharmacology',
-    role: 'Professor • Pharmacology',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-8',
-    name: 'Dr. Preeti Sharma',
-    email: 'preeti.micro@pwmeded.edu.in',
-    phone: '98711 22334',
-    dept: 'Microbiology',
-    role: 'Professor • Microbiology',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-9',
-    name: 'Dr. Apurv Mehra',
-    email: 'apurv.ortho@pwmeded.edu.in',
-    phone: '98188 99001',
-    dept: 'General Surgery',
-    role: 'Professor • Ortho & Surgery',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-10',
-    name: 'Dr. Zainab Vora',
-    email: 'zainab.med@pwmeded.edu.in',
-    phone: '98200 11223',
-    dept: 'General Medicine',
-    role: 'Consultant • Radiology & Medicine',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-11',
-    name: 'Dr. Nikita Nanwani',
-    email: 'nikita.fmt@pwmeded.edu.in',
-    phone: '98333 44556',
-    dept: 'Forensic Med',
-    role: 'Assoc. Professor • FMT',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-12',
-    name: 'Dr. Neha Taneja',
-    email: 'neha.psm@pwmeded.edu.in',
-    phone: '98122 33445',
-    dept: 'Community Med',
-    role: 'Assoc. Professor • PSM',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-13',
-    name: 'Dr. Shrikant',
-    email: 'shrikant.peds@pwmeded.edu.in',
-    phone: '98765 11223',
-    dept: 'Pediatrics',
-    role: 'Assistant Professor • Pediatrics',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Sushruta '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-14',
-    name: 'Dr. Rajiv Ranjan',
-    email: 'rajiv.ent@pwmeded.edu.in',
-    phone: '98990 01122',
-    dept: 'ENT',
-    role: 'Assistant Professor • ENT',
-    status: 'Pending',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  // INI-CET & FMGE Series Faculty
-  {
     id: 'fac-15',
     name: 'Dr. Ranjith AR',
-    email: 'ranjith.ar@pwmeded.edu.in',
-    phone: '98401 22334',
+    email: 'xpresspinacle@gmail.com',
+    secondaryEmail: 'xpresspinacle@gmail.com',
+    phone: '99414 81668',
     dept: 'Pathology',
-    role: 'Senior Consultant • Pathology',
+    role: 'Professor • Pathology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-16',
     name: 'Dr. Manjunath A',
-    email: 'manjunath.a@pwmeded.edu.in',
-    phone: '98452 33445',
+    email: 'drmanjunathforensic@gmail.com',
+    secondaryEmail: 'drmanjunathforensic@gmail.com',
+    phone: '96862 52725',
     dept: 'Forensic Medicine',
-    role: 'Assoc. Professor • Forensic Medicine',
+    role: 'Professor • Forensic Medicine',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-17',
     name: 'Dr. Vinish Srivastava',
-    email: 'vinish.s@pwmeded.edu.in',
-    phone: '98110 44556',
+    email: 'drvinish@yahoo.com',
+    secondaryEmail: 'drvinish@yahoo.com',
+    phone: '99115 09119',
     dept: 'Anaesthesia',
     role: 'Professor • Anaesthesia',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-18',
     name: 'Dr. Ashwani Ranjan',
-    email: 'ashwani.r@pwmeded.edu.in',
-    phone: '98112 55667',
+    email: 'docashwani23@gmail.com',
+    secondaryEmail: 'docashwani23@gmail.com',
+    phone: '88607 96675',
     dept: 'Community Medicine',
-    role: 'Professor • Community Medicine (PSM)',
+    role: 'Assoc. Professor • Community Medicine',
     status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-19',
-    name: 'Dr. Sudha Seetharam',
-    email: 'sudha.s@pwmeded.edu.in',
-    phone: '97654 66778',
-    dept: 'Ophthalmology',
-    role: 'Professor • Ophthalmology',
-    status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-20',
     name: 'Dr. Sanchit Bajpai',
-    email: 'sanchit.b@pwmeded.edu.in',
-    phone: '98721 77889',
+    email: 'drsanchitbaipaihns@gmail.com',
+    secondaryEmail: 'drsanchitbaipaihns@gmail.com',
+    phone: '70073 35207',
     dept: 'ENT',
-    role: 'Assoc. Professor • ENT',
+    role: 'Professor • ENT',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-21',
     name: 'Dr. Santhosh Patil',
-    email: 'santhosh.p@pwmeded.edu.in',
-    phone: '98440 88990',
+    email: 'santhoshmp@icloud.com',
+    secondaryEmail: 'santhoshmp@icloud.com',
+    phone: '83109 84841',
     dept: 'General Medicine',
-    role: 'Lead Consultant • Medicine',
+    role: 'Professor • General Medicine',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-22',
     name: 'Dr. Era Dutta',
-    email: 'era.dutta@pwmeded.edu.in',
-    phone: '98201 99001',
+    email: 'dreradutta@gmail.com',
+    secondaryEmail: 'dreradutta@gmail.com',
+    phone: '98204 03635',
     dept: 'Psychiatry',
-    role: 'Consultant Psychiatrist',
+    role: 'Assoc. Professor • Psychiatry',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-23',
     name: 'Dr. Siraj Ahmad',
-    email: 'siraj.a@pwmeded.edu.in',
-    phone: '98102 11223',
+    email: 'sirajahmad9@gmail.com',
+    secondaryEmail: 'sirajahmad9@gmail.com',
+    phone: '95826 26153',
     dept: 'Pharmacology',
     role: 'Professor • Pharmacology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-24',
     name: 'Dr. Prassan Vij',
-    email: 'prassan.vij@pwmeded.edu.in',
-    phone: '98103 22334',
+    email: 'drprassan@yahoo.com',
+    secondaryEmail: 'drprassan@yahoo.com',
+    phone: '98103 05975',
     dept: 'Obstetrics & Gynaecology',
-    role: 'Lead Consultant • OBG',
+    role: 'Professor • Obstetrics & Gynaecology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-25',
     name: 'Dr. Alekhya',
-    email: 'alekhya.ortho@pwmeded.edu.in',
-    phone: '98480 33445',
+    email: 'alekhya.kumar89@gmail.com',
+    secondaryEmail: 'alekhya.kumar89@gmail.com',
+    phone: '90526 90055',
     dept: 'Orthopedics',
     role: 'Consultant • Orthopedics',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-26',
     name: 'Dr. Sandeep Seeramreddi',
-    email: 'sandeep.s@pwmeded.edu.in',
-    phone: '98490 44556',
+    email: 'sandeepseeramreddi@gmail.com',
+    secondaryEmail: 'sandeepseeramreddi@gmail.com',
+    phone: '99663 35541',
     dept: 'General Surgery',
-    role: 'Senior Consultant • Surgery',
+    role: 'Senior Consultant • General Surgery',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-27',
     name: 'Dr. Natisha Arora',
-    email: 'natisha.a@pwmeded.edu.in',
-    phone: '98114 55667',
+    email: 'Natishaarora@gmail.com',
+    secondaryEmail: 'Natishaarora@gmail.com',
+    phone: '90164 06216',
     dept: 'Radiology',
-    role: 'Consultant • Radio-diagnosis',
+    role: 'Consultant • Radiology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-28',
     name: 'Dr. Jazeer Abdul Khader',
-    email: 'jazeer.k@pwmeded.edu.in',
-    phone: '98470 66778',
+    email: 'admin@drjazeerdermatology.com',
+    secondaryEmail: 'admin@drjazeerdermatology.com',
+    phone: '98098 44313',
     dept: 'Dermatology',
-    role: 'Consultant • Dermatology & Venereology',
+    role: 'Consultant • Dermatology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-29',
     name: 'Dr. Anusha Rathi',
-    email: 'anusha.r@pwmeded.edu.in',
-    phone: '98715 77889',
+    email: 'rathi.anusha@gmail.com',
+    secondaryEmail: 'rathi.anusha@gmail.com',
+    phone: '95603 44064',
     dept: 'Microbiology',
     role: 'Assistant Professor • Microbiology',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
   {
     id: 'fac-30',
     name: 'Dr. Divya Madan',
-    email: 'divya.m@pwmeded.edu.in',
-    phone: '98180 88990',
+    email: 'divyamadan121295@gmail.com',
+    secondaryEmail: 'divyamadan121295@gmail.com',
+    phone: '89303 45037',
     dept: 'Pediatrics',
     role: 'Senior Consultant • Pediatrics',
     status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   },
@@ -372,47 +244,12 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     id: 'fac-admin-2',
     name: 'Bhaskar Ekka',
     email: 'bhaskar.ekka@pw.live',
+    secondaryEmail: '',
     phone: '98765 43210',
     dept: 'Medical Sciences',
     role: 'Lead Academic Faculty',
     status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-admin-3',
-    name: 'Kanchan Gupta',
-    email: 'kanchan.gupta1@pw.live',
-    phone: '98765 43211',
-    dept: 'Medical Sciences',
-    role: 'Faculty Coordinator',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-admin-4',
-    name: 'Academic Dean Office',
-    email: 'admin.office@pwmeded.edu.in',
-    phone: '98765 43212',
-    dept: 'Academic Operations',
-    role: 'Dean & Academic Director',
-    status: 'Verified',
-    canRescheduleCancel: true,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
-  },
-  {
-    id: 'fac-admin-5',
-    name: 'Academic Office',
-    email: 'admin.office@pw.live',
-    phone: '98765 43213',
-    dept: 'Academic Operations',
-    role: 'Academic Director',
-    status: 'Verified',
-    canRescheduleCancel: true,
+    canRescheduleCancel: false,
     cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
     lastUpdated: '2026-09-24T12:00:00.000Z'
   }
@@ -819,7 +656,7 @@ export function parseFacultyCSV(csvText) {
  * Robust Client-Side and Proxy Google Sheet Synchronizer.
  * Works 100% reliably in static production (Render) without crashing on JSON parsing.
  */
-export async function syncFacultyFromGoogleSheet(sheetUrl) {
+export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) {
   if (!sheetUrl || typeof sheetUrl !== 'string') {
     throw new Error('Please provide a valid Google Spreadsheet URL or Apps Script URL.');
   }
@@ -997,29 +834,42 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
 
   // Preserve any local state that has been modified more recently than the remote sheet snapshot
   const localList = getFacultyOnboardingData();
-  const mergedList = parsedList.map(remoteF => {
-    const localMatch = localList.find(l => (l.id && l.id === remoteF.id) || (l.email && l.email.toLowerCase() === (remoteF.email || '').toLowerCase()));
-    if (localMatch) {
-      const localTime = localMatch.lastUpdated ? new Date(localMatch.lastUpdated).getTime() : 0;
-      const remoteTime = remoteF.lastUpdated ? new Date(remoteF.lastUpdated).getTime() : 0;
-      // If local edit has occurred and is newer, keep local state
-      if (localTime > remoteTime) {
-        return { ...remoteF, ...localMatch };
+  let mergedList = [];
+
+  if (forceRemote || !localList || localList.length === 0) {
+    mergedList = parsedList;
+  } else {
+    mergedList = parsedList.map(remoteF => {
+      const localMatch = localList.find(l => (l.id && l.id === remoteF.id) || (l.email && l.email.toLowerCase() === (remoteF.email || '').toLowerCase()));
+      if (localMatch) {
+        const localTime = localMatch.lastUpdated ? new Date(localMatch.lastUpdated).getTime() : 0;
+        const remoteTime = remoteF.lastUpdated ? new Date(remoteF.lastUpdated).getTime() : 0;
+        // If local edit has occurred and is newer, keep local state
+        if (localTime > remoteTime) {
+          return { ...remoteF, ...localMatch };
+        }
       }
-    }
-    return remoteF;
-  });
+      return remoteF;
+    });
 
-  // Also include any local-only faculty that haven't been added to the sheet yet
-  localList.forEach(localF => {
-    const existsInRemote = mergedList.some(r => (r.id && r.id === localF.id) || (r.email && r.email.toLowerCase() === (localF.email || '').toLowerCase()));
-    if (!existsInRemote) {
-      mergedList.push(localF);
-    }
-  });
+    // Also include any newly added local faculty that haven't been synchronized to remote sheet yet
+    localList.forEach(localF => {
+      const existsInRemote = mergedList.some(r => (r.id && r.id === localF.id) || (r.email && r.email.toLowerCase() === (localF.email || '').toLowerCase()));
+      if (!existsInRemote) {
+        mergedList.push(localF);
+      }
+    });
+  }
 
-  // Persist synced data locally and broadcast to all tabs
-  saveFacultyOnboardingData(mergedList);
+  // Check if anything actually changed compared to current localStorage
+  const currentSaved = typeof localStorage !== 'undefined' ? localStorage.getItem(ONBOARDING_STORAGE_KEY) : null;
+  const newJson = JSON.stringify(mergedList);
+  const hasChanged = currentSaved !== newJson;
+
+  // Persist synced data locally and broadcast to all tabs if changed
+  if (hasChanged) {
+    saveFacultyOnboardingData(mergedList);
+  }
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
   }
@@ -1028,6 +878,7 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
     success: true,
     count: mergedList.length,
     list: mergedList,
+    changed: hasChanged,
     method: fetchedVia
   };
 }
@@ -1035,14 +886,46 @@ export async function syncFacultyFromGoogleSheet(sheetUrl) {
 /**
  * Automatically syncs from the embedded Google Sheet URL without clobbering recent local edits.
  */
-export async function syncFacultyFromConnectedSheet() {
+export async function syncFacultyFromConnectedSheet(forceRemote = false) {
   try {
     const connectedUrl = getConnectedFacultySheetUrl();
     if (!connectedUrl) return null;
-    return await syncFacultyFromGoogleSheet(connectedUrl, false);
+    return await syncFacultyFromGoogleSheet(connectedUrl, forceRemote);
   } catch (err) {
     console.warn('Background faculty sheet sync notice:', err.message);
     return null;
+  }
+}
+
+let facultyAutoSyncTimer = null;
+
+/**
+ * Starts continuous background real-time synchronization with the database spreadsheet (vice-versa sync).
+ */
+export function startFacultyAutoSync(intervalSeconds = 15) {
+  stopFacultyAutoSync();
+  const intervalMs = Math.max(5, intervalSeconds) * 1000;
+
+  // Initial sync immediately
+  syncFacultyFromConnectedSheet().catch(() => {});
+
+  facultyAutoSyncTimer = setInterval(() => {
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+      syncFacultyFromConnectedSheet().catch(() => {});
+    }
+  }, intervalMs);
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', () => {
+      syncFacultyFromConnectedSheet().catch(() => {});
+    });
+  }
+}
+
+export function stopFacultyAutoSync() {
+  if (facultyAutoSyncTimer) {
+    clearInterval(facultyAutoSyncTimer);
+    facultyAutoSyncTimer = null;
   }
 }
 
@@ -1111,8 +994,7 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
 
 // Background sync from connected Google Sheet on startup (Production-Ready)
 if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    syncFacultyFromConnectedSheet();
-  }, 1000);
+  startFacultyAutoSync(15);
 }
+
 

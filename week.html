@@ -174,7 +174,7 @@
 
             <!-- Quick Links -->
             <div class="py-2 border-b border-[#f0ece4] space-y-1">
-              <a href="requests.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
+              <a href="admin.html#requests" id="deanMenuRequestsBtn" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#2c332d] hover:bg-[#f4efe6] rounded-xl transition-colors no-underline">
                 <span class="material-symbols-outlined text-[18px] text-[#4a7c59]">sync_alt</span>
                 <span>Requests & Approvals</span>
               </a>
@@ -924,14 +924,15 @@
         </div>
         <button id="closeAdminSettingsBtn" class="text-[#68736a] hover:text-[#2c332d] p-1.5 rounded-lg hover:bg-[#f4efe6] cursor-pointer">
           <span class="material-symbols-outlined text-[20px]">close</span>
-        </button>
-      </div>
-
-      <!-- Settings Navigation Tabs -->
+        </button>      <!-- Settings Navigation Tabs -->
       <div class="flex items-center gap-2 border-b border-[#e5dfd5] pb-2 mb-4">
         <button id="tabSettingsEmailBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-bold btn-3d-primary text-white cursor-pointer border-none flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[16px]">forward_to_inbox</span>
           <span>Automated Email Reminders</span>
+        </button>
+        <button id="tabSettingsWhatsAppBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px] text-[#25D366]">chat</span>
+          <span>WhatsApp Reminders</span>
         </button>
         <button id="tabSettingsSheetBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#576058] hover:text-[#2c332d] hover:bg-[#f4efe6] cursor-pointer border-none bg-transparent flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[16px]">table_chart</span>
@@ -1042,7 +1043,143 @@
 
       </div>
 
-      <!-- Tab Content 2: Google Sheet Connection (Preserved) -->
+      <!-- Tab Content 2: WhatsApp Configuration -->
+      <div id="settingsTabContentWhatsApp" class="hidden space-y-4 text-xs">
+        
+        <!-- Toggle Automated WhatsApp Reminders -->
+        <div class="p-3.5 bg-[#fbf9f5] rounded-xl border border-[#ded5c6] flex items-center justify-between card-3d">
+          <div class="space-y-0.5 pr-3">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-[#2c332d]">Automated WhatsApp Reminders</span>
+              <span id="settingsWhatsAppStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Active</span>
+            </div>
+            <p class="text-[11px] text-[#576058]">Automatically sends lecture reminder messages directly to faculty mobile numbers registered during onboarding.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="settingWhatsAppToggle" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-[#d8d2c4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#ded5c6] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#25D366]"></div>
+          </label>
+        </div>
+
+        <!-- Section 1: Anti-Bot Cadence & Safe Spacing (Crucial Requirement) -->
+        <div class="p-3.5 bg-gradient-to-br from-[#f5fbf7] to-[#eef4f0] rounded-xl border border-[#cde0d3] space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-[#2d4d37] font-bold text-xs">
+              <span class="material-symbols-outlined text-[18px] text-[#25D366]">shield</span>
+              <span>Anti-Bot Protection &amp; Safe Message Spacing *</span>
+            </div>
+            <span id="settingWhatsAppCadenceBadge" class="text-[10px] font-bold text-[#2d4d37] bg-white px-2 py-0.5 rounded border border-[#cde0d3] badge-3d">25s ± 10s Jitter (Anti-Bot Safe)</span>
+          </div>
+
+          <p class="text-[11px] text-[#425246] leading-relaxed">
+            When multiple classes begin at the same hour, outgoing WhatsApp notifications are staggered using randomized interval jitter. This prevents burst transmissions that trigger automated bot-detection and spam flags on WhatsApp/Meta APIs.
+          </p>
+
+          <!-- Cadence Quick Presets -->
+          <div>
+            <span class="text-[10px] font-bold text-[#425246] block mb-1.5 uppercase">Dispatch Interval Presets:</span>
+            <div class="grid grid-cols-3 gap-1.5" id="whatsappCadencePresetGrid">
+              <button type="button" class="btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]" data-sec="15" data-jitter="5">15s (Fast Stagger)</button>
+              <button type="button" class="btn-wa-cadence active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#25D366] text-white border-[#1ebc57] shadow-xs" data-sec="25" data-jitter="10">25s (Recommended)</button>
+              <button type="button" class="btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]" data-sec="45" data-jitter="15">45s (Maximum Protection)</button>
+            </div>
+          </div>
+
+          <!-- Custom Base Interval & Jitter -->
+          <div class="pt-2 border-t border-[#d8e8dc] flex items-center gap-2 flex-wrap text-[11px]">
+            <span class="font-semibold text-[#2d4d37]">Custom Base Interval:</span>
+            <input type="number" id="settingWhatsAppCadenceNum" min="5" max="300" value="25" class="w-16 input-3d rounded-xl text-xs px-2.5 py-1 text-[#2c332d] focus:border-[#25D366] focus:outline-none font-bold bg-white">
+            <span class="text-[#425246]">sec with randomized jitter of ±</span>
+            <input type="number" id="settingWhatsAppJitterNum" min="1" max="60" value="10" class="w-14 input-3d rounded-xl text-xs px-2.5 py-1 text-[#2c332d] focus:border-[#25D366] focus:outline-none font-bold bg-white">
+            <span class="text-[#425246]">sec</span>
+          </div>
+        </div>
+
+        <!-- Section 2: Sender Identity & Number Combined Field -->
+        <div class="p-3.5 bg-white rounded-xl border border-[#ded5c6] space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-bold uppercase text-[#576058]">
+              Automated WhatsApp Sender Number &amp; Channel *
+            </label>
+            <span class="text-[10px] text-[#1b7a3e] font-semibold bg-[#eefbf3] px-2 py-0.5 rounded border border-[#c2ecd0] flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">verified</span>
+              <span>Direct Background Node</span>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-[#68736a] mb-1">
+                Sender Channel / Identity Name
+              </label>
+              <input type="text" id="settingWhatsAppSenderName" class="w-full input-3d rounded-xl text-xs px-3 py-2 text-[#2c332d] focus:border-[#25D366] focus:outline-none font-medium" value="PW MedEd Academic Directorate">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-[#68736a] mb-1">
+                Sender WhatsApp Number (with Country Code) *
+              </label>
+              <div class="flex items-stretch rounded-xl border border-[#ded5c6] bg-white overflow-hidden shadow-2xs focus-within:ring-2 focus-within:ring-[#25D366]/40 focus-within:border-[#25D366] transition-all">
+                <select id="settingWhatsAppCountryCode" class="bg-[#f7f4ed] hover:bg-[#ede7da] border-r border-[#ded5c6] text-xs font-bold text-[#2c332d] px-3 py-2 focus:outline-none cursor-pointer shrink-0 transition-colors">
+                  <option value="+91" selected>+91 (India)</option>
+                  <option value="+1">+1 (USA/CA)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+971">+971 (UAE)</option>
+                  <option value="+61">+61 (AU)</option>
+                  <option value="+65">+65 (SG)</option>
+                </select>
+                <div class="relative flex-1 flex items-center bg-white min-w-0">
+                  <span class="material-symbols-outlined absolute left-3 text-[17px] text-[#25D366] pointer-events-none select-none">phone</span>
+                  <input type="tel" id="settingWhatsAppSenderNumber" class="w-full bg-transparent border-0 text-xs pl-10 pr-3 py-2 text-[#2c332d] focus:outline-none font-bold font-mono tracking-wide" placeholder="94234 07557" value="94234 07557">
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-[10px] text-[#68736a]">All automated class reminder messages will be dispatched from this registered institutional WhatsApp node directly to faculty numbers (from Faculty Onboarding).</p>
+        </div>
+
+        <!-- Section 3: Automated Headless Trigger Condition Banner -->
+        <div class="p-3 bg-gradient-to-r from-[#f0f9f3] to-[#eaf5ee] rounded-xl border border-[#c2ecd0] space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-[#1b7a3e] font-bold text-xs">
+              <span class="material-symbols-outlined text-[18px]">bolt</span>
+              <span>Headless Background Dispatch (No WhatsApp Web Needed)</span>
+            </div>
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#25D366] text-white">Automated Trigger Active</span>
+          </div>
+          <p class="text-[11px] text-[#2d4d37] leading-relaxed">
+            Messages are dispatched automatically in the background as soon as an upcoming class enters the configured timing threshold (e.g. <strong>30 minutes prior to lecture start</strong>). Faculty and Admin immediately receive real-time delivery confirmations and in-app alert cards without requiring manual WhatsApp Web browser tabs.
+          </p>
+        </div>
+
+        <!-- Section 4: Notice & Template Format Summary -->
+        <div class="p-3 bg-white rounded-xl border border-[#ded5c6] flex items-start gap-2.5 text-[#2c332d]">
+          <span class="material-symbols-outlined text-[18px] text-[#25D366] shrink-0 mt-0.5">chat_paste_go</span>
+          <div class="text-[11px] leading-relaxed">
+            <strong>Dynamic Template Content:</strong> Includes Faculty Name, Subject, Topic, Cohort/Batch, Date, Timings, Duration, Venue/Studio, and direct 1-click Faculty Portal link.
+          </div>
+        </div>
+
+        <!-- Actions & Preview Trigger Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[#e5dfd5]">
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnPreviewWhatsAppTheme" class="btn-3d-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-[16px] text-[#25D366]">visibility</span>
+              <span>Preview WhatsApp Message</span>
+            </button>
+            <button type="button" id="btnTestWhatsAppDispatch" class="btn-3d-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer text-[#25D366]">
+              <span class="material-symbols-outlined text-[16px]">send</span>
+              <span>Test WhatsApp Dispatch</span>
+            </button>
+          </div>
+          <button type="button" id="btnSaveWhatsAppSettings" class="btn-3d-primary px-5 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebc57]">
+            <span class="material-symbols-outlined text-[16px]">save</span>
+            <span>Save WhatsApp Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Tab Content 3: Google Sheet Connection (Preserved) -->
       <div id="settingsTabContentSheet" class="hidden space-y-3.5 text-xs">
         <div>
           <label class="block text-[11px] font-bold uppercase text-[#576058] mb-1">Google Sheet URL *</label>
@@ -1131,6 +1268,76 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- MODAL: WHATSAPP MESSAGE PREVIEW MODAL (Realistic WhatsApp Chat Simulation) -->
+  <div id="whatsAppPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#efeae2] rounded-2xl border border-[#ded5c6] modal-3d max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden shadow-2xl">
+      
+      <!-- WhatsApp Chat Header -->
+      <div class="px-4 py-3 bg-[#075e54] text-white flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm text-white">
+            🩺
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h4 class="font-bold text-sm text-white leading-none">PW MedEd Directorate</h4>
+              <span class="material-symbols-outlined text-[14px] text-[#25D366] bg-white rounded-full">check_circle</span>
+            </div>
+            <p class="text-[10px] text-white/80 mt-0.5">Automated WhatsApp Academic Gateway</p>
+          </div>
+        </div>
+        <button id="closeWhatsAppPreviewBtn" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- WhatsApp Chat Bubble Feed -->
+      <div class="p-4 overflow-y-auto space-y-3 flex-1 bg-[radial-gradient(#ded8cc_1px,transparent_1px)] [background-size:16px_16px]">
+        <div class="flex justify-center">
+          <span class="bg-white/80 text-[#576058] text-[10px] font-semibold px-3 py-1 rounded-lg shadow-2xs">
+            TODAY
+          </span>
+        </div>
+
+        <!-- Chat Bubble -->
+        <div class="max-w-[92%] bg-white rounded-2xl rounded-tl-none p-3.5 shadow-xs border border-[#e2dcce] space-y-2 text-xs text-[#2c332d]">
+          <div class="text-[11px] font-bold text-[#075e54] border-b border-[#eef4f0] pb-1 flex items-center justify-between">
+            <span>🩺 PW MedEd Academic Directorate</span>
+            <span class="text-[9px] text-[#2d4d37] bg-[#eef4f0] px-1.5 py-0.2 rounded font-mono font-bold">Class Reminder</span>
+          </div>
+
+          <div id="waPreviewBubbleBody" class="font-sans whitespace-pre-line text-[12px] leading-relaxed text-[#111b21]">
+            <!-- Dynamic WhatsApp Message Injected Here -->
+          </div>
+
+          <div class="flex items-center justify-end gap-1 text-[10px] text-[#68736a] pt-1">
+            <span id="waPreviewTime">7:30 PM</span>
+            <span class="material-symbols-outlined text-[14px] text-[#34b7f1]">done_all</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp Modal Footer -->
+      <div class="px-4 py-3 bg-white border-t border-[#ded5c6] flex items-center justify-between">
+        <span class="text-[11px] text-[#68736a]">
+          Anti-Bot Safe Jitter (15s–45s) Active
+        </span>
+        <div class="flex items-center gap-2">
+          <a id="waDirectTestLink" href="#" target="_blank" class="btn-3d-primary bg-[#25D366] hover:bg-[#1ebc57] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 text-decoration-none">
+            <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+            <span>Open in WhatsApp</span>
+          </a>
+          <button id="closeWhatsAppPreviewBottomBtn" class="btn-3d-secondary px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+            Close
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MODAL 6: FACULTY-WISE CLASS DISTRIBUTION MODAL -->
   <div id="facultyHighlightsModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
     <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden shadow-2xl">

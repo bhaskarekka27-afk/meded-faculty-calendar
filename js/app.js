@@ -211,6 +211,15 @@ class AppController {
       this.resetFilters();
     });
 
+    // Real-time sheet updates listener
+    window.addEventListener('meded:batches_updated', () => {
+      this.renderBatchSelector();
+      this.updateSubjectAndFacultyFilters();
+      this.renderCurrentView();
+      this.renderStats();
+      this.refreshIcons();
+    });
+
     // Connect Sheet Modal Triggers
     document.getElementById('open-connect-sheet-modal')?.addEventListener('click', () => {
       this.openConnectModal();

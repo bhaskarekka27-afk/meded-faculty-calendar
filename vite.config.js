@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
@@ -10,10 +11,18 @@ export default defineConfig({
           if (req.url && req.url.startsWith('/api/detect-tabs')) {
             try {
               const parsedUrl = new URL(req.url, 'http://localhost');
-              const sheetId = parsedUrl.searchParams.get('sheetId');
+              let sheetId = parsedUrl.searchParams.get('sheetId');
+              const urlParam = parsedUrl.searchParams.get('url');
+              if (!sheetId && urlParam) {
+                const match = urlParam.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) sheetId = match[1];
+              }
               if (!sheetId) throw new Error('Missing sheetId');
 
-              const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+              const timestamp = Date.now();
+              const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit?_t=${timestamp}`, {
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+              });
               const html = await response.text();
               const regex = /docs-sheet-tab-caption">([^<]+)<\/div>/g;
               const tabs = [];
@@ -23,6 +32,9 @@ export default defineConfig({
               }
               const recommended = tabs.find(t => /planner|lecture/i.test(t)) || tabs.find(t => /schedule/i.test(t)) || (tabs[0] || 'Lecture Planner');
               res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+              res.setHeader('Pragma', 'no-cache');
+              res.setHeader('Expires', '0');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(JSON.stringify({ success: true, tabs, recommendedTab: recommended }));
               return;
@@ -38,26 +50,36 @@ export default defineConfig({
           if (req.url && req.url.startsWith('/api/fetch-sheet')) {
             try {
               const parsedUrl = new URL(req.url, 'http://localhost');
-              const sheetId = parsedUrl.searchParams.get('sheetId');
+              let sheetId = parsedUrl.searchParams.get('sheetId');
               let sheet = parsedUrl.searchParams.get('sheet') || 'Lecture Planner';
-              const gid = parsedUrl.searchParams.get('gid');
+              let gid = parsedUrl.searchParams.get('gid');
+              const urlParam = parsedUrl.searchParams.get('url');
+              if (!sheetId && urlParam) {
+                const match = urlParam.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) sheetId = match[1];
+                const gidMatch = urlParam.match(/[#&]gid=([0-9]+)/);
+                if (!gid && gidMatch) gid = gidMatch[1];
+              }
+              const timestamp = Date.now();
 
-              // Candidate URLs to try in order
+              // Candidate URLs to try in order with cache-busting timestamp
               const urlsToTry = [];
               if (gid) {
-                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
               }
-              urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`);
+              urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
               if (!sheet.endsWith(' ')) {
-                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}`);
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}&_t=${timestamp}`);
               } else {
-                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}`);
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}&_t=${timestamp}`);
               }
 
               let finalCsv = '';
               for (const targetUrl of urlsToTry) {
                 try {
-                  const response = await fetch(targetUrl);
+                  const response = await fetch(targetUrl, {
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+                  });
                   const text = await response.text();
                   if (text && text.trim().length > 50) {
                     if (!text.startsWith('"Completion %') && !text.startsWith('Completion %')) {
@@ -72,6 +94,9 @@ export default defineConfig({
 
               if (finalCsv) {
                 res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 res.end(finalCsv);
                 return;
@@ -87,6 +112,118 @@ export default defineConfig({
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(JSON.stringify({ error: err.message }));
+              return;
+            }
+          }
+
+          const ONBOARDING_JSON_FILE = resolve(__dirname, 'data_faculty_onboarding.json');
+          const ONBOARDING_CSV_FILE = resolve(__dirname, 'data_faculty_onboarding.csv');
+
+          if (req.url && req.url.startsWith('/api/faculty-onboarding-csv')) {
+            let csvContent = '';
+            if (fs.existsSync(ONBOARDING_CSV_FILE)) {
+              csvContent = fs.readFileSync(ONBOARDING_CSV_FILE, 'utf-8');
+            } else if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+              csvContent = fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8');
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', 'attachment; filename="PW_MedEd_Faculty_Onboarding_Directory.csv"');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(csvContent);
+            return;
+          }
+
+          if (req.url && req.url.startsWith('/api/faculty-onboarding/sync-sheet') && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+              try {
+                const data = JSON.parse(body);
+                const sheetUrl = data.sheetUrl;
+                if (!sheetUrl) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Missing sheetUrl' }));
+                  return;
+                }
+                const match = sheetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (!match) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Invalid Google Spreadsheet URL' }));
+                  return;
+                }
+                const sheetId = match[1];
+                const gidMatch = sheetUrl.match(/gid=([0-9]+)/);
+                const gid = gidMatch ? gidMatch[1] : '0';
+
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${Date.now()}`;
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                
+                // Read current json to return or update
+                let currentList = [];
+                if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+                  try { currentList = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8')); } catch (_) {}
+                }
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.end(JSON.stringify({ success: true, count: currentList.length, list: currentList, rawCsv: csvText }));
+              } catch (err) {
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: err.message }));
+              }
+            });
+            return;
+          }
+
+          if (req.url && req.url.startsWith('/api/faculty-onboarding')) {
+            if (req.method === 'GET') {
+              try {
+                if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+                  const content = fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, list: parsed }));
+                  return;
+                }
+              } catch (e) {}
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ success: true, list: null }));
+              return;
+            }
+
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', () => {
+                try {
+                  const data = JSON.parse(body);
+                  if (Array.isArray(data.list)) {
+                    fs.writeFileSync(ONBOARDING_JSON_FILE, JSON.stringify(data.list, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: data.list.length }));
+                    return;
+                  }
+                } catch (err) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: err.message }));
+                  return;
+                }
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid data' }));
+              });
               return;
             }
           }

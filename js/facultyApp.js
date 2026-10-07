@@ -70,8 +70,22 @@ export class FacultyDashboardController {
     this.todayIso = todayIso();
     this.mobileSelectedDateIso = this.todayIso;
 
+    this.setupBatchRealTimeSyncListener();
     this.render();
     this.renderFacultyNotifications();
+  }
+
+  setupBatchRealTimeSyncListener() {
+    window.addEventListener('meded:batches_updated', (e) => {
+      this.batches = this.batchManager.getBatches();
+      if (this.activeBatchId !== 'all' && !this.batches.some(b => b.id === this.activeBatchId)) {
+        this.activeBatchId = this.batches[0] ? this.batches[0].id : 'batch-prarambh-2026';
+      }
+      this.populateBatchDropdown();
+      this.populateMobileBatchDropdown();
+      this.render();
+      this.renderFacultyNotifications();
+    });
   }
 
   loadFacultySession() {
@@ -1553,6 +1567,51 @@ export class FacultyDashboardController {
       const timeAgo = this.formatTimeAgo(n.timestamp);
       const isUnread = !n.read;
 
+      if (n.type === 'whatsapp_reminder_received') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#25D366] bg-[#f5fbf7] shadow-xs' : 'border-[#ded5c6]'} card-3d space-y-2.5 transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold text-[#1b7a3e] bg-[#eefbf3] px-2 py-0.5 rounded border border-[#c2ecd0] badge-3d flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[13px] text-[#25D366]">chat</span> WhatsApp Reminder
+                </span>
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#25D366]"></span>' : ''}
+              </div>
+              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+            </div>
+
+            <div>
+              <p class="text-xs font-bold text-[#2c332d] leading-snug">${n.topic || 'Curricular Lecture Session'}</p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#576058] flex-wrap">
+                <span class="font-bold text-[#2d4d37]">⏰ ${n.timings || '7:00 PM'}</span>
+                <span>•</span>
+                <span class="bg-[#eefbf3] text-[#1b7a3e] font-semibold px-1.5 py-0.2 rounded border border-[#c2ecd0]">In ${n.leadDurationText || '30 Mins'}</span>
+                <span>•</span>
+                <span class="bg-[#eef4f0] text-[#3b6347] font-semibold px-1.5 py-0.2 rounded border border-[#cde0d3]">${n.subject || 'Medicine'}</span>
+              </div>
+            </div>
+
+            <div class="p-2 rounded-lg bg-white border border-[#e8e2d8] text-[10.5px] text-[#68736a] space-y-1">
+              <div class="flex items-center justify-between">
+                <span>Target Mobile:</span>
+                <span class="font-mono font-semibold text-[#1b7a3e]">${n.recipientPhone || 'Registered Mobile'}</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-[#e8e2d8] flex items-center justify-between gap-2">
+              <a href="https://meet.google.com/pwm-med" target="_blank" class="text-xs font-bold text-[#4a7c59] hover:text-[#2d4d37] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px]">video_call</span> Join Room
+              </a>
+              ${n.waUrl ? `
+                <a href="${n.waUrl}" target="_blank" class="px-2.5 py-1 rounded-lg bg-[#eefbf3] hover:bg-[#d8f5e2] text-[#1b7a3e] text-xs font-bold flex items-center gap-1 border border-[#c2ecd0] cursor-pointer transition-colors shadow-xs text-decoration-none">
+                  <span class="material-symbols-outlined text-[14px] text-[#25D366]">open_in_new</span> Open WhatsApp
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
+
       if (n.type === 'email_reminder_received') {
         return `
           <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#4a7c59] bg-[#f8faf8] shadow-xs' : 'border-[#ded5c6]'} card-3d space-y-2.5 transition-all">
@@ -2970,6 +3029,54 @@ export class FacultyDashboardController {
     feed.innerHTML = notifs.map(n => {
       const timeAgo = this.formatTimeAgo(n.timestamp);
       const isUnread = !n.read;
+
+      if (n.type === 'whatsapp_reminder_received') {
+        return `
+          <div class="p-3.5 rounded-2xl border ${isUnread ? 'bg-[#eefbf3] border-[#25D366]/40 ring-1 ring-[#25D366]/20' : 'bg-terra-card border-terra-border/80 shadow-soft'} space-y-2.5 transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold text-[#1b7a3e] bg-[#eefbf3] px-2 py-0.5 rounded border border-[#c2ecd0] flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[13px] text-[#25D366]">chat</span>
+                  <span>WhatsApp Reminder</span>
+                </span>
+                ${isUnread ? '<span class="unread-dot w-2 h-2 rounded-full bg-[#25D366] shrink-0"></span>' : ''}
+              </div>
+              <span class="text-[10px] text-terra-muted font-medium">${timeAgo}</span>
+            </div>
+
+            <div>
+              <p class="text-xs font-bold text-terra-charcoal leading-snug">${n.topic || 'Curricular Lecture Session'}</p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-terra-muted flex-wrap">
+                <span class="font-bold text-[#1b7a3e]">⏰ ${n.timings || '7:00 PM'}</span>
+                <span>•</span>
+                <span class="bg-[#eefbf3] text-[#1b7a3e] font-semibold px-1.5 py-0.2 rounded border border-[#c2ecd0]">In ${n.leadDurationText || '30 Mins'}</span>
+                <span>•</span>
+                <span class="bg-terra-forestLight text-terra-forest font-semibold px-1.5 py-0.2 rounded border border-terra-forest/20">${n.subject || 'Biochemistry'}</span>
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-white border border-terra-border/60 text-[10.5px] text-terra-muted space-y-0.5">
+              <div class="flex items-center justify-between">
+                <span>Target Mobile:</span>
+                <span class="font-mono font-semibold text-[#1b7a3e]">${n.recipientPhone || 'Registered Mobile'}</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-terra-border/60 flex items-center justify-between gap-2">
+              <a href="https://meet.google.com/pwm-med" target="_blank" class="text-xs font-bold text-terra-forest hover:underline flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                <span>Join Room</span>
+              </a>
+              ${n.waUrl ? `
+                <a href="${n.waUrl}" target="_blank" class="px-2.5 py-1 rounded-lg bg-[#eefbf3] hover:bg-[#d8f5e2] text-[#1b7a3e] text-xs font-bold flex items-center gap-1 border border-[#c2ecd0] text-decoration-none">
+                  <span class="material-symbols-outlined text-[14px] text-[#25D366]">open_in_new</span>
+                  <span>WhatsApp</span>
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
 
       if (n.type === 'email_reminder_received') {
         return `

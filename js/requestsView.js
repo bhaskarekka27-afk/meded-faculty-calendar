@@ -6,20 +6,70 @@
 
 const STORAGE_KEY = 'pw_meded_faculty_requests';
 
+export const INITIAL_REQUESTS_DATA = [
+  {
+    id: 'req-resched-1',
+    faculty: 'Dr. Rajesh Jambhulkar',
+    facultyName: 'Dr. Rajesh Jambhulkar',
+    initials: 'RJ',
+    avatar: 'RJ',
+    subject: 'Biochemistry',
+    batch: 'Prarambh 2026 Batch',
+    enrolledCount: '184 Enrolled',
+    type: 'Reschedule',
+    timeAgo: '2 hours ago',
+    currentSlot: 'Saturday, October 17, 2026 • 7:00 PM – 9:00 PM',
+    originalSlot: 'Saturday, October 17, 2026 • 7:00 PM – 9:00 PM',
+    currentVenue: 'Live on PW MedEd Mobile App • Studio 04',
+    proposedSlot: 'Tuesday, October 20, 2026 • 6:30 PM – 8:30 PM',
+    proposedVenue: 'Studio 02 (Cleared) • Zero Batch Clashes',
+    reason: 'Slot adjustment requested for clinical rounds & CME conference (Fluid Mosaic Model, Passive Transport, Active Transport)',
+    avatarBg: 'bg-[#c8e8d0] text-[#002110]',
+    typeBg: 'bg-[#f8e0a8] text-[#221a05]',
+    status: 'pending',
+    createdAt: '2026-10-15T10:00:00.000Z'
+  },
+  {
+    id: 'req-cancel-1',
+    faculty: 'Dr. Vivek Nalgirkar',
+    facultyName: 'Dr. Vivek Nalgirkar',
+    initials: 'VN',
+    avatar: 'VN',
+    subject: 'Physiology',
+    batch: 'Sushruta 2026 Batch',
+    enrolledCount: '140 Enrolled',
+    type: 'Cancellation',
+    timeAgo: '4 hours ago',
+    currentSlot: 'Thursday, October 15, 2026 • 5:00 PM – 7:00 PM',
+    originalSlot: 'Thursday, October 15, 2026 • 5:00 PM – 7:00 PM',
+    currentVenue: 'LT-1 Lecture Hall',
+    proposedSlot: 'No substitute (Class Cancelled)',
+    proposedVenue: 'LT-1 Lecture Hall',
+    substituteFaculty: 'Dr. Priya Sharma (Verified NMC Faculty)',
+    reason: 'Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person LT-1.',
+    avatarBg: 'bg-[#fbf3ec] text-[#c26d3e]',
+    typeBg: 'bg-[#ffdad8] text-[#690005]',
+    status: 'pending',
+    createdAt: '2026-10-15T08:00:00.000Z'
+  }
+];
+
 /**
- * Get all stored faculty requests (empty array by default, no dummy data)
+ * Get all stored faculty requests (falls back to INITIAL_REQUESTS_DATA if empty)
  */
 export function getStoredRequests() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     }
   } catch (e) {
     console.error('Error reading requests from localStorage:', e);
   }
-  return [];
+  return [...INITIAL_REQUESTS_DATA];
 }
 
 /**
@@ -27,7 +77,9 @@ export function getStoredRequests() {
  */
 export function saveStoredRequests(requests) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+    }
   } catch (e) {
     console.error('Error saving requests to localStorage:', e);
   }
@@ -239,33 +291,47 @@ export function openRescheduleApprovalModal(requestIdOrReq, controller = {}) {
   }
 }
 
-export const INITIAL_REQUESTS_DATA = [];
-
 /**
  * Main renderer for Requests View
  */
-export function renderRequestsView(container, requestsState = { filter: 'all', batch: 'all' }, controller = {}) {
+export function renderRequestsView(container, requestsState = { filter: 'all', batch: 'all', searchQuery: '' }, controller = {}) {
   if (!container) return;
 
   const requests = getStoredRequests();
-  const currentFilter = requestsState.filter || 'all'; // 'all' | 'reschedule' | 'cancellation'
+  const currentFilter = requestsState.filter || 'all'; // 'all' | 'reschedule' | 'cancellation' | 'resolved'
   const currentBatch = requestsState.batch || 'all';
+  const searchQuery = (requestsState.searchQuery || '').trim().toLowerCase();
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
-  const filteredRequests = pendingRequests.filter(r => {
+  const resolvedRequests = requests.filter(r => r.status === 'approved' || r.status === 'declined');
+
+  let baseRequests = currentFilter === 'resolved' ? resolvedRequests : (currentFilter === 'all' ? pendingRequests : pendingRequests);
+
+  const filteredRequests = baseRequests.filter(r => {
     if (currentFilter === 'reschedule' && r.type.toLowerCase() !== 'reschedule') return false;
     if (currentFilter === 'cancellation' && r.type.toLowerCase() !== 'cancellation') return false;
     if (currentBatch !== 'all' && !r.batch.toLowerCase().includes(currentBatch.toLowerCase())) return false;
+    
+    if (searchQuery) {
+      const match = (r.faculty || '').toLowerCase().includes(searchQuery) ||
+                    (r.facultyName || '').toLowerCase().includes(searchQuery) ||
+                    (r.subject || '').toLowerCase().includes(searchQuery) ||
+                    (r.batch || '').toLowerCase().includes(searchQuery) ||
+                    (r.reason || '').toLowerCase().includes(searchQuery) ||
+                    (r.currentSlot || '').toLowerCase().includes(searchQuery) ||
+                    (r.proposedSlot || '').toLowerCase().includes(searchQuery);
+      if (!match) return false;
+    }
     return true;
   });
 
   const pendingCount = pendingRequests.length;
   const rescheduleCount = pendingRequests.filter(r => r.type === 'Reschedule').length;
   const cancellationCount = pendingRequests.filter(r => r.type === 'Cancellation').length;
-  const resolvedCount = requests.filter(r => r.status === 'approved' || r.status === 'declined').length;
+  const resolvedCount = resolvedRequests.length;
 
   container.innerHTML = `
-    <div class="flex flex-col w-full animate-in fade-in duration-200">
+    <div class="flex flex-col w-full">
       <div class="w-full space-y-6">
         
         <!-- Header -->
@@ -333,15 +399,18 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
         <!-- Filter Tabs & Batch Selector Bar -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
           <!-- Filter Tabs Track -->
-          <div class="track-3d flex items-center p-1 rounded-xl text-xs" id="requestsFilterTabGroup">
-            <button class="req-filter-tab px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'all' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="all" type="button">
-              All (${pendingCount})
+          <div class="track-3d flex items-center p-1 rounded-xl text-xs flex-wrap gap-1" id="requestsFilterTabGroup">
+            <button class="req-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'all' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="all" type="button">
+              Pending (${pendingCount})
             </button>
-            <button class="req-filter-tab px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'reschedule' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="reschedule" type="button">
+            <button class="req-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'reschedule' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="reschedule" type="button">
               Reschedule (${rescheduleCount})
             </button>
-            <button class="req-filter-tab px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'cancellation' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="cancellation" type="button">
+            <button class="req-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'cancellation' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="cancellation" type="button">
               Cancellation (${cancellationCount})
+            </button>
+            <button class="req-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer border-none ${currentFilter === 'resolved' ? 'active btn-3d-primary text-white shadow-xs' : 'text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] bg-transparent font-semibold'}" data-filter="resolved" type="button">
+              Resolved (${resolvedCount})
             </button>
           </div>
 
@@ -350,7 +419,7 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
             <button id="batchFilterDropdownBtn" type="button" class="pill-3d flex items-center gap-2 bg-[#f7f4ed] hover:bg-[#ede7da] text-[#2c332d] text-xs font-bold px-3.5 py-2 rounded-xl border border-[#ded5c6] transition-all cursor-pointer group">
               <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">school</span>
               <span id="batchFilterSelectedLabel" class="tracking-tight font-semibold">
-                ${currentBatch === 'all' ? 'All Batches (Combined)' : currentBatch === 'prarambh' ? 'Batch Prarambh 2026' : 'Batch Sushruta 2026'}
+                ${currentBatch === 'all' ? 'All Batches (Combined)' : currentBatch.toLowerCase().includes('prarambh') ? 'Batch Prarambh 2026' : 'Batch Sushruta 2026'}
               </span>
               <span class="material-symbols-outlined text-[16px] text-[#788279] group-hover:text-[#2c332d] transition-colors ml-0.5">expand_more</span>
             </button>
@@ -378,7 +447,7 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
                 </button>
 
                 <!-- Option 2: Prarambh 2026 -->
-                <button type="button" data-batch="prarambh" class="batch-filter-option w-full text-left p-2 rounded-xl ${currentBatch === 'prarambh' ? 'bg-[#eef4f0] border border-[#cde0d3] text-[#2d4d37] font-bold' : 'hover:bg-[#f7f4ed] border border-transparent hover:border-[#ded5c6] text-[#3b433c] font-semibold'} flex items-center justify-between transition-colors group cursor-pointer">
+                <button type="button" data-batch="prarambh" class="batch-filter-option w-full text-left p-2 rounded-xl ${currentBatch.toLowerCase().includes('prarambh') ? 'bg-[#eef4f0] border border-[#cde0d3] text-[#2d4d37] font-bold' : 'hover:bg-[#f7f4ed] border border-transparent hover:border-[#ded5c6] text-[#3b433c] font-semibold'} flex items-center justify-between transition-colors group cursor-pointer">
                   <div class="flex items-start gap-2.5 min-w-0">
                     <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[#fbf3ec] to-[#f4e2d2] text-[#c26d3e] border border-[#eed9cc] flex items-center justify-center shrink-0 mt-0.5 font-bold text-[11px]">
                       P
@@ -395,7 +464,7 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
                 </button>
 
                 <!-- Option 3: Sushruta 2026 -->
-                <button type="button" data-batch="sushruta" class="batch-filter-option w-full text-left p-2 rounded-xl ${currentBatch === 'sushruta' ? 'bg-[#eef4f0] border border-[#cde0d3] text-[#2d4d37] font-bold' : 'hover:bg-[#f7f4ed] border border-transparent hover:border-[#ded5c6] text-[#3b433c] font-semibold'} flex items-center justify-between transition-colors group cursor-pointer">
+                <button type="button" data-batch="sushruta" class="batch-filter-option w-full text-left p-2 rounded-xl ${currentBatch.toLowerCase().includes('sushruta') ? 'bg-[#eef4f0] border border-[#cde0d3] text-[#2d4d37] font-bold' : 'hover:bg-[#f7f4ed] border border-transparent hover:border-[#ded5c6] text-[#3b433c] font-semibold'} flex items-center justify-between transition-colors group cursor-pointer">
                   <div class="flex items-start gap-2.5 min-w-0">
                     <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center shrink-0 mt-0.5 font-bold text-[11px]">
                       S
@@ -427,7 +496,7 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
 
         <!-- Request Cards List -->
         <div class="space-y-4 pt-1" id="requestsCardsList">
-          ${renderCardsHtml(filteredRequests)}
+          ${renderCardsHtml(filteredRequests, currentFilter)}
         </div>
 
       </div>
@@ -437,16 +506,29 @@ export function renderRequestsView(container, requestsState = { filter: 'all', b
   attachRequestsViewListeners(container, requestsState, controller);
 }
 
-function renderCardsHtml(requests) {
+function renderCardsHtml(requests, currentFilter = 'all') {
   if (!requests || requests.length === 0) {
+    const isResolvedTab = currentFilter === 'resolved';
     return `
-      <div class="card-3d p-12 text-center text-[#68736a] bg-white rounded-2xl border border-[#ded5c6] space-y-3">
+      <div class="card-3d p-12 text-center text-[#68736a] bg-white rounded-2xl border border-[#ded5c6] space-y-4">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#4a7c59] flex items-center justify-center mx-auto border border-[#cde0d3] shadow-xs">
-          <span class="material-symbols-outlined text-[28px]">inbox</span>
+          <span class="material-symbols-outlined text-[28px]">${isResolvedTab ? 'task_alt' : 'inbox'}</span>
         </div>
         <div class="space-y-1">
-          <h3 class="font-headline text-base font-bold text-[#2c332d]">No Pending Requests</h3>
-          <p class="text-xs text-[#68736a] max-w-md mx-auto">There are no faculty reschedule or cancellation requests awaiting review. Faculty schedule modifications will appear here in real-time.</p>
+          <h3 class="font-headline text-base font-bold text-[#2c332d]">
+            ${isResolvedTab ? 'No Resolved Requests' : 'No Pending Requests'}
+          </h3>
+          <p class="text-xs text-[#68736a] max-w-md mx-auto">
+            ${isResolvedTab 
+              ? 'There are no processed or approved reschedule/cancellation requests recorded yet.' 
+              : 'There are no active faculty schedule requests awaiting review. Faculty submissions appear here in real-time.'}
+          </p>
+        </div>
+        <div class="pt-2">
+          <button type="button" id="btnResetSampleRequests" class="btn-3d-secondary px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer text-[#4a7c59]">
+            <span class="material-symbols-outlined text-[16px]">restart_alt</span>
+            <span>Restore Demo Requests Data</span>
+          </button>
         </div>
       </div>
     `;
@@ -454,9 +536,11 @@ function renderCardsHtml(requests) {
 
   return requests.map(req => {
     const isCancellation = req.type === 'Cancellation';
+    const isResolved = req.status === 'approved' || req.status === 'declined';
+    const isApproved = req.status === 'approved';
     
     return `
-      <div class="request-card card-3d rounded-2xl bg-white p-5 space-y-4 border border-[#ded5c6] transition-all hover:shadow-md" id="card-${req.id}" data-type="${req.type.toLowerCase()}" data-batch="${req.batch.toLowerCase().includes('prarambh') ? 'prarambh' : req.batch.toLowerCase().includes('sushruta') ? 'sushruta' : 'all'}">
+      <div class="request-card card-3d rounded-2xl bg-white p-5 space-y-4 border border-[#ded5c6] transition-all hover:shadow-md ${isResolved ? 'opacity-90' : ''}" id="card-${req.id}" data-type="${req.type.toLowerCase()}" data-batch="${req.batch.toLowerCase().includes('prarambh') ? 'prarambh' : req.batch.toLowerCase().includes('sushruta') ? 'sushruta' : 'all'}">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-3.5 min-w-0">
             <div class="w-10 h-10 rounded-xl ${req.avatarBg || 'bg-[#c8e8d0] text-[#002110]'} font-headline font-bold text-sm flex items-center justify-center shrink-0 shadow-xs border border-[#cde0d3]">
@@ -464,16 +548,22 @@ function renderCardsHtml(requests) {
             </div>
             <div class="flex flex-col justify-center min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="font-headline text-sm font-bold text-[#2c332d] leading-snug">${req.faculty}</h3>
+                <h3 class="font-headline text-sm font-bold text-[#2c332d] leading-snug">${req.faculty || req.facultyName || 'Dr. Faculty'}</h3>
                 <span class="text-xs text-[#576058] leading-snug font-semibold">• ${req.subject}</span>
               </div>
               <p class="text-xs text-[#68736a] leading-normal mt-0.5 font-medium">Batch: ${req.batch} (${req.enrolledCount || 'Enrolled'})</p>
             </div>
           </div>
-          <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
             <span class="px-2.5 py-0.5 rounded-md ${isCancellation ? 'bg-[#ffdad8] text-[#690005] border border-[#f3dcd0]' : 'bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc]'} text-[11px] font-bold uppercase tracking-wider badge-3d">
               ${req.type}
             </span>
+            ${isResolved ? `
+              <span class="px-2.5 py-0.5 rounded-md ${isApproved ? 'bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]' : 'bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7]'} text-[11px] font-bold uppercase tracking-wider badge-3d flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">${isApproved ? 'check_circle' : 'cancel'}</span>
+                <span>${isApproved ? 'Approved' : 'Declined'}</span>
+              </span>
+            ` : ''}
             <span class="text-xs font-semibold text-[#68736a]">${req.timeAgo || 'Recent'}</span>
           </div>
         </div>
@@ -482,30 +572,35 @@ function renderCardsHtml(requests) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] text-xs">
           <div>
             <span class="text-[#68736a] block font-semibold text-[11px] uppercase tracking-wider">${isCancellation ? 'Cancelled Session:' : 'Current Slot:'}</span>
-            <strong class="text-[#2c332d] text-xs mt-0.5 block font-bold">${req.currentSlot}</strong>
+            <strong class="text-[#2c332d] text-xs mt-0.5 block font-bold">${req.currentSlot || req.originalSlot || 'Scheduled Slot'}</strong>
           </div>
           <div>
             <span class="${isCancellation ? 'text-[#c26d3e]' : 'text-[#4a7c59]'} block font-semibold text-[11px] uppercase tracking-wider">${isCancellation ? 'Substitute Faculty:' : 'Proposed Slot:'}</span>
-            <strong class="text-[#2c332d] text-xs mt-0.5 block font-bold">${isCancellation ? (req.substituteFaculty || 'Dr. Priya Sharma') : req.proposedSlot}</strong>
+            <strong class="text-[#2c332d] text-xs mt-0.5 block font-bold">${isCancellation ? (req.substituteFaculty || 'Dr. Priya Sharma') : (req.proposedSlot || 'Slot Adjustment')}</strong>
           </div>
         </div>
         
         <!-- Reason & Actions -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs pt-1">
           <p class="text-[#576058] text-xs italic flex-1 font-medium">
-            “${req.reason}”
+            “${req.reason || 'Faculty schedule adjustment request'}”
           </p>
           <div class="flex items-center gap-2 shrink-0">
-            ${isCancellation ? `
+            ${isResolved ? `
+              <div class="flex items-center gap-1.5 text-xs font-bold ${isApproved ? 'text-[#4a7c59]' : 'text-[#b83230]'} bg-white px-3 py-1.5 rounded-xl border border-[#ded5c6] shadow-2xs">
+                <span class="material-symbols-outlined text-[16px]">${isApproved ? 'verified' : 'block'}</span>
+                <span>Processed ${isApproved ? 'Approval' : 'Declined'}</span>
+              </div>
+            ` : isCancellation ? `
               <button class="open-approve-cancellation-btn btn-3d-primary px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
                 <span class="material-symbols-outlined text-[16px]">check_circle</span>
                 <span>Approve Cancellation</span>
               </button>
-              <button class="open-reject-cancellation-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#b83230] hover:text-[#962624] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty}" data-session="${req.currentSlot}" data-subject="${req.subject}" type="button">
+              <button class="open-reject-cancellation-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#b83230] hover:text-[#962624] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
                 Reject Cancellation
               </button>
             ` : `
-              <button class="decline-session-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#576058] hover:text-[#2c332d] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty}" data-session="${req.currentSlot}" data-subject="${req.subject}" type="button">
+              <button class="decline-session-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#576058] hover:text-[#2c332d] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
                 Decline
               </button>
               <button class="open-reschedule-modal-btn btn-3d-primary px-5 py-2 rounded-xl text-white font-bold text-xs shadow-md hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
@@ -520,6 +615,8 @@ function renderCardsHtml(requests) {
   }).join('');
 }
 
+let _batchMenuOutsideClick = null;
+
 function attachRequestsViewListeners(container, requestsState, controller) {
   // Filter Tabs
   container.querySelectorAll('.req-filter-tab').forEach(btn => {
@@ -529,6 +626,19 @@ function attachRequestsViewListeners(container, requestsState, controller) {
       renderRequestsView(container, requestsState, controller);
     });
   });
+
+  // Reset Sample Requests button in empty state
+  const resetBtn = container.querySelector('#btnResetSampleRequests');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      saveStoredRequests(INITIAL_REQUESTS_DATA);
+      requestsState.filter = 'all';
+      renderRequestsView(container, requestsState, controller);
+      if (typeof controller.showToast === 'function') {
+        controller.showToast('Sample faculty requests restored successfully!');
+      }
+    });
+  }
 
   // Batch Select Filter
   const batchBtn = container.querySelector('#batchFilterDropdownBtn');
@@ -543,11 +653,15 @@ function attachRequestsViewListeners(container, requestsState, controller) {
       batchMenu.classList.toggle('hidden');
     });
 
-    document.addEventListener('click', (e) => {
-      if (!batchBtn.contains(e.target) && !batchMenu.contains(e.target)) {
+    // Single document-level listener, replaced on every render (previously one
+    // extra listener leaked per render, which made repeated tab switches slower).
+    if (_batchMenuOutsideClick) document.removeEventListener('click', _batchMenuOutsideClick);
+    _batchMenuOutsideClick = (e) => {
+      if (!batchBtn.isConnected || (!batchBtn.contains(e.target) && !batchMenu.contains(e.target))) {
         batchMenu.classList.add('hidden');
       }
-    });
+    };
+    document.addEventListener('click', _batchMenuOutsideClick);
   }
 
   batchOptions.forEach(opt => {
