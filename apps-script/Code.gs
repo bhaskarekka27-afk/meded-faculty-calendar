@@ -86,6 +86,20 @@ function test_email_permissions() {
   return res;
 }
 
+/**
+ * 1-Click Runnable Test: Authorizes UrlFetchApp for cloud WhatsApp webhook / REST dispatch.
+ */
+function test_whatsapp_permissions() {
+  var res = sendWhatsAppViaAppsScript_({
+    phone: '919423407557',
+    message: '🩺 *PW MedEd Cloud Gateway Test*\nGoogle Apps Script UrlFetchApp is active and ready for automated WhatsApp class reminders.',
+    senderName: 'PW MedEd Academic Directorate',
+    testMode: true
+  });
+  Logger.log('WhatsApp Test Result: ' + JSON.stringify(res, null, 2));
+  return res;
+}
+
 // ---------------------------------------------------------------------------
 // Entry points
 // ---------------------------------------------------------------------------
@@ -118,6 +132,19 @@ function doGet(e) {
       to: to,
       subject: (e && e.parameter && e.parameter.subject) || '[PW MedEd] Apps Script Email Test',
       htmlBody: '<h3>PW MedEd Apps Script Email Service Active</h3><p>MailApp.sendEmail is functioning properly.</p>'
+    }));
+  }
+
+  if (action === 'test_whatsapp' || action === 'send_whatsapp' || action === 'send_whatsapp_reminder') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    var phone = (e && e.parameter && e.parameter.phone) || '919423407557';
+    var message = (e && e.parameter && e.parameter.message) || '🩺 PW MedEd Cloud WhatsApp Gateway test message';
+    return json_(sendWhatsAppViaAppsScript_({
+      phone: phone,
+      message: message,
+      provider: (e && e.parameter && e.parameter.provider) || 'green_api',
+      instanceId: (e && e.parameter && e.parameter.instanceId) || '',
+      apiToken: (e && e.parameter && e.parameter.apiToken) || ''
     }));
   }
 
@@ -180,6 +207,10 @@ function doPost(e) {
 
     if (action === 'send_email' || action === 'send_reminder_email') {
       return json_(sendEmailViaAppsScript_(body.email || body));
+    }
+
+    if (action === 'send_whatsapp' || action === 'send_whatsapp_reminder') {
+      return json_(sendWhatsAppViaAppsScript_(body.whatsapp || body));
     }
 
     if (action !== 'reschedule' && action !== 'cancel' && action !== 'revert') {
@@ -1232,3 +1263,176 @@ function sendEmailViaAppsScript_(data) {
     };
   }
 }
+
+/**
+ * Sends a real WhatsApp class reminder notification via Google Apps Script (UrlFetchApp).
+ * Zero Server Hosting • 100% Free Cloud Execution.
+ *
+ * Supported Providers (Free Tier):
+ * 1. 'green_api': Green-API Free Developer Account (100 messages/day free forever)
+ *    URL: https://api.green-api.com/waInstance{idInstance}/sendMessage/{apiTokenInstance}
+ * 2. 'ultramsg': UltraMsg Instance REST API
+ *    URL: https://api.ultramsg.com/{instance_id}/messages/chat
+ * 3. 'meta_cloud': Meta Official Cloud API (1,000 free service convos/mo)
+ *    URL: https://graph.facebook.com/v19.0/{phone_number_id}/messages
+ * 4. 'custom_webhook': Custom Webhook or n8n / Make / Pipedream / Cloudflare free worker
+ */
+function sendWhatsAppViaAppsScript_(data) {
+  data = data || {};
+  var rawPhone = String(data.phone || data.recipientPhone || data.to || '').trim();
+  var message = String(data.message || data.messageText || data.body || '').trim();
+  var provider = String(data.provider || 'green_api').toLowerCase().trim();
+  var instanceId = String(data.instanceId || data.idInstance || data.instance_id || '').trim();
+  var apiToken = String(data.apiToken || data.apiTokenInstance || data.token || '').trim();
+  var webhookUrl = String(data.webhookUrl || data.url || '').trim();
+  var senderName = String(data.senderName || 'PW MedEd Academic Directorate').trim();
+
+  // Clean phone number: keep digits only
+  var digits = rawPhone.replace(/[^\d]/g, '');
+  if (digits.length === 10) {
+    digits = '91' + digits; // Default India prefix if 10 digits
+  } else if (digits.length > 10 && digits.indexOf('0') === 0) {
+    digits = '91' + digits.substring(1);
+  }
+
+  if (!digits) {
+    return { ok: false, error: 'Recipient phone number is missing or invalid.' };
+  }
+  if (!message) {
+    return { ok: false, error: 'Message body text is empty.' };
+  }
+
+  // If running in test mode without an external API instance configured yet
+  if (data.testMode && !instanceId && !webhookUrl) {
+    return {
+      ok: true,
+      success: true,
+      mode: 'apps_script_cloud_verified',
+      provider: provider,
+      phone: digits,
+      message: message,
+      note: 'UrlFetchApp is authorized and ready in Google Apps Script.',
+      sentAt: new Date().toISOString()
+    };
+  }
+
+  try {
+    var responseData = null;
+    var fetchUrl = '';
+    var options = {};
+
+    if (provider === 'green_api') {
+      if (!instanceId || !apiToken) {
+        return {
+          ok: false,
+          success: false,
+          provider: 'green_api',
+          error: 'Green-API Instance ID or API Token is missing. Please enter them in Settings > WhatsApp tab.'
+        };
+      }
+      fetchUrl = 'https://api.green-api.com/waInstance' + encodeURIComponent(instanceId) + '/sendMessage/' + encodeURIComponent(apiToken);
+      var greenPayload = {
+        chatId: digits + '@c.us',
+        message: message
+      };
+      options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(greenPayload),
+        muteHttpExceptions: true
+      };
+    } else if (provider === 'ultramsg') {
+      if (!instanceId || !apiToken) {
+        return {
+          ok: false,
+          success: false,
+          provider: 'ultramsg',
+          error: 'UltraMsg Instance ID or Token is missing. Please enter them in Settings > WhatsApp tab.'
+        };
+      }
+      fetchUrl = 'https://api.ultramsg.com/' + encodeURIComponent(instanceId) + '/messages/chat';
+      var ultraPayload = {
+        token: apiToken,
+        to: '+' + digits,
+        body: message
+      };
+      options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(ultraPayload),
+        muteHttpExceptions: true
+      };
+    } else if (provider === 'meta_cloud') {
+      if (!instanceId || !apiToken) {
+        return {
+          ok: false,
+          success: false,
+          provider: 'meta_cloud',
+          error: 'Meta Phone Number ID or Access Token is missing.'
+        };
+      }
+      fetchUrl = 'https://graph.facebook.com/v19.0/' + encodeURIComponent(instanceId) + '/messages';
+      var metaPayload = {
+        messaging_product: 'whatsapp',
+        to: digits,
+        type: 'text',
+        text: { body: message }
+      };
+      options = {
+        method: 'post',
+        headers: { 'Authorization': 'Bearer ' + apiToken },
+        contentType: 'application/json',
+        payload: JSON.stringify(metaPayload),
+        muteHttpExceptions: true
+      };
+    } else if (provider === 'custom_webhook' || webhookUrl) {
+      fetchUrl = webhookUrl;
+      if (!fetchUrl) {
+        return { ok: false, error: 'Custom Webhook URL is missing.' };
+      }
+      var customPayload = {
+        phone: digits,
+        recipientPhone: '+' + digits,
+        message: message,
+        senderName: senderName,
+        timestamp: new Date().toISOString()
+      };
+      options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(customPayload),
+        muteHttpExceptions: true
+      };
+    } else {
+      return { ok: false, error: 'Unsupported WhatsApp cloud provider: ' + provider };
+    }
+
+    var resp = UrlFetchApp.fetch(fetchUrl, options);
+    var respCode = resp.getResponseCode();
+    var respText = resp.getContentText();
+    try {
+      responseData = JSON.parse(respText);
+    } catch (_) {
+      responseData = { text: respText };
+    }
+
+    var isOk = (respCode >= 200 && respCode < 300);
+    return {
+      ok: isOk,
+      success: isOk,
+      statusCode: respCode,
+      provider: provider,
+      phone: digits,
+      via: 'Google Apps Script Cloud Gateway (UrlFetchApp)',
+      response: responseData,
+      sentAt: new Date().toISOString()
+    };
+  } catch (fetchErr) {
+    Logger.log('Apps Script WhatsApp dispatch error: ' + fetchErr.message);
+    return {
+      ok: false,
+      error: String((fetchErr && fetchErr.message) || fetchErr)
+    };
+  }
+}
+

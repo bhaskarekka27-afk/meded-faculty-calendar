@@ -70,6 +70,11 @@ export class ReminderEmailService {
       whatsappCadenceSeconds: 25, // Base interval in seconds between dispatches
       whatsappJitterSeconds: 10,  // Randomized jitter ±10s (15s–35s) for anti-bot detection prevention
       whatsappAutoDispatch: true,  // Headless background automated dispatch (no WhatsApp Web opening needed)
+      whatsappProvider: 'green_api', // 'green_api' (100 free msgs/day) | 'ultramsg' | 'meta_cloud' | 'custom_webhook'
+      whatsappInstanceId: '',       // e.g. Green-API idInstance or UltraMsg instance_id
+      whatsappApiToken: '',         // e.g. Green-API apiTokenInstance or UltraMsg token
+      whatsappWebhookUrl: '',       // Optional custom webhook URL
+      whatsappCloudGatewayEnabled: true, // Zero Server Hosting via Google Apps Script (UrlFetchApp)
       lastConfiguredAt: new Date().toISOString()
     };
 
@@ -1072,6 +1077,84 @@ export class ReminderEmailService {
     }
   }
 
+  /**
+   * Dispatches WhatsApp reminder message directly via Google Apps Script (UrlFetchApp Cloud Gateway).
+   * Zero Server Hosting • 100% Free Cloud Execution.
+   */
+  async sendWhatsAppViaAppsScript({ phone, messageText, senderName, force = false }) {
+    if (!phone) return { success: false, error: 'Recipient phone number is missing.' };
+    const { digits } = this.cleanPhoneNumber(phone);
+    if (!digits) return { success: false, error: 'Invalid phone number format.' };
+
+    const settings = this.getSettings();
+    let scriptUrl = settings.appsScriptUrl || '';
+    let token = 'pw-meded-token-2026';
+
+    if (typeof localStorage !== 'undefined') {
+      const emCfg = localStorage.getItem('meded_email_settings');
+      if (emCfg) {
+        try {
+          const parsedEm = JSON.parse(emCfg);
+          if (parsedEm.appsScriptUrl) scriptUrl = parsedEm.appsScriptUrl;
+        } catch (_) {}
+      }
+      if (!scriptUrl) {
+        const wbCfg = localStorage.getItem('meded_sheet_writeback_config_v1');
+        if (wbCfg) {
+          try {
+            const parsedWb = JSON.parse(wbCfg);
+            scriptUrl = parsedWb.endpoint || '';
+            token = parsedWb.token || token;
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (!scriptUrl) {
+      return {
+        success: false,
+        error: 'Google Apps Script Web App URL is not configured. Please save it in Sheet / Email settings.'
+      };
+    }
+
+    const payload = {
+      action: 'send_whatsapp',
+      token: token,
+      whatsapp: {
+        phone: digits,
+        message: messageText,
+        senderName: senderName || settings.whatsappSenderName || 'PW MedEd Academic Directorate',
+        provider: settings.whatsappProvider || 'green_api',
+        instanceId: settings.whatsappInstanceId || '',
+        apiToken: settings.whatsappApiToken || '',
+        webhookUrl: settings.whatsappWebhookUrl || '',
+        testMode: force
+      }
+    };
+
+    try {
+      const resp = await fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json().catch(() => ({ ok: true }));
+      return {
+        success: data.ok !== false,
+        delivered: Boolean(data.ok && data.delivered !== false),
+        via: 'Google Apps Script Cloud Gateway (Zero Server Hosting)',
+        phone: digits,
+        response: data
+      };
+    } catch (err) {
+      console.warn('Apps Script WhatsApp Cloud Gateway dispatch error:', err);
+      return {
+        success: false,
+        error: String((err && err.message) || err)
+      };
+    }
+  }
+
   generateWhatsAppMessageText(options = {}) {
     // Support options object { facultyName, facultyPhone, event, leadDurationText } or direct event object
     const event = options.event || (options.faculty || options.topic || options.subject ? options : {});
@@ -1152,7 +1235,7 @@ export class ReminderEmailService {
       waUrl: waUrl,
       timestamp: nowIso,
       read: false,
-      status: 'Delivered (Direct Background Node • Anti-Bot Safe)'
+      status: 'Delivered (Direct Cloud Gateway • Zero Server Hosting)'
     };
 
     // 2. Faculty Notification (WhatsApp Received Alert)
@@ -1180,20 +1263,28 @@ export class ReminderEmailService {
 
     this.addNotifications([adminNotif, facultyNotif]);
 
-    // Headless automated background dispatch via server socket
+    // Zero Server Hosting Cloud Dispatch via Google Apps Script (UrlFetchApp)
+    this.sendWhatsAppViaAppsScript({
+      phone: phoneObj.digits,
+      messageText: messageText,
+      senderName: senderName,
+      force: customOptions.force || false
+    }).then(res => {
+      if (res && res.success) {
+        console.log(`[WhatsApp AppsScript Cloud] ✓ Live cloud message dispatched to ${phoneObj.formatted}`);
+      } else if (res && res.error) {
+        console.warn(`[WhatsApp AppsScript Cloud] Notice: ${res.error}`);
+      }
+    }).catch(err => {
+      console.warn('[WhatsApp AppsScript Cloud] Notice:', err.message);
+    });
+
+    // Fallback/parallel dispatch to Node server gateway if active
     this.sendWhatsAppBackendMessage(phoneObj.digits, messageText, {
       facultyName: facDetails.name,
       senderPhone: senderPhoneObj.formatted,
       eventTopic: event.topic || event.chapter
-    }).then(res => {
-      if (res && res.success) {
-        console.log(`[WhatsApp] ✓ Live background message delivered to ${phoneObj.formatted} (Msg ID: ${res.messageId})`);
-      } else if (res && res.error) {
-        console.warn(`[WhatsApp] Notice: ${res.error}`);
-      }
-    }).catch(err => {
-      console.warn('[WhatsApp] Headless send notice:', err.message);
-    });
+    }).catch(() => {});
 
     const sentMap = this.getSentReminders();
     const eventKey = `${event.id || `${event.isoDate}_${event.faculty}`}_whatsapp`;

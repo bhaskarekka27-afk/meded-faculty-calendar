@@ -6829,6 +6829,13 @@ class AdminDashboardController {
     const previewWABtn = document.getElementById('btnPreviewWhatsAppTheme');
     const testWADispatchBtn = document.getElementById('btnTestWhatsAppDispatch');
 
+    // WhatsApp Cloud Gateway elements (Zero Server Hosting)
+    const waProviderSelect = document.getElementById('settingWhatsAppProvider');
+    const waInstanceIdInput = document.getElementById('settingWhatsAppInstanceId');
+    const waApiTokenInput = document.getElementById('settingWhatsAppApiToken');
+    const waWebhookUrlInput = document.getElementById('settingWhatsAppWebhookUrl');
+    const waCustomWebhookContainer = document.getElementById('waCustomWebhookContainer');
+
     // Populate all settings values from storage on initial startup
     this.populateEmailSettingsFields(true);
 
@@ -6859,6 +6866,11 @@ class AdminDashboardController {
       const waSenderNumber = (waSenderNumberInput ? waSenderNumberInput.value : currentSettings.whatsappSenderNumber || '94234 07557').trim();
       const countryCode = waCountryCodeSelect ? waCountryCodeSelect.value : currentSettings.whatsappCountryCode || '+91';
 
+      const waProvider = (waProviderSelect ? waProviderSelect.value : currentSettings.whatsappProvider || 'green_api').trim();
+      const waInstanceId = (waInstanceIdInput ? waInstanceIdInput.value : currentSettings.whatsappInstanceId || '').trim();
+      const waApiToken = (waApiTokenInput ? waApiTokenInput.value : currentSettings.whatsappApiToken || '').trim();
+      const waWebhookUrl = (waWebhookUrlInput ? waWebhookUrlInput.value : currentSettings.whatsappWebhookUrl || '').trim();
+
       reminderEmailService.saveSettings({
         senderEmail,
         appsScriptUrl,
@@ -6871,9 +6883,24 @@ class AdminDashboardController {
         whatsappSenderName: waSender,
         whatsappSenderNumber: waSenderNumber,
         whatsappCountryCode: countryCode,
-        whatsappAutoDispatch: true
+        whatsappAutoDispatch: true,
+        whatsappProvider: waProvider,
+        whatsappInstanceId: waInstanceId,
+        whatsappApiToken: waApiToken,
+        whatsappWebhookUrl: waWebhookUrl,
+        whatsappCloudGatewayEnabled: true
       });
     };
+
+    waProviderSelect?.addEventListener('change', () => {
+      if (waCustomWebhookContainer) {
+        waCustomWebhookContainer.classList.toggle('hidden', waProviderSelect.value !== 'custom_webhook');
+      }
+      autoSaveSettings();
+    });
+    waInstanceIdInput?.addEventListener('input', autoSaveSettings);
+    waApiTokenInput?.addEventListener('input', autoSaveSettings);
+    waWebhookUrlInput?.addEventListener('input', autoSaveSettings);
 
     let emailDebounceTimer = null;
     senderEmailInput?.addEventListener('input', () => {
@@ -7409,6 +7436,33 @@ class AdminDashboardController {
     }
     if (waCountryCodeSelect && (force || document.activeElement !== waCountryCodeSelect)) {
       waCountryCodeSelect.value = settings.whatsappCountryCode || '+91';
+    }
+
+    const waProviderSelect = document.getElementById('settingWhatsAppProvider');
+    const waInstanceIdInput = document.getElementById('settingWhatsAppInstanceId');
+    const waApiTokenInput = document.getElementById('settingWhatsAppApiToken');
+    const waWebhookUrlInput = document.getElementById('settingWhatsAppWebhookUrl');
+    const waCustomWebhookContainer = document.getElementById('waCustomWebhookContainer');
+    const waCloudStatusText = document.getElementById('waCloudGatewayStatusText');
+
+    if (waProviderSelect && (force || document.activeElement !== waProviderSelect)) {
+      waProviderSelect.value = settings.whatsappProvider || 'green_api';
+    }
+    if (waInstanceIdInput && (force || document.activeElement !== waInstanceIdInput)) {
+      waInstanceIdInput.value = settings.whatsappInstanceId || '';
+    }
+    if (waApiTokenInput && (force || document.activeElement !== waApiTokenInput)) {
+      waApiTokenInput.value = settings.whatsappApiToken || '';
+    }
+    if (waWebhookUrlInput && (force || document.activeElement !== waWebhookUrlInput)) {
+      waWebhookUrlInput.value = settings.whatsappWebhookUrl || '';
+    }
+    if (waCustomWebhookContainer && waProviderSelect) {
+      waCustomWebhookContainer.classList.toggle('hidden', waProviderSelect.value !== 'custom_webhook');
+    }
+    if (waCloudStatusText) {
+      const hasCreds = Boolean(settings.whatsappInstanceId && settings.whatsappApiToken) || Boolean(settings.whatsappWebhookUrl);
+      waCloudStatusText.textContent = hasCreds ? 'Apps Script Cloud Configured' : 'Apps Script Cloud Active';
     }
 
     waPresetBtns.forEach(b => {
