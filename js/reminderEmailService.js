@@ -224,6 +224,14 @@ export class ReminderEmailService {
       }
 
       this.broadcastEvent('meded:email_settings_updated', updated);
+
+      this.notifyAdmins({
+        type: 'setting_updated',
+        title: '⚙️ Email Reminder Settings Updated',
+        body: `Automated class reminder configuration updated (Lead: ${updated.leadDurationValue || 30} ${updated.leadDurationUnit || 'minutes'}, Sender: ${updated.senderEmail || 'Institutional Default'}).`,
+        author: updated.configuredBy || 'Administrator'
+      });
+
       return { success: true, settings: updated };
     } catch (e) {
       console.error('Error saving email settings:', e);
@@ -840,6 +848,45 @@ export class ReminderEmailService {
       this.broadcastEvent('meded:notifications_updated', trimmed);
     } catch (e) {
       console.error('Error adding notifications:', e);
+    }
+  }
+
+  /**
+   * Broadcasts a real-time notification to all administrator users
+   * when any setting is updated or any spreadsheet is synced.
+   */
+  notifyAdmins({ type = 'system', title, body, author = 'Administrator', details = null, link = '' }) {
+    try {
+      let activeAdminName = author;
+      if (!author || author === 'Administrator') {
+        try {
+          const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('meded_active_user') : null;
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            if (u && u.name) activeAdminName = u.name;
+          }
+        } catch (_) {}
+      }
+
+      const notif = {
+        id: `notif-adm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: type, // 'setting_updated' | 'sheet_synced' | 'system'
+        title: title || 'Admin Alert',
+        body: body || 'A portal setting or spreadsheet was updated.',
+        author: activeAdminName,
+        details: details || {},
+        link: link || '',
+        timestamp: new Date().toISOString(),
+        read: false,
+        role: 'admin'
+      };
+
+      this.addNotifications([notif]);
+      this.broadcastEvent('meded:admin_alert', notif);
+      return notif;
+    } catch (e) {
+      console.warn('Error creating admin notification:', e);
+      return null;
     }
   }
 

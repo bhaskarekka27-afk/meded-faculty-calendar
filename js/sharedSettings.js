@@ -234,6 +234,36 @@ export async function pullSharedSettings() {
 
     if (changedKeys.length && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('meded:settings_synced', { detail: { keys: changedKeys } }));
+
+      // Automatically create an admin notification for synced settings
+      try {
+        const notifLabels = {
+          'meded_email_settings': 'Email Reminders',
+          'pw_meded_email_settings': 'Email Reminders',
+          'meded_sync_settings_v1': 'Multi-Admin Sync',
+          'pw_faculty_spreadsheet_url': 'Faculty Spreadsheet URL',
+          'meded_sheet_writeback_config_v1': 'Sheet Write-Back Endpoint',
+          'pw_meded_faculty_requests': 'Faculty Reschedule Requests'
+        };
+        const updatedNames = changedKeys.map(k => notifLabels[k] || k).join(', ');
+        
+        // Push notification to admin feed
+        const notifData = JSON.parse(localStorage.getItem('meded_notifications') || '[]');
+        const newNotif = {
+          id: `notif-sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: 'setting_updated',
+          title: '⚙️ Settings Synced from Administrator',
+          body: `Global portal configuration [${updatedNames}] was updated by another administrator.`,
+          author: 'Admin Sync Service',
+          timestamp: new Date().toISOString(),
+          read: false,
+          role: 'admin'
+        };
+        notifData.unshift(newNotif);
+        localStorage.setItem('meded_notifications', JSON.stringify(notifData.slice(0, 150)));
+        window.dispatchEvent(new CustomEvent('meded:notifications_updated', { detail: notifData }));
+        window.dispatchEvent(new CustomEvent('meded:admin_alert', { detail: newNotif }));
+      } catch (_) {}
     }
   } finally {
     pulling = false;

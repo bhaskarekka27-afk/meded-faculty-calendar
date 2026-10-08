@@ -116,6 +116,7 @@ class AdminDashboardController {
   }
 
   init() {
+    this.initLoggedInUserProfile();
     this.setupHeaderControls();
     this.setupViewSwitcher();
     this.setupDockNavigation();
@@ -223,7 +224,6 @@ class AdminDashboardController {
       this.mainTab = 'workload';
     } else if (hash === '#onboarding') {
       this.mainTab = 'onboarding';
-      syncFacultyFromGoogleSheet(getConnectedFacultySheetUrl()).catch(() => {});
     } else if (hash === '#faculty') {
       this.mainTab = 'faculty';
     } else if (hash === '#dashboard') {
@@ -464,8 +464,88 @@ class AdminDashboardController {
     else if (!quiet && res.remaining > 0) this.showToast(`${res.remaining} sheet update(s) still pending`);
   }
 
+  // --- 0. Logged In Administrator Profile ---
+  initLoggedInUserProfile() {
+    let user = null;
+    try {
+      const stored = localStorage.getItem('meded_active_user');
+      if (stored) {
+        user = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to parse active user session:', e);
+    }
+
+    const email = (user?.email || '').trim();
+    let name = (user?.name || '').trim();
+    if (!name && email) {
+      const cleanEmail = email.toLowerCase();
+      if (cleanEmail === 'bhaskarekka27@gmail.com') name = 'Bhaskar Ekka';
+      else if (cleanEmail === 'kanchan.gupta1@pw.live') name = 'Kanchan Gupta';
+      else if (cleanEmail.includes('dean')) name = 'Dean Academic Office';
+      else name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    if (!name) name = 'Administrator';
+
+    const cleanForInitials = name.replace(/^(Dr\.|Prof\.|Dean|Mr\.|Ms\.)\s*/i, '').trim();
+    const parts = cleanForInitials.split(/\s+/).filter(Boolean);
+    let initials = 'AD';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length >= 2) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length === 1) {
+      initials = parts[0].toUpperCase();
+    }
+
+    const subtitle = email || 'Admin Office • Institutional Portal';
+    const roleText = user?.role === 'admin' ? 'Super Admin • Full Access' : (user?.role || 'Super Admin • Full Access');
+
+    // 1. Update Header Pill
+    const avatarBadge = document.getElementById('adminUserAvatarBadge');
+    if (avatarBadge) avatarBadge.textContent = initials;
+
+    const headerName = document.getElementById('adminUserHeaderName');
+    if (headerName) headerName.textContent = name;
+
+    const headerSubtitle = document.getElementById('adminUserHeaderSubtitle');
+    if (headerSubtitle) {
+      headerSubtitle.textContent = email ? (email.length > 24 ? email.slice(0, 22) + '...' : email) : 'Admin Office';
+      headerSubtitle.title = email;
+    }
+
+    // 2. Update Dropdown Profile Card
+    const dropdownName = document.getElementById('adminUserDropdownName');
+    if (dropdownName) dropdownName.textContent = name;
+
+    const dropdownSubtitle = document.getElementById('adminUserDropdownSubtitle');
+    if (dropdownSubtitle) dropdownSubtitle.textContent = subtitle;
+
+    const dropdownRoleText = document.getElementById('adminUserDropdownRoleText');
+    if (dropdownRoleText) dropdownRoleText.textContent = roleText;
+
+    // 3. Fallbacks for un-IDed elements
+    const deanDropdown = document.getElementById('adminDeanDropdown');
+    if (deanDropdown && !dropdownName) {
+      const pElements = deanDropdown.querySelectorAll('p');
+      if (pElements[0]) pElements[0].textContent = name;
+      if (pElements[1]) pElements[1].textContent = subtitle;
+    }
+    const deanBtn = document.getElementById('adminDeanProfileBtn');
+    if (deanBtn && !headerName) {
+      const avatarDiv = deanBtn.querySelector('.font-headline');
+      if (avatarDiv) avatarDiv.textContent = initials;
+      const textSpans = deanBtn.querySelectorAll('.hidden.xl\\:flex span');
+      if (textSpans[0]) textSpans[0].textContent = name;
+      if (textSpans[1]) textSpans[1].textContent = subtitle;
+    }
+  }
+
   // --- 1. Header & Batch Selector ---
   setupHeaderControls() {
+    this.initLoggedInUserProfile();
+    window.addEventListener('focus', () => this.initLoggedInUserProfile());
+
     const batchPill = document.getElementById('adminBatchPill');
     const batchDropdown = document.getElementById('adminBatchDropdown');
     const searchInput = document.getElementById('adminSearchInput');
@@ -513,6 +593,7 @@ class AdminDashboardController {
     const deanDropdown = document.getElementById('adminDeanDropdown');
     deanBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
+      this.initLoggedInUserProfile();
       deanDropdown?.classList.toggle('hidden');
     });
 
@@ -6210,6 +6291,8 @@ class AdminDashboardController {
       if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
       const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
       if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
+      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
+      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
       this.renderAdminNotifications(currentFilter);
     });
 
@@ -6219,6 +6302,8 @@ class AdminDashboardController {
       if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
       const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
       if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
+      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
+      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
       this.renderAdminNotifications(currentFilter);
     });
 
@@ -6228,6 +6313,18 @@ class AdminDashboardController {
       filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] cursor-pointer flex items-center gap-1';
       if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
       if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
+      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
+      this.renderAdminNotifications(currentFilter);
+    });
+
+    const filterSystemBtn = document.getElementById('btnAdminNotifFilterSystem');
+    filterSystemBtn?.addEventListener('click', () => {
+      currentFilter = 'system';
+      filterSystemBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] cursor-pointer flex items-center gap-1';
+      if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
+      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
       this.renderAdminNotifications(currentFilter);
     });
 
@@ -6254,6 +6351,14 @@ class AdminDashboardController {
       }
     });
 
+    window.addEventListener('meded:admin_alert', (e) => {
+      this.renderAdminNotifications(currentFilter);
+      const notif = e.detail;
+      if (notif && notif.title) {
+        this.showToast(`${notif.title}: ${notif.body || ''}`);
+      }
+    });
+
     window.addEventListener('meded:notifications_updated', () => {
       this.renderAdminNotifications(currentFilter);
     });
@@ -6261,6 +6366,9 @@ class AdminDashboardController {
     window.addEventListener('storage', (e) => {
       if (e.key === 'meded_notifications' || e.key === 'meded_sync_trigger') {
         this.renderAdminNotifications(currentFilter);
+      }
+      if (e.key === 'meded_active_user') {
+        this.initLoggedInUserProfile();
       }
     });
 
@@ -6280,6 +6388,8 @@ class AdminDashboardController {
       notifs = notifs.filter(n => n.type === 'email_reminder_sent');
     } else if (filter === 'whatsapp') {
       notifs = notifs.filter(n => n.type === 'whatsapp_reminder_sent');
+    } else if (filter === 'system' || filter === 'settings') {
+      notifs = notifs.filter(n => n.type === 'setting_updated' || n.type === 'sheet_synced' || n.type === 'system');
     }
 
     const unreadCount = reminderEmailService.getAdminUnreadCount();
@@ -6305,6 +6415,50 @@ class AdminDashboardController {
     feed.innerHTML = notifs.map(n => {
       const timeAgo = this.formatTimeAgo(n.timestamp);
       const isUnread = !n.read;
+
+      if (n.type === 'setting_updated') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#705c30] ring-1 ring-[#705c30]/20' : 'border-[#e8dfcf]'} card-3d space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-[#705c30] bg-[#fdf8f0] px-2 py-0.5 rounded uppercase border border-[#ebe0ca] badge-3d flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-[#705c30]">settings_suggest</span> Settings Updated
+              </span>
+              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Settings Changed'}</p>
+              <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
+                <span class="font-medium text-[#2c332d]">👤 By: <strong>${n.author || 'Administrator'}</strong></span>
+                <span>•</span>
+                <span class="text-[#4a7c59] font-medium">Applied for all users</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (n.type === 'sheet_synced') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#4a7c59] ring-1 ring-[#4a7c59]/20' : 'border-[#d8e5dc]'} card-3d space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-[#2d4d37] bg-[#eef4f0] px-2 py-0.5 rounded uppercase border border-[#cde0d3] badge-3d flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">table_chart_view</span> Spreadsheet Synced
+              </span>
+              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Spreadsheet Synced'}</p>
+              <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
+                <span class="font-medium text-[#2c332d]">👤 By: <strong>${n.author || 'Administrator'}</strong></span>
+                <span>•</span>
+                <span class="text-[#4a7c59] font-medium">Visible across all logins</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       if (n.type === 'whatsapp_reminder_sent') {
         return `

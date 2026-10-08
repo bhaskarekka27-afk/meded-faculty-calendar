@@ -149,12 +149,12 @@
         <div class="relative">
           <div id="adminDeanProfileBtn" class="pill-3d bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-2.5 py-1 flex items-center gap-2.5 cursor-pointer group select-none">
             <div class="relative">
-              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e4dfd5] to-[#d2c9bd] border border-[#b8ae9f] shadow-xs flex items-center justify-center font-headline font-bold text-[12px] text-[#2d4d37] group-hover:brightness-95 transition-colors">AD</div>
+              <div id="adminUserAvatarBadge" class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e4dfd5] to-[#d2c9bd] border border-[#b8ae9f] shadow-xs flex items-center justify-center font-headline font-bold text-[12px] text-[#2d4d37] group-hover:brightness-95 transition-colors">AD</div>
               <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#4a7c59] ring-2 ring-white"></span>
             </div>
             <div class="hidden xl:flex flex-col text-left leading-none">
-              <span class="text-xs font-bold text-[#2c332d] group-hover:text-[#4a7c59] transition-colors">Admin Dean</span>
-              <span class="text-[10px] text-[#5e695f] font-semibold mt-0.5">Dean Office • ID-990</span>
+              <span id="adminUserHeaderName" class="text-xs font-bold text-[#2c332d] group-hover:text-[#4a7c59] transition-colors">Administrator</span>
+              <span id="adminUserHeaderSubtitle" class="text-[10px] text-[#5e695f] font-semibold mt-0.5">Admin Office</span>
             </div>
             <span class="material-symbols-outlined text-[#788279] text-[16px] hidden sm:inline">expand_more</span>
           </div>
@@ -164,11 +164,11 @@
             <!-- Logged-in Admin Info -->
             <div class="pb-2.5 border-b border-[#f0ece4]">
               <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In Administrator</span>
-              <p class="font-bold text-[#2c332d] text-sm mt-0.5">Dean Academic Directorate</p>
-              <p class="text-[11px] text-[#4a7c59] font-semibold mt-0.5">Dean Office • Institutional Node 990</p>
-              <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
+              <p id="adminUserDropdownName" class="font-bold text-[#2c332d] text-sm mt-0.5">Administrator</p>
+              <p id="adminUserDropdownSubtitle" class="text-[11px] text-[#4a7c59] font-semibold mt-0.5">Admin Office • Institutional Portal</p>
+              <span id="adminUserDropdownRoleBadge" class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
                 <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
-                <span>Super Admin • Full Access</span>
+                <span id="adminUserDropdownRoleText">Super Admin • Full Access</span>
               </span>
             </div>
 
@@ -714,9 +714,12 @@
 
         <!-- Notification Filters & Controls -->
         <div class="mt-4 flex items-center justify-between px-0.5 border-b border-[#ece5d8] pb-2.5">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
             <button type="button" id="btnAdminNotifFilterAll" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] cursor-pointer">
               All Alerts
+            </button>
+            <button type="button" id="btnAdminNotifFilterSystem" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">sync</span> Settings &amp; Sheets
             </button>
             <button type="button" id="btnAdminNotifFilterEmails" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer">
               Email Reminders
@@ -725,7 +728,7 @@
               <span class="material-symbols-outlined text-[14px] text-[#25D366]">chat</span> WhatsApp
             </button>
           </div>
-          <button type="button" id="adminMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent">
+          <button type="button" id="adminMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent whitespace-nowrap">
             Mark all read
           </button>
         </div>

@@ -878,6 +878,18 @@ export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) 
   // Persist synced data locally and broadcast to all tabs if changed
   if (hasChanged) {
     saveFacultyOnboardingData(mergedList);
+
+    try {
+      import('./reminderEmailService.js').then(({ reminderEmailService }) => {
+        reminderEmailService.notifyAdmins({
+          type: 'sheet_synced',
+          title: '👥 Faculty Onboarding Sheet Synced',
+          body: `Faculty Onboarding Master Google Sheet was synchronized (${mergedList.length} verified faculty members).`,
+          author: 'Faculty Sync Service',
+          details: { count: mergedList.length, method: fetchedVia }
+        });
+      }).catch(() => {});
+    } catch (_) {}
   }
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
@@ -996,6 +1008,20 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
   }
+
+  // Notify admins of onboarding setting update
+  try {
+    import('./reminderEmailService.js').then(({ reminderEmailService }) => {
+      const actionTitle = action === 'delete' ? 'Faculty Removed' : (action === 'add' ? 'Faculty Added' : 'Faculty Updated');
+      reminderEmailService.notifyAdmins({
+        type: 'setting_updated',
+        title: `👤 ${actionTitle}`,
+        body: targetFaculty ? `${targetFaculty.name} (${targetFaculty.dept || 'Department'}) was ${action === 'delete' ? 'removed from' : 'updated in'} faculty directory.` : 'Faculty onboarding directory updated.',
+        author: 'Administrator',
+        details: { action, faculty: targetFaculty }
+      });
+    }).catch(() => {});
+  } catch (_) {}
 
   // 3. Automated Sheet / Apps Script Writeback
   let scriptUrl = null;

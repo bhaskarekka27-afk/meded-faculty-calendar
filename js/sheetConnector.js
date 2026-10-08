@@ -1016,6 +1016,19 @@ export class BatchManager {
     this.saveToStorage(true);
     this.broadcastBatchesUpdated(true, newBatch.id);
 
+    // Notify all admin users that a new spreadsheet has been connected and synced
+    try {
+      import('./reminderEmailService.js').then(({ reminderEmailService }) => {
+        reminderEmailService.notifyAdmins({
+          type: 'sheet_synced',
+          title: '📊 New Spreadsheet Connected',
+          body: `Spreadsheet "${newBatch.name}" with ${newBatch.events.length} lectures was connected and synced.`,
+          author: 'Administrator',
+          details: { batchId: newBatch.id, batchName: newBatch.name, count: newBatch.events.length, url: url }
+        });
+      }).catch(() => {});
+    } catch (_) {}
+
     // Share it: write to the registry so every other login picks it up.
     newBatch.publishResult = await this.publishBatchToRegistry(newBatch);
     return newBatch;
@@ -1065,6 +1078,18 @@ export class BatchManager {
         batch.fromRegistry = true;
         this.batches.push(batch);
         changed = true;
+
+        try {
+          import('./reminderEmailService.js').then(({ reminderEmailService }) => {
+            reminderEmailService.notifyAdmins({
+              type: 'sheet_synced',
+              title: '📊 Multi-Admin Spreadsheet Synced',
+              body: `New spreadsheet "${batch.name}" (${batch.events.length} lectures) was synced from another administrator.`,
+              author: 'Admin Sync Service',
+              details: { batchId: batch.id, batchName: batch.name, count: batch.events.length }
+            });
+          }).catch(() => {});
+        } catch (_) {}
       } catch (err) {
         console.warn(`Registry batch "${r.name}" could not be loaded:`, err.message);
       }
