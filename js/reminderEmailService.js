@@ -1043,28 +1043,30 @@ export class ReminderEmailService {
     }
   }
 
-  generateWhatsAppMessageText({ facultyName, facultyPhone, event = {}, leadDurationText = '30 Minutes' }) {
-    const topic = event.topic || event.chapter || event.displayTitle || 'Medical Clinical Lecture';
-    const subject = event.subject || 'Biochemistry';
-    const batch = event.batchName || 'Prarambh 2026 Batch • MBBS 1st Year';
-    const dateRaw = event.dateRaw || event.isoDate || '2026-10-15';
-    const timings = event.timings || '7:00 PM – 9:00 PM';
+  generateWhatsAppMessageText(options = {}) {
+    // Support options object { facultyName, facultyPhone, event, leadDurationText } or direct event object
+    const event = options.event || (options.faculty || options.topic || options.subject ? options : {});
+    const facultyName = options.facultyName || event.faculty || 'Dr. Natisha Arora';
+    const topic = event.topic || event.chapter || event.displayTitle || 'Radiology • High Yield 50 Questions Discussion';
+    const subject = event.subject || 'Radiology';
+    const batch = event.batchName || event.batch || 'INI-CET Essentials Series';
+    const dateRaw = event.dateRaw || event.date || event.isoDate || 'Wednesday, October 7, 2026';
+    const rawTimings = event.timings || (event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : (event.startTime || '5 pm Onwards'));
     const duration = event.duration || '2 Hours';
-    const venue = event.venue || event.studio || 'Live Transmission Studio 04 • PW MedEd Mobile App';
+    
+    let timeText = rawTimings;
+    if (duration && !timeText.toLowerCase().includes(duration.toLowerCase())) {
+      timeText = `${rawTimings} (${duration})`;
+    }
 
-    return `🩺 *PW MedEd Academic Directorate*\n` +
-      `🔔 *UPCOMING CLASS REMINDER* (${leadDurationText} Prior)\n\n` +
-      `Dear *${facultyName}*,\n` +
-      `This is an automated institutional notification for your upcoming medical session:\n\n` +
+    return `🩺 PW MedEd Class Reminder\n` +
+      `🔔 *UPCOMING CLASS REMINDER* (30 Minutes Prior)\n\n` +
+      `Dear *${facultyName}*,\n\n` +
       `📖 *Subject:* ${subject}\n` +
       `🎯 *Topic:* ${topic}\n` +
       `🎓 *Batch:* ${batch}\n` +
       `📅 *Date:* ${dateRaw}\n` +
-      `⏰ *Time:* ${timings} (${duration})\n` +
-      `📍 *Venue/Studio:* ${venue}\n\n` +
-      `📌 *Faculty Checklist:* Please ensure lecture slides & clinical cases are loaded 10-15 mins before live transmission.\n\n` +
-      `🌐 *Faculty Portal:* https://pwmeded.edu.in/faculty.html\n\n` +
-      `_PW MedEd Academic Directorate • NMC CBME Guidelines Compliant_`;
+      `⏰ *Time:* ${timeText}`;
   }
 
   generateWhatsAppUrl(phone, text) {
