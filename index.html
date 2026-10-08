@@ -504,6 +504,15 @@
                     </select>
                     <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-[#8b958c]">expand_more</span>
                   </div>
+                  <!-- Role Filter Select -->
+                  <div class="relative shrink-0">
+                    <select class="text-xs bg-[#fbf9f5] border border-[#ded5c6] text-[#2c332d] font-semibold pl-3 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#4a7c59] appearance-none cursor-pointer" id="role-filter-select">
+                      <option value="All">All Roles</option>
+                      <option value="Teacher">Teachers Only (👨‍🏫)</option>
+                      <option value="Admin">Admins Only (🛡️)</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-[#8b958c]">expand_more</span>
+                  </div>
                   <!-- Status Filter Select -->
                   <div class="relative shrink-0">
                     <select class="text-xs bg-[#fbf9f5] border border-[#ded5c6] text-[#2c332d] font-semibold pl-3 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#4a7c59] appearance-none cursor-pointer" id="status-filter-select">
@@ -543,12 +552,32 @@
                   <span id="onboard-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Fast Track</span>
                 </div>
                 <p class="text-xs text-[#576058] mb-5 leading-relaxed">
-                  Provision faculty credentials. System automatically generates SMS OTP onboarding links and PW MedEd institutional workspace access.
+                  Provision faculty or administrator credentials. System grants portal role access synchronized with the Master Spreadsheet.
                 </p>
                 <form class="space-y-4" id="onboard-form">
+                  <!-- Portal Access Role Selection -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Portal Access Role</label>
+                    <div class="grid grid-cols-2 gap-2">
+                      <label class="flex items-center gap-2 p-2.5 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all has-[:checked]:bg-[#eef4f0] has-[:checked]:border-[#4a7c59]">
+                        <input type="radio" name="onboard-role-radio" value="Teacher" id="onboard-role-teacher" class="text-[#4a7c59] focus:ring-[#4a7c59]" checked>
+                        <div class="text-xs">
+                          <span class="font-bold block text-[#2c332d]">👨‍🏫 Teacher</span>
+                          <span class="text-[10px] text-[#68736a] block">Faculty Portal</span>
+                        </div>
+                      </label>
+                      <label class="flex items-center gap-2 p-2.5 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all has-[:checked]:bg-[#fdf8f0] has-[:checked]:border-[#705c30]">
+                        <input type="radio" name="onboard-role-radio" value="Admin" id="onboard-role-admin" class="text-[#705c30] focus:ring-[#705c30]">
+                        <div class="text-xs">
+                          <span class="font-bold block text-[#2c332d]">🛡️ Admin</span>
+                          <span class="text-[10px] text-[#68736a] block">Dean Directorate</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
                   <!-- Full Name -->
                   <div class="space-y-1.5">
-                    <label class="block text-xs font-bold text-[#576058]">Faculty Full Name</label>
+                    <label class="block text-xs font-bold text-[#576058]">Full Name</label>
                     <div class="relative">
                       <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none" id="onboard-name-input" placeholder="e.g. Dr. Anand B. Murthy" required="" type="text">
                     </div>
@@ -559,7 +588,21 @@
                     <div class="relative">
                       <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] font-mono placeholder:text-[#8b958c] focus:outline-none" id="onboard-email-input" placeholder="name.dept@pwmeded.edu.in" required="" type="email">
                     </div>
-                    <p class="text-[10px] text-[#68736a]">Must end with @pwmeded.edu.in domain</p>
+                    <p class="text-[10px] text-[#68736a]">Login credentials mapped to Master Spreadsheet</p>
+                  </div>
+                  <!-- Secondary Email (Optional) -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Secondary / Alt Email (Optional)</label>
+                    <div class="relative">
+                      <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] font-mono placeholder:text-[#8b958c] focus:outline-none" id="onboard-sec-email-input" placeholder="e.g. personal.email@gmail.com" type="email">
+                    </div>
+                  </div>
+                  <!-- Designation / Academic Title -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Designation / Title</label>
+                    <div class="relative">
+                      <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none" id="onboard-designation-input" placeholder="e.g. Professor • Biochemistry or Lead Academic Faculty" type="text">
+                    </div>
                   </div>
                   <!-- Mobile Phone -->
                   <div class="space-y-1.5">
@@ -611,33 +654,13 @@
                       <span class="subject-chip inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#f7f4ed] hover:bg-[#ede7da] text-[#576058] border border-[#ded5c6] font-medium text-[11px] cursor-pointer transition-colors" data-subject="Pediatrics" data-selected="false">Pediatrics</span>
                     </div>
                   </div>
-                  <!-- Cohort Multi-select Checkboxes -->
-                  <div class="space-y-2 pt-1">
-                    <label class="block text-xs font-bold text-[#576058]">Assigned Cohorts</label>
-                    <div class="space-y-2">
-                      <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#fbf9f5] border border-[#ded5c6] cursor-pointer hover:bg-[#f7f4ed] transition-colors">
-                        <input checked="" class="w-4 h-4 rounded text-[#4a7c59] accent-[#4a7c59] cursor-pointer" name="cohort" type="checkbox" value="Prarambh 2026">
-                        <div class="text-xs">
-                          <span class="font-bold text-[#2c332d]">Prarambh 2026</span>
-                          <span class="text-[10px] text-[#68736a] block font-medium">1st Prof MBBS Foundations</span>
-                        </div>
-                      </label>
-                      <label class="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#fbf9f5] border border-[#ded5c6] cursor-pointer hover:bg-[#f7f4ed] transition-colors">
-                        <input class="w-4 h-4 rounded text-[#4a7c59] accent-[#4a7c59] cursor-pointer" name="cohort" type="checkbox" value="Sushruta 2026">
-                        <div class="text-xs">
-                          <span class="font-bold text-[#2c332d]">Sushruta 2026</span>
-                          <span class="text-[10px] text-[#68736a] block font-medium">2nd/3rd Prof Clinical Masterclass</span>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
                   <!-- Reschedule & Cancellation Permission Toggle -->
                   <div class="space-y-1.5 pt-1">
                     <label class="block text-xs font-bold text-[#576058]">Self-Service Class Modification</label>
                     <div class="p-3 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl flex items-center justify-between gap-3">
                       <div>
                         <span class="block text-xs font-bold text-[#2c332d]">Reschedule &amp; Cancellation</span>
-                        <span class="text-[10px] text-[#68736a] block">Allow faculty to request class reschedule or cancellation</span>
+                        <span class="text-[10px] text-[#68736a] block">Allow user to request class reschedule or cancellation</span>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" id="onboard-reschedule-toggle" class="sr-only peer" checked="">

@@ -370,6 +370,17 @@ export class ReminderEmailService {
     return { success: false, error: 'Faculty not found' };
   }
 
+  findAdminByEmail(email) {
+    const faculty = this.findFacultyByEmail(email);
+    if (!faculty) return null;
+    const isRoleAdmin = (faculty.role && String(faculty.role).toLowerCase() === 'admin') || (faculty.id && faculty.id.startsWith('fac-admin'));
+    return isRoleAdmin ? faculty : null;
+  }
+
+  isAuthorizedAdmin(email) {
+    return Boolean(this.findAdminByEmail(email));
+  }
+
   findFacultyByEmail(email) {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();

@@ -509,6 +509,15 @@
                     </select>
                     <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-[#8b958c]">expand_more</span>
                   </div>
+                  <!-- Role Filter Select -->
+                  <div class="relative shrink-0">
+                    <select class="text-xs bg-[#fbf9f5] border border-[#ded5c6] text-[#2c332d] font-semibold pl-3 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#4a7c59] appearance-none cursor-pointer" id="role-filter-select">
+                      <option value="All">All Roles</option>
+                      <option value="Teacher">Teachers Only (👨‍🏫)</option>
+                      <option value="Admin">Admins Only (🛡️)</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-[#8b958c]">expand_more</span>
+                  </div>
                   <!-- Status Filter Select -->
                   <div class="relative shrink-0">
                     <select class="text-xs bg-[#fbf9f5] border border-[#ded5c6] text-[#2c332d] font-semibold pl-3 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#4a7c59] appearance-none cursor-pointer" id="status-filter-select">
@@ -548,12 +557,32 @@
                   <span id="onboard-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d">Fast Track</span>
                 </div>
                 <p class="text-xs text-[#576058] mb-5 leading-relaxed">
-                  Provision faculty credentials. System automatically generates SMS OTP onboarding links and PW MedEd institutional workspace access.
+                  Provision faculty or administrator credentials. System grants portal role access synchronized with the Master Spreadsheet.
                 </p>
                 <form class="space-y-4" id="onboard-form">
+                  <!-- Portal Access Role Selection -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Portal Access Role</label>
+                    <div class="grid grid-cols-2 gap-2">
+                      <label class="flex items-center gap-2 p-2.5 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all has-[:checked]:bg-[#eef4f0] has-[:checked]:border-[#4a7c59]">
+                        <input type="radio" name="onboard-role-radio" value="Teacher" id="onboard-role-teacher" class="text-[#4a7c59] focus:ring-[#4a7c59]" checked>
+                        <div class="text-xs">
+                          <span class="font-bold block text-[#2c332d]">👨‍🏫 Teacher</span>
+                          <span class="text-[10px] text-[#68736a] block">Faculty Portal</span>
+                        </div>
+                      </label>
+                      <label class="flex items-center gap-2 p-2.5 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all has-[:checked]:bg-[#fdf8f0] has-[:checked]:border-[#705c30]">
+                        <input type="radio" name="onboard-role-radio" value="Admin" id="onboard-role-admin" class="text-[#705c30] focus:ring-[#705c30]">
+                        <div class="text-xs">
+                          <span class="font-bold block text-[#2c332d]">🛡️ Admin</span>
+                          <span class="text-[10px] text-[#68736a] block">Dean Directorate</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
                   <!-- Full Name -->
                   <div class="space-y-1.5">
-                    <label class="block text-xs font-bold text-[#576058]">Faculty Full Name</label>
+                    <label class="block text-xs font-bold text-[#576058]">Full Name</label>
                     <div class="relative">
                       <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none" id="onboard-name-input" placeholder="e.g. Dr. Anand B. Murthy" required="" type="text">
                     </div>
@@ -564,7 +593,21 @@
                     <div class="relative">
                       <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] font-mono placeholder:text-[#8b958c] focus:outline-none" id="onboard-email-input" placeholder="name.dept@pwmeded.edu.in" required="" type="email">
                     </div>
-                    <p class="text-[10px] text-[#68736a]">Must end with @pwmeded.edu.in domain</p>
+                    <p class="text-[10px] text-[#68736a]">Login credentials mapped to Master Spreadsheet</p>
+                  </div>
+                  <!-- Secondary Email (Optional) -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Secondary / Alt Email (Optional)</label>
+                    <div class="relative">
+                      <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] font-mono placeholder:text-[#8b958c] focus:outline-none" id="onboard-sec-email-input" placeholder="e.g. personal.email@gmail.com" type="email">
+                    </div>
+                  </div>
+                  <!-- Designation / Academic Title -->
+                  <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-[#576058]">Designation / Title</label>
+                    <div class="relative">
+                      <input class="w-full px-3.5 py-2.5 input-3d text-xs rounded-xl text-[#2c332d] placeholder:text-[#8b958c] focus:outline-none" id="onboard-designation-input" placeholder="e.g. Professor • Biochemistry or Lead Academic Faculty" type="text">
+                    </div>
                   </div>
                   <!-- Mobile Phone -->
                   <div class="space-y-1.5">
@@ -622,7 +665,7 @@
                     <div class="p-3 bg-[#fbf9f5] border border-[#ded5c6] rounded-xl flex items-center justify-between gap-3">
                       <div>
                         <span class="block text-xs font-bold text-[#2c332d]">Reschedule &amp; Cancellation</span>
-                        <span class="text-[10px] text-[#68736a] block">Allow faculty to request class reschedule or cancellation</span>
+                        <span class="text-[10px] text-[#68736a] block">Allow user to request class reschedule or cancellation</span>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" id="onboard-reschedule-toggle" class="sr-only peer" checked="">
@@ -2167,7 +2210,7 @@
           <div class="flex items-center justify-between text-[#2c332d] font-bold text-xs">
             <span class="flex items-center gap-1.5">
               <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">view_column</span>
-              <span>Required Column Headers (11 Columns)</span>
+              <span>Required Column Headers (12 Columns)</span>
             </span>
             <span class="text-[10px] text-[#68736a] font-mono">Row 1 in Google Sheets</span>
           </div>
@@ -2178,11 +2221,12 @@
             <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">D: Secondary Email</span>
             <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">E: Phone</span>
             <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">F: Department</span>
-            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">G: Designation Role</span>
-            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">H: Status</span>
-            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">I: Can Reschedule Cancel</span>
-            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">J: Assigned Cohorts</span>
-            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">K: Last Updated</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] text-[10px] font-mono font-bold">G: Role (Teacher / Admin)</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">H: Designation</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">I: Status</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">J: Can Reschedule Cancel</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">K: Assigned Cohorts</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] text-[10px] font-mono font-bold">L: Last Updated</span>
           </div>
         </div>
 

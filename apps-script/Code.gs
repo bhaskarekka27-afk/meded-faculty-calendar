@@ -412,7 +412,8 @@ var FACULTY_COLUMNS = [
   'Secondary Email',
   'Phone',
   'Department',
-  'Designation Role',
+  'Role',
+  'Designation',
   'Status',
   'Can Reschedule Cancel',
   'Assigned Cohorts',
@@ -427,6 +428,7 @@ var DEFAULT_FACULTY_SEED = [
     "harshraj01@gmail.com",
     "94234 07557",
     "Biochemistry",
+    "Teacher",
     "Professor • Biochemistry",
     "Verified",
     "FALSE",
@@ -440,6 +442,7 @@ var DEFAULT_FACULTY_SEED = [
     "pawarpradeep@gmail.com",
     "99203 00794",
     "Anatomy",
+    "Teacher",
     "Professor • Anatomy",
     "Verified",
     "FALSE",
@@ -453,6 +456,7 @@ var DEFAULT_FACULTY_SEED = [
     "viveknalgirkar@gmail.com",
     "97690 67069",
     "Physiology",
+    "Teacher",
     "Professor • Physiology",
     "Verified",
     "FALSE",
@@ -466,6 +470,7 @@ var DEFAULT_FACULTY_SEED = [
     "xpresspinacle@gmail.com",
     "99414 81668",
     "Pathology",
+    "Teacher",
     "Professor • Pathology",
     "Verified",
     "FALSE",
@@ -479,6 +484,7 @@ var DEFAULT_FACULTY_SEED = [
     "drmanjunathforensic@gmail.com",
     "96862 52725",
     "Forensic Medicine",
+    "Teacher",
     "Professor • Forensic Medicine",
     "Verified",
     "FALSE",
@@ -492,6 +498,7 @@ var DEFAULT_FACULTY_SEED = [
     "drvinish@yahoo.com",
     "99115 09119",
     "Anaesthesia",
+    "Teacher",
     "Professor • Anaesthesia",
     "Verified",
     "FALSE",
@@ -505,6 +512,7 @@ var DEFAULT_FACULTY_SEED = [
     "docashwani23@gmail.com",
     "88607 96675",
     "Community Medicine",
+    "Teacher",
     "Assoc. Professor • Community Medicine",
     "Verified",
     "FALSE",
@@ -518,6 +526,7 @@ var DEFAULT_FACULTY_SEED = [
     "drsanchitbaipaihns@gmail.com",
     "70073 35207",
     "ENT",
+    "Teacher",
     "Professor • ENT",
     "Verified",
     "FALSE",
@@ -531,6 +540,7 @@ var DEFAULT_FACULTY_SEED = [
     "santhoshmp@icloud.com",
     "83109 84841",
     "General Medicine",
+    "Teacher",
     "Professor • General Medicine",
     "Verified",
     "FALSE",
@@ -544,6 +554,7 @@ var DEFAULT_FACULTY_SEED = [
     "dreradutta@gmail.com",
     "98204 03635",
     "Psychiatry",
+    "Teacher",
     "Assoc. Professor • Psychiatry",
     "Verified",
     "FALSE",
@@ -557,6 +568,7 @@ var DEFAULT_FACULTY_SEED = [
     "sirajahmad9@gmail.com",
     "95826 26153",
     "Pharmacology",
+    "Teacher",
     "Professor • Pharmacology",
     "Verified",
     "FALSE",
@@ -570,6 +582,7 @@ var DEFAULT_FACULTY_SEED = [
     "drprassan@yahoo.com",
     "98103 05975",
     "Obstetrics & Gynaecology",
+    "Teacher",
     "Professor • Obstetrics & Gynaecology",
     "Verified",
     "FALSE",
@@ -583,6 +596,7 @@ var DEFAULT_FACULTY_SEED = [
     "alekhya.kumar89@gmail.com",
     "90526 90055",
     "Orthopedics",
+    "Teacher",
     "Consultant • Orthopedics",
     "Verified",
     "FALSE",
@@ -596,6 +610,7 @@ var DEFAULT_FACULTY_SEED = [
     "sandeepseeramreddi@gmail.com",
     "99663 35541",
     "General Surgery",
+    "Teacher",
     "Senior Consultant • General Surgery",
     "Verified",
     "FALSE",
@@ -609,6 +624,7 @@ var DEFAULT_FACULTY_SEED = [
     "Natishaarora@gmail.com",
     "90164 06216",
     "Radiology",
+    "Teacher",
     "Consultant • Radiology",
     "Verified",
     "FALSE",
@@ -622,6 +638,7 @@ var DEFAULT_FACULTY_SEED = [
     "admin@drjazeerdermatology.com",
     "98098 44313",
     "Dermatology",
+    "Teacher",
     "Consultant • Dermatology",
     "Verified",
     "FALSE",
@@ -635,6 +652,7 @@ var DEFAULT_FACULTY_SEED = [
     "rathi.anusha@gmail.com",
     "95603 44064",
     "Microbiology",
+    "Teacher",
     "Assistant Professor • Microbiology",
     "Verified",
     "FALSE",
@@ -648,6 +666,7 @@ var DEFAULT_FACULTY_SEED = [
     "divyamadan121295@gmail.com",
     "89303 45037",
     "Pediatrics",
+    "Teacher",
     "Senior Consultant • Pediatrics",
     "Verified",
     "FALSE",
@@ -658,10 +677,25 @@ var DEFAULT_FACULTY_SEED = [
     "fac-admin-2",
     "Bhaskar Ekka",
     "bhaskar.ekka@pw.live",
-    "",
+    "bhaskarekka27@gmail.com",
     "98765 43210",
     "Medical Sciences",
+    "Admin",
     "Lead Academic Faculty",
+    "Verified",
+    "FALSE",
+    "Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26",
+    "2026-09-24T12:00:00.000Z"
+  ],
+  [
+    "fac-admin-1",
+    "Kanchan Gupta",
+    "kanchan.gupta1@pw.live",
+    "kanchan.gupta1@pw.live",
+    "98765 43211",
+    "Academic Administration",
+    "Admin",
+    "Academic Operations Lead",
     "Verified",
     "FALSE",
     "Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26",
@@ -678,7 +712,7 @@ function setupFacultySheet_(body) {
     sheet = ss.insertSheet(tabName);
   }
 
-  // Clear existing content to cleanly populate all 34 faculty records
+  // Clear existing content to cleanly populate records
   sheet.clearContents();
 
   // Set up header row
@@ -729,22 +763,94 @@ function getFacultyRecords_() {
   var values = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
   var headers = values[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
 
+  var getCol = function (patterns) {
+    for (var p = 0; p < patterns.length; p++) {
+      var pat = patterns[p];
+      for (var h = 0; h < headers.length; h++) {
+        if (headers[h] === pat) return h;
+      }
+    }
+    for (var p2 = 0; p2 < patterns.length; p2++) {
+      var pat2 = patterns[p2];
+      for (var h2 = 0; h2 < headers.length; h2++) {
+        if (headers[h2].indexOf(pat2) !== -1) return h2;
+      }
+    }
+    return -1;
+  };
+
+  var idIdx = getCol(['faculty id', 'fac id', 'id']);
+  var nameIdx = getCol(['name', 'faculty name', 'faculty', 'professor']);
+  var emailIdx = getCol(['primary email', 'email', 'login email', 'mail']);
+  var secEmailIdx = getCol(['secondary email', 'alt email', 'alternate email', 'secondary']);
+  var phoneIdx = getCol(['phone', 'mobile', 'contact', 'whatsapp']);
+  var deptIdx = getCol(['department', 'dept', 'subject', 'specialty']);
+  var roleIdx = getCol(['role', 'portal role', 'access role']);
+  var desigIdx = getCol(['designation', 'designation role', 'title']);
+  var statusIdx = getCol(['status', 'verification']);
+  var permIdx = getCol(['can reschedule', 'reschedule', 'permission', 'reschedule cancel']);
+  var cohortsIdx = getCol(['cohort', 'batch', 'assigned cohorts', 'batches']);
+  var updatedIdx = getCol(['last updated', 'updated', 'timestamp']);
+
   var list = [];
   for (var i = 1; i < values.length; i++) {
     var r = values[i];
-    if (!r || !r[1]) continue;
+    if (!r || !r.some(function(c) { return c && c.trim(); })) continue;
+
+    var name = (nameIdx >= 0 ? r[nameIdx] : r[1]) || '';
+    if (!name.trim()) continue;
+
+    var id = (idIdx >= 0 && r[idIdx] ? r[idIdx] : ('fac-' + i)).trim();
+    var email = ((emailIdx >= 0 ? r[emailIdx] : r[2]) || '').trim();
+    var secEmail = ((secEmailIdx >= 0 ? r[secEmailIdx] : r[3]) || '').trim();
+    var phone = ((phoneIdx >= 0 ? r[phoneIdx] : r[4]) || '98765 43210').trim();
+    var dept = ((deptIdx >= 0 ? r[deptIdx] : r[5]) || 'Medical Sciences').trim();
+
+    var role = 'Teacher';
+    var designation = 'Professor • ' + dept;
+    var rawRole = (roleIdx >= 0 ? r[roleIdx] : '').trim();
+    var rawDesig = (desigIdx >= 0 ? r[desigIdx] : '').trim();
+
+    if (roleIdx >= 0 && desigIdx >= 0 && roleIdx !== desigIdx) {
+      role = (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase().indexOf('admin') !== -1) ? 'Admin' : 'Teacher';
+      designation = rawDesig || (role === 'Admin' ? 'Academic Administration Lead' : ('Professor • ' + dept));
+    } else if (roleIdx >= 0 && desigIdx < 0) {
+      if (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase() === 'teacher') {
+        role = rawRole.toLowerCase() === 'admin' ? 'Admin' : 'Teacher';
+        designation = role === 'Admin' ? 'Lead Academic Faculty' : ('Professor • ' + dept);
+      } else {
+        role = rawRole.toLowerCase().indexOf('admin') !== -1 ? 'Admin' : 'Teacher';
+        designation = rawRole;
+      }
+    } else if (desigIdx >= 0) {
+      role = (rawDesig.toLowerCase().indexOf('admin') !== -1 || id.indexOf('admin') !== -1 || email.indexOf('admin') !== -1) ? 'Admin' : 'Teacher';
+      designation = rawDesig;
+    }
+
+    if (id.indexOf('fac-admin') === 0 || email === 'bhaskar.ekka@pw.live' || email === 'kanchan.gupta1@pw.live') {
+      role = 'Admin';
+    }
+
+    var status = ((statusIdx >= 0 ? r[statusIdx] : r[7]) || 'Verified').trim();
+    var permVal = String(permIdx >= 0 ? r[permIdx] : (r[8] || '')).trim();
+    var canRescheduleCancel = permVal.toUpperCase() !== 'FALSE' && permVal.toLowerCase() !== 'no';
+    var cohortsRaw = (cohortsIdx >= 0 ? r[cohortsIdx] : r[9]) || '';
+    var cohorts = cohortsRaw ? cohortsRaw.split(/[;,]/).map(function (c) { return c.trim(); }) : ["Prarambh '26"];
+    var lastUpdated = (updatedIdx >= 0 ? r[updatedIdx] : r[10]) || new Date().toISOString();
+
     list.push({
-      id: r[0] || ('fac-' + i),
-      name: r[1],
-      email: r[2] || '',
-      secondaryEmail: r[3] || '',
-      phone: r[4] || '',
-      dept: r[5] || 'Medical Sciences',
-      role: r[6] || 'Faculty',
-      status: r[7] || 'Verified',
-      canRescheduleCancel: String(r[8]).toUpperCase() !== 'FALSE',
-      cohorts: r[9] ? r[9].split(/[;,]/).map(function (c) { return c.trim(); }) : ["Prarambh '26"],
-      lastUpdated: r[10] || new Date().toISOString()
+      id: id,
+      name: name.trim(),
+      email: email,
+      secondaryEmail: secEmail,
+      phone: phone,
+      dept: dept,
+      role: role,
+      designation: designation,
+      status: status || 'Verified',
+      canRescheduleCancel: canRescheduleCancel,
+      cohorts: cohorts,
+      lastUpdated: lastUpdated
     });
   }
   return { ok: true, list: list };
@@ -755,6 +861,9 @@ function addFacultyRecord_(f) {
   var sheet = ss.getSheetByName(FACULTY_DIRECTORY_TAB) || ss.getSheets()[0];
   if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
 
+  var role = (f.role && String(f.role).toLowerCase().indexOf('admin') !== -1) ? 'Admin' : 'Teacher';
+  var desig = f.designation || (role === 'Admin' ? 'Lead Academic Faculty' : ('Professor • ' + (f.dept || 'Medical Sciences')));
+
   var row = [
     f.id || ('fac-' + Date.now()),
     f.name || '',
@@ -762,7 +871,8 @@ function addFacultyRecord_(f) {
     f.secondaryEmail || '',
     f.phone || '',
     f.dept || 'Medical Sciences',
-    f.role || 'Faculty',
+    role,
+    desig,
     f.status || 'Verified',
     f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
     Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
@@ -778,7 +888,7 @@ function updateFacultyRecord_(f) {
   if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
 
   var lastRow = sheet.getLastRow();
-  var values = sheet.getRange(1, 1, lastRow, 3).getDisplayValues(); // ID (col 1), Name (col 2), Email (col 3)
+  var values = sheet.getRange(1, 1, lastRow, 3).getDisplayValues();
 
   var targetRow = -1;
   var targetId = String(f.id || '').trim().toLowerCase();
@@ -793,6 +903,9 @@ function updateFacultyRecord_(f) {
     }
   }
 
+  var role = (f.role && String(f.role).toLowerCase().indexOf('admin') !== -1) ? 'Admin' : 'Teacher';
+  var desig = f.designation || (role === 'Admin' ? 'Lead Academic Faculty' : ('Professor • ' + (f.dept || 'Medical Sciences')));
+
   var rowVals = [
     f.id || ('fac-' + (targetRow > 0 ? targetRow - 1 : Date.now())),
     f.name || '',
@@ -800,7 +913,8 @@ function updateFacultyRecord_(f) {
     f.secondaryEmail || '',
     f.phone || '',
     f.dept || 'Medical Sciences',
-    f.role || 'Faculty',
+    role,
+    desig,
     f.status || 'Verified',
     f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
     Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),
@@ -845,6 +959,8 @@ function batchUpdateFacultyRecords_(fullList) {
   if (!sheet) return { ok: false, error: 'Faculty Directory sheet not found' };
 
   var rows = (fullList || []).map(function (f) {
+    var role = (f.role && String(f.role).toLowerCase().indexOf('admin') !== -1) ? 'Admin' : 'Teacher';
+    var desig = f.designation || (role === 'Admin' ? 'Lead Academic Faculty' : ('Professor • ' + (f.dept || 'Medical Sciences')));
     return [
       f.id || ('fac-' + Math.random().toString(36).slice(2, 8)),
       f.name || '',
@@ -852,7 +968,8 @@ function batchUpdateFacultyRecords_(fullList) {
       f.secondaryEmail || '',
       f.phone || '',
       f.dept || 'Medical Sciences',
-      f.role || 'Faculty',
+      role,
+      desig,
       f.status || 'Verified',
       f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE',
       Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || "Prarambh '26"),

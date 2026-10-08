@@ -538,34 +538,26 @@
 
       } else {
         // Admin Portal Google Authentication
-        const ADMIN_AUTHORIZED_EMAILS = [
-          'bhaskarekka27@gmail.com',
-          'kanchan.gupta1@pw.live',
-          'admin.office@pwmeded.edu.in',
-          'dean.office@pwmeded.edu.in',
-          'admin.office@pw.live'
-        ];
+        let user = reminderEmailService.findFacultyByEmail(cleanEmail);
 
-        function isAuthorizedAdminEmail(em) {
-          if (!em) return false;
-          const clean = em.trim().toLowerCase();
-          if (ADMIN_AUTHORIZED_EMAILS.includes(clean)) return true;
-          if (clean.endsWith('@pwmeded.edu.in') || clean.endsWith('@pw.live')) return true;
-          return false;
+        // If not immediately found in local cache, do a live background sync against the connected Google Sheet
+        if (!user) {
+          try {
+            const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+            if (connectedUrl) {
+              const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
+              if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
+                reminderEmailService.saveFacultyOnboardingList(syncRes.list);
+                user = reminderEmailService.findFacultyByEmail(cleanEmail);
+              }
+            }
+          } catch (_) {}
         }
 
-        function getAdminDisplayName(em) {
-          if (optionalName) return optionalName;
-          const clean = (em || '').trim().toLowerCase();
-          if (clean === 'bhaskarekka27@gmail.com') return 'Bhaskar Ekka';
-          if (clean === 'kanchan.gupta1@pw.live') return 'Kanchan Gupta';
-          return 'Academic Dean Office';
-        }
-
-        const isAuthorizedAdmin = isAuthorizedAdminEmail(cleanEmail);
+        const isAuthorizedAdmin = user && ((user.role && String(user.role).toLowerCase() === 'admin') || (user.id && user.id.startsWith('fac-admin')));
         const btnText = document.getElementById('adminSignInBtnText');
 
-        if (!isAuthorizedAdmin) {
+        if (!user || !isAuthorizedAdmin) {
           window.setLockState('admin', 'error');
           if (btnText) {
             btnText.innerHTML = `Sign in with Google`;
@@ -575,16 +567,16 @@
         }
 
         window.setLockState('admin', 'success');
-        const adminName = getAdminDisplayName(cleanEmail);
+        const adminName = optionalName || user.name;
         if (btnText) {
           btnText.innerHTML = `✓ Authenticated: <strong>${adminName}</strong> • Entering...`;
         }
 
         const session = {
           role: 'admin',
-          email: cleanEmail,
+          email: user.email || cleanEmail,
           name: adminName,
-          subject: 'Academic Administration',
+          subject: user.dept || 'Academic Administration',
           authMethod: 'Google Identity Services (Verified)',
           loggedInAt: new Date().toISOString()
         };

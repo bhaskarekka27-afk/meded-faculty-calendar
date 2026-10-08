@@ -239,6 +239,9 @@
 
   <!-- Scripts -->
   <script type="module">
+    import { reminderEmailService } from './js/reminderEmailService.js';
+    import { syncFacultyFromGoogleSheet, FACULTY_SHEET_URL_KEY } from './js/facultyOnboardingData.js';
+
     // Set dynamic lock visual state: 'neutral', 'success', or 'error'
     window.setLockState = function(state) {
       const container = document.getElementById('adminLockIconContainer');
@@ -266,8 +269,31 @@
     };
 
     // --- ACCESS RESTRICTED UI MODAL HANDLERS ---
-    window.showAccessRestrictedModal = function() {
+    window.showAccessRestrictedModal = function(reason = 'not_found', email = '', name = '') {
       const modal = document.getElementById('accessRestrictedModal');
+      const titleEl = document.getElementById('accessModalTitle');
+      const msg1El = document.getElementById('accessModalMsg1');
+      const msg2El = document.getElementById('accessModalMsg2');
+      const modalBtn = modal ? modal.querySelector('button') : null;
+
+      if (reason === 'teacher_role') {
+        if (titleEl) titleEl.textContent = 'Faculty / Teacher Account';
+        if (msg1El) msg1El.innerHTML = `Welcome ${name ? '<strong>' + name + '</strong>' : ''}! This account is registered with the <strong>Teacher</strong> role.`;
+        if (msg2El) msg2El.textContent = 'You have access to the Faculty Portal. Please sign in via the Faculty Portal to manage your classes and calendar.';
+        if (modalBtn) {
+          modalBtn.textContent = 'Go to Faculty Portal';
+          modalBtn.onclick = () => { window.location.href = '/faculty-login.html'; };
+        }
+      } else {
+        if (titleEl) titleEl.textContent = 'Access Restricted';
+        if (msg1El) msg1El.innerHTML = `No credentials found for <strong>${email || 'this account'}</strong> in the Master Spreadsheet.`;
+        if (msg2El) msg2El.textContent = 'Only users registered in the Faculty Onboarding Master Sheet can access the portal. Please contact the administrator to get onboarded.';
+        if (modalBtn) {
+          modalBtn.textContent = 'OK';
+          modalBtn.onclick = () => { window.closeAccessRestrictedModal(); };
+        }
+      }
+
       if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -363,56 +389,62 @@
     };
 
     // --- HANDLE GOOGLE AUTHENTICATION RESULT ---
-    function handleGoogleAuthCallback(email, optionalName) {
+    async function handleGoogleAuthCallback(email, optionalName) {
       const cleanEmail = (email || '').trim().toLowerCase();
 
-      const ADMIN_AUTHORIZED_EMAILS = [
-        'bhaskarekka27@gmail.com',
-        'kanchan.gupta1@pw.live',
-        'admin.office@pwmeded.edu.in',
-        'dean.office@pwmeded.edu.in',
-        'admin.office@pw.live'
-      ];
+      // Look up user strictly from sheet onboarding directory
+      let user = reminderEmailService.findFacultyByEmail(cleanEmail);
 
-      function isAuthorizedAdminEmail(em) {
-        if (!em) return false;
-        const clean = em.trim().toLowerCase();
-        if (ADMIN_AUTHORIZED_EMAILS.includes(clean)) return true;
-        if (clean.endsWith('@pwmeded.edu.in') || clean.endsWith('@pw.live')) return true;
-        return false;
+      // If not in local cache, perform background sync with the connected Google Sheet
+      if (!user) {
+        try {
+          const connectedUrl = localStorage.getItem(FACULTY_SHEET_URL_KEY);
+          if (connectedUrl) {
+            const syncRes = await syncFacultyFromGoogleSheet(connectedUrl);
+            if (syncRes && syncRes.success && Array.isArray(syncRes.list)) {
+              reminderEmailService.saveFacultyOnboardingList(syncRes.list);
+              user = reminderEmailService.findFacultyByEmail(cleanEmail);
+            }
+          }
+        } catch (_) {}
       }
 
-      function getAdminDisplayName(em) {
-        if (optionalName) return optionalName;
-        const clean = (em || '').trim().toLowerCase();
-        if (clean === 'bhaskarekka27@gmail.com') return 'Bhaskar Ekka';
-        if (clean === 'kanchan.gupta1@pw.live') return 'Kanchan Gupta';
-        return 'Academic Dean Office';
-      }
-
-      const isAuthorizedAdmin = isAuthorizedAdminEmail(cleanEmail);
       const btnText = document.getElementById('adminSignInBtnText');
 
-      if (!isAuthorizedAdmin) {
+      if (!user) {
+        // User NOT found in the sheet -> Access strictly denied
         window.setLockState('error');
         if (btnText) {
           btnText.innerHTML = `Sign in with Google`;
         }
-        window.showAccessRestrictedModal();
+        window.showAccessRestrictedModal('not_found', cleanEmail);
         return;
       }
 
+      // Check user role: must be Admin to access Admin Directorate portal
+      const isRoleAdmin = (user.role && String(user.role).toLowerCase() === 'admin') || (user.id && user.id.startsWith('fac-admin'));
+      if (!isRoleAdmin) {
+        // Registered as Teacher -> Deny Admin Directorate access, direct to Faculty Portal
+        window.setLockState('error');
+        if (btnText) {
+          btnText.innerHTML = `Sign in with Google`;
+        }
+        window.showAccessRestrictedModal('teacher_role', cleanEmail, user.name);
+        return;
+      }
+
+      // Authorized Admin
       window.setLockState('success');
-      const adminName = getAdminDisplayName(cleanEmail);
+      const adminName = optionalName || user.name;
       if (btnText) {
         btnText.innerHTML = `✓ Authenticated: <strong>${adminName}</strong> • Entering...`;
       }
 
       const session = {
         role: 'admin',
-        email: cleanEmail,
+        email: user.email || cleanEmail,
         name: adminName,
-        subject: 'Academic Administration',
+        subject: user.dept || 'Academic Administration',
         authMethod: 'Google Identity Services (Verified)',
         loggedInAt: new Date().toISOString()
       };

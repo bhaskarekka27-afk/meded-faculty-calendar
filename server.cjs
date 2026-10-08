@@ -134,7 +134,7 @@ const ONBOARDING_JSON_FILE = path.join(ROOT, 'data_faculty_onboarding.json');
 const ONBOARDING_CSV_FILE = path.join(ROOT, 'data_faculty_onboarding.csv');
 
 function facultyListToCSV(list) {
-  const headers = ['Faculty ID', 'Name', 'Primary Email', 'Secondary Email', 'Phone', 'Department', 'Designation Role', 'Status', 'Can Reschedule Cancel', 'Assigned Cohorts', 'Last Updated'];
+  const headers = ['Faculty ID', 'Name', 'Primary Email', 'Secondary Email', 'Phone', 'Department', 'Role', 'Designation', 'Status', 'Can Reschedule Cancel', 'Assigned Cohorts', 'Last Updated'];
   const escapeCsv = (val) => {
     if (val === null || val === undefined) return '""';
     const str = String(val);
@@ -143,6 +143,8 @@ function facultyListToCSV(list) {
 
   const rows = [headers.join(',')];
   for (const f of list) {
+    const roleVal = (f.role && String(f.role).toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+    const desigVal = f.designation || (f.role && f.role !== 'Teacher' && f.role !== 'Admin' ? f.role : (roleVal === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${f.dept || 'Biochemistry'}`));
     const row = [
       escapeCsv(f.id || ''),
       escapeCsv(f.name || ''),
@@ -150,7 +152,8 @@ function facultyListToCSV(list) {
       escapeCsv(f.secondaryEmail || ''),
       escapeCsv(f.phone || ''),
       escapeCsv(f.dept || ''),
-      escapeCsv(f.role || ''),
+      escapeCsv(roleVal),
+      escapeCsv(desigVal),
       escapeCsv(f.status || 'Verified'),
       escapeCsv(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
       escapeCsv(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
@@ -198,24 +201,92 @@ function parseFacultyCSV(csvText) {
   }
 
   if (lines.length <= 1) return [];
+
+  const rawHeaders = lines[0].map(h => String(h || '').trim().toLowerCase());
+  const getCol = (patterns) => {
+    const exact = rawHeaders.findIndex(h => patterns.some(p => h === p));
+    if (exact >= 0) return exact;
+    return rawHeaders.findIndex(h => patterns.some(p => {
+      if (p === 'name' || p === 'faculty' || p === 'professor') {
+        if (h.includes('id') || h.includes('email') || h.includes('role') || h.includes('status')) return false;
+      }
+      return h.includes(p);
+    }));
+  };
+
+  const idIdx = getCol(['faculty id', 'fac id', 'id']);
+  const nameIdx = getCol(['name', 'faculty name', 'faculty', 'professor']);
+  const emailIdx = getCol(['primary email', 'email', 'login email', 'mail']);
+  const secEmailIdx = getCol(['secondary email', 'alt email', 'alternate email', 'secondary']);
+  const phoneIdx = getCol(['phone', 'mobile', 'contact', 'whatsapp']);
+  const deptIdx = getCol(['department', 'dept', 'subject', 'specialty']);
+  const roleIdx = getCol(['role', 'portal role', 'access role']);
+  const desigIdx = getCol(['designation', 'designation role', 'title']);
+  const statusIdx = getCol(['status', 'verification']);
+  const permIdx = getCol(['can reschedule', 'reschedule', 'permission', 'reschedule cancel']);
+  const cohortsIdx = getCol(['cohort', 'batch', 'assigned cohorts', 'batches']);
+  const updatedIdx = getCol(['last updated', 'updated', 'timestamp']);
+
   const list = [];
   for (let i = 1; i < lines.length; i++) {
     const r = lines[i];
-    if (!r || r.length < 2 || !r[1]) continue;
-    const cohortsRaw = r[9] || '';
-    const cohorts = cohortsRaw ? cohortsRaw.split(';').map(c => c.trim()).filter(Boolean) : ["Prarambh '26"];
+    if (!r || r.length === 0 || !r.some(cell => cell && cell.trim())) continue;
+    
+    const name = (nameIdx >= 0 ? r[nameIdx] : r[1]) || '';
+    if (!name.trim()) continue;
+
+    const id = (idIdx >= 0 && r[idIdx] ? r[idIdx] : `fac-${i}`).trim();
+    const email = ((emailIdx >= 0 ? r[emailIdx] : r[2]) || '').trim();
+    const secEmail = ((secEmailIdx >= 0 ? r[secEmailIdx] : r[3]) || '').trim();
+    const phone = ((phoneIdx >= 0 ? r[phoneIdx] : r[4]) || '98765 43210').trim();
+    const dept = ((deptIdx >= 0 ? r[deptIdx] : r[5]) || 'Medical Sciences').trim();
+
+    let role = 'Teacher';
+    let designation = `Professor • ${dept}`;
+
+    const rawRole = (roleIdx >= 0 ? r[roleIdx] : '').trim();
+    const rawDesig = (desigIdx >= 0 ? r[desigIdx] : '').trim();
+
+    if (roleIdx >= 0 && desigIdx >= 0 && roleIdx !== desigIdx) {
+      role = (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+      designation = rawDesig || (role === 'Admin' ? 'Academic Administration Lead' : `Professor • ${dept}`);
+    } else if (roleIdx >= 0 && desigIdx < 0) {
+      if (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase() === 'teacher') {
+        role = rawRole.toLowerCase() === 'admin' ? 'Admin' : 'Teacher';
+        designation = role === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${dept}`;
+      } else {
+        role = rawRole.toLowerCase().includes('admin') ? 'Admin' : 'Teacher';
+        designation = rawRole;
+      }
+    } else if (desigIdx >= 0) {
+      role = (rawDesig.toLowerCase().includes('admin') || id.includes('admin') || email.includes('admin')) ? 'Admin' : 'Teacher';
+      designation = rawDesig;
+    }
+
+    if (id.startsWith('fac-admin') || email === 'bhaskar.ekka@pw.live' || email === 'kanchan.gupta1@pw.live') {
+      role = 'Admin';
+    }
+
+    const status = ((statusIdx >= 0 ? r[statusIdx] : r[7]) || 'Verified').trim();
+    const permVal = String(permIdx >= 0 ? r[permIdx] : (r[8] || '')).trim();
+    const canRescheduleCancel = permVal.toUpperCase() !== 'FALSE' && permVal.toLowerCase() !== 'no';
+    const cohortsRaw = (cohortsIdx >= 0 ? r[cohortsIdx] : r[9]) || '';
+    const cohorts = cohortsRaw ? cohortsRaw.split(/[;,]/).map(c => c.trim()).filter(Boolean) : ["Prarambh '26"];
+    const lastUpdated = (updatedIdx >= 0 ? r[updatedIdx] : r[10]) || new Date().toISOString();
+
     list.push({
-      id: r[0] || `fac-${i}`,
-      name: r[1],
-      email: r[2] || '',
-      secondaryEmail: r[3] || '',
-      phone: r[4] || '98765 43210',
-      dept: r[5] || 'Medical Sciences',
-      role: r[6] || `Professor • ${r[5] || 'Medical Sciences'}`,
-      status: r[7] || 'Verified',
-      canRescheduleCancel: String(r[8]).toUpperCase() !== 'FALSE',
+      id,
+      name: name.trim(),
+      email,
+      secondaryEmail: secEmail,
+      phone,
+      dept,
+      role,
+      designation,
+      status: status || 'Verified',
+      canRescheduleCancel,
       cohorts,
-      lastUpdated: r[10] || new Date().toISOString()
+      lastUpdated
     });
   }
   return list;

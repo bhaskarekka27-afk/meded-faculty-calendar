@@ -2211,12 +2211,18 @@
 
       const email = (user?.email || '').trim();
       let name = (user?.name || '').trim();
-      if (!name && email) {
+      if (email) {
         const clean = email.toLowerCase();
-        if (clean === 'bhaskarekka27@gmail.com') name = 'Bhaskar Ekka';
-        else if (clean === 'kanchan.gupta1@pw.live') name = 'Kanchan Gupta';
-        else if (clean.includes('dean')) name = 'Dean Academic Office';
-        else name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        try {
+          if (typeof reminderEmailService !== 'undefined' && reminderEmailService.findFacultyByEmail) {
+            const matched = reminderEmailService.findFacultyByEmail(clean);
+            if (matched && matched.name) name = matched.name;
+          }
+        } catch (_) {}
+        if (!name) {
+          if (clean.includes('dean')) name = 'Dean Academic Office';
+          else name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
       }
       if (!name) name = 'Administrator';
 

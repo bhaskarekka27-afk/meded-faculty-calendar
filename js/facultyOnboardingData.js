@@ -13,7 +13,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "harshraj01@gmail.com",
     "phone": "94234 07557",
     "dept": "Biochemistry",
-    "role": "Professor • Biochemistry",
+    "role": "Teacher",
+    "designation": "Professor • Biochemistry",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -31,7 +32,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "pawarpradeep@gmail.com",
     "phone": "99203 00794",
     "dept": "Anatomy",
-    "role": "Professor • Anatomy",
+    "role": "Teacher",
+    "designation": "Professor • Anatomy",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -48,7 +50,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "viveknalgirkar@gmail.com",
     "phone": "97690 67069",
     "dept": "Physiology",
-    "role": "Professor • Physiology",
+    "role": "Teacher",
+    "designation": "Professor • Physiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -65,7 +68,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "xpresspinacle@gmail.com",
     "phone": "99414 81668",
     "dept": "Pathology",
-    "role": "Professor • Pathology",
+    "role": "Teacher",
+    "designation": "Professor • Pathology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -81,7 +85,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "drmanjunathforensic@gmail.com",
     "phone": "96862 52725",
     "dept": "Forensic Medicine",
-    "role": "Professor • Forensic Medicine",
+    "role": "Teacher",
+    "designation": "Professor • Forensic Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -97,7 +102,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "drvinish@yahoo.com",
     "phone": "99115 09119",
     "dept": "Anaesthesia",
-    "role": "Professor • Anaesthesia",
+    "role": "Teacher",
+    "designation": "Professor • Anaesthesia",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -113,7 +119,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "docashwani23@gmail.com",
     "phone": "88607 96675",
     "dept": "Community Medicine",
-    "role": "Assoc. Professor • Community Medicine",
+    "role": "Teacher",
+    "designation": "Assoc. Professor • Community Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -129,7 +136,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "drsanchitbaipaihns@gmail.com",
     "phone": "70073 35207",
     "dept": "ENT",
-    "role": "Professor • ENT",
+    "role": "Teacher",
+    "designation": "Professor • ENT",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -145,7 +153,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "santhoshmp@icloud.com",
     "phone": "83109 84841",
     "dept": "General Medicine",
-    "role": "Professor • General Medicine",
+    "role": "Teacher",
+    "designation": "Professor • General Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -161,7 +170,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "dreradutta@gmail.com",
     "phone": "98204 03635",
     "dept": "Psychiatry",
-    "role": "Assoc. Professor • Psychiatry",
+    "role": "Teacher",
+    "designation": "Assoc. Professor • Psychiatry",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -177,7 +187,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "sirajahmad9@gmail.com",
     "phone": "95826 26153",
     "dept": "Pharmacology",
-    "role": "Professor • Pharmacology",
+    "role": "Teacher",
+    "designation": "Professor • Pharmacology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -193,7 +204,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "drprassan@yahoo.com",
     "phone": "98103 05975",
     "dept": "Obstetrics & Gynaecology",
-    "role": "Professor • Obstetrics & Gynaecology",
+    "role": "Teacher",
+    "designation": "Professor • Obstetrics & Gynaecology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -209,7 +221,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "alekhya.kumar89@gmail.com",
     "phone": "90526 90055",
     "dept": "Orthopedics",
-    "role": "Consultant • Orthopedics",
+    "role": "Teacher",
+    "designation": "Consultant • Orthopedics",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -225,7 +238,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "sandeepseeramreddi@gmail.com",
     "phone": "99663 35541",
     "dept": "General Surgery",
-    "role": "Senior Consultant • General Surgery",
+    "role": "Teacher",
+    "designation": "Senior Consultant • General Surgery",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -241,7 +255,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "Natishaarora@gmail.com",
     "phone": "90164 06216",
     "dept": "Radiology",
-    "role": "Consultant • Radiology",
+    "role": "Teacher",
+    "designation": "Consultant • Radiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -257,7 +272,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "admin@drjazeerdermatology.com",
     "phone": "98098 44313",
     "dept": "Dermatology",
-    "role": "Consultant • Dermatology",
+    "role": "Teacher",
+    "designation": "Consultant • Dermatology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -273,7 +289,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "rathi.anusha@gmail.com",
     "phone": "95603 44064",
     "dept": "Microbiology",
-    "role": "Assistant Professor • Microbiology",
+    "role": "Teacher",
+    "designation": "Assistant Professor • Microbiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -289,7 +306,8 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "secondaryEmail": "divyamadan121295@gmail.com",
     "phone": "89303 45037",
     "dept": "Pediatrics",
-    "role": "Senior Consultant • Pediatrics",
+    "role": "Teacher",
+    "designation": "Senior Consultant • Pediatrics",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -302,10 +320,30 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "id": "fac-admin-2",
     "name": "Bhaskar Ekka",
     "email": "bhaskar.ekka@pw.live",
-    "secondaryEmail": "",
+    "secondaryEmail": "bhaskarekka27@gmail.com",
     "phone": "98765 43210",
     "dept": "Medical Sciences",
-    "role": "Lead Academic Faculty",
+    "role": "Admin",
+    "designation": "Lead Academic Faculty",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
+  },
+  {
+    "id": "fac-admin-1",
+    "name": "Kanchan Gupta",
+    "email": "kanchan.gupta1@pw.live",
+    "secondaryEmail": "kanchan.gupta1@pw.live",
+    "phone": "98765 43211",
+    "dept": "Academic Administration",
+    "role": "Admin",
+    "designation": "Academic Operations Lead",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -400,10 +438,15 @@ export function upsertFacultyMember(facultyData) {
   });
 
   const now = new Date().toISOString();
+  const normalizedRole = (facultyData.role && String(facultyData.role).toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+  const defaultDesignation = normalizedRole === 'Admin' ? 'Academic Administration Lead' : `Professor • ${facultyData.dept || 'Medical Sciences'}`;
+
   if (existingIndex >= 0) {
     list[existingIndex] = {
       ...list[existingIndex],
       ...facultyData,
+      role: normalizedRole,
+      designation: facultyData.designation || list[existingIndex].designation || list[existingIndex].role || defaultDesignation,
       lastUpdated: now
     };
     saveFacultyOnboardingData(list);
@@ -411,11 +454,13 @@ export function upsertFacultyMember(facultyData) {
   } else {
     const newEntry = {
       id: facultyData.id || `fac-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      name: facultyData.name.startsWith('Dr.') || facultyData.name.startsWith('Prof.') ? facultyData.name : `Dr. ${facultyData.name}`,
+      name: facultyData.name.startsWith('Dr.') || facultyData.name.startsWith('Prof.') ? facultyData.name : (normalizedRole === 'Admin' ? facultyData.name : `Dr. ${facultyData.name}`),
       email: facultyData.email || `${cleanName.replace(/\s+/g, '.')}@pwmeded.edu.in`,
+      secondaryEmail: facultyData.secondaryEmail || '',
       phone: facultyData.phone || '98765 43210',
-      dept: facultyData.dept || 'Medical Sciences',
-      role: facultyData.role || `Professor • ${facultyData.dept || 'Medical Sciences'}`,
+      dept: facultyData.dept || (normalizedRole === 'Admin' ? 'Academic Administration' : 'Medical Sciences'),
+      role: normalizedRole,
+      designation: facultyData.designation || facultyData.role || defaultDesignation,
       status: facultyData.status || 'Verified',
       canRescheduleCancel: facultyData.canRescheduleCancel !== false,
       cohorts: facultyData.cohorts || ["Prarambh '26"],
@@ -460,7 +505,7 @@ export const DEFAULT_FACULTY_ONBOARDING = ${JSON.stringify(data, null, 2)};
 }
 
 // Storage Keys & Constants
-export const DEFAULT_FACULTY_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE/edit?gid=0#gid=0';
+export const DEFAULT_FACULTY_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE/edit?gid=1720160974#gid=1720160974';
 export const FACULTY_SHEET_URL_KEY = 'pw_faculty_spreadsheet_url';
 export const FACULTY_SHEET_HEADERS = [
   'Faculty ID',
@@ -469,7 +514,8 @@ export const FACULTY_SHEET_HEADERS = [
   'Secondary Email',
   'Phone',
   'Department',
-  'Designation Role',
+  'Role',
+  'Designation',
   'Status',
   'Can Reschedule Cancel',
   'Assigned Cohorts',
@@ -499,6 +545,8 @@ export function facultyListToCSV(list) {
 
   const rows = [FACULTY_SHEET_HEADERS.map(h => `"${h}"`).join(',')];
   for (const f of (list || [])) {
+    const roleVal = (f.role && String(f.role).toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+    const desigVal = f.designation || (f.role && f.role !== 'Teacher' && f.role !== 'Admin' ? f.role : (roleVal === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${f.dept || 'Biochemistry'}`));
     const row = [
       escapeCsv(f.id || ''),
       escapeCsv(f.name || ''),
@@ -506,7 +554,8 @@ export function facultyListToCSV(list) {
       escapeCsv(f.secondaryEmail || ''),
       escapeCsv(f.phone || ''),
       escapeCsv(f.dept || ''),
-      escapeCsv(f.role || ''),
+      escapeCsv(roleVal),
+      escapeCsv(desigVal),
       escapeCsv(f.status || 'Verified'),
       escapeCsv(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
       escapeCsv(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
@@ -529,6 +578,8 @@ export function facultyListToTSV(list) {
 
   const rows = [FACULTY_SHEET_HEADERS.join('\t')];
   for (const f of (list || [])) {
+    const roleVal = (f.role && String(f.role).toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+    const desigVal = f.designation || (f.role && f.role !== 'Teacher' && f.role !== 'Admin' ? f.role : (roleVal === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${f.dept || 'Biochemistry'}`));
     const row = [
       cleanVal(f.id || ''),
       cleanVal(f.name || ''),
@@ -536,7 +587,8 @@ export function facultyListToTSV(list) {
       cleanVal(f.secondaryEmail || ''),
       cleanVal(f.phone || ''),
       cleanVal(f.dept || ''),
-      cleanVal(f.role || ''),
+      cleanVal(roleVal),
+      cleanVal(desigVal),
       cleanVal(f.status || 'Verified'),
       cleanVal(f.canRescheduleCancel !== false ? 'TRUE' : 'FALSE'),
       cleanVal(Array.isArray(f.cohorts) ? f.cohorts.join('; ') : (f.cohorts || '')),
@@ -589,7 +641,7 @@ function parseRawCSVLines(csvText) {
 }
 
 /**
- * Robust Faculty CSV Parser that dynamically resolves column order and synonyms.
+ * Robust Faculty CSV Parser that dynamically resolves column order, roles, designations and synonyms.
  */
 export function parseFacultyCSV(csvText) {
   if (!csvText || !csvText.trim()) return [];
@@ -605,7 +657,7 @@ export function parseFacultyCSV(csvText) {
     // 2. Substring match avoiding collisions
     return rawHeaders.findIndex(h => patterns.some(p => {
       if (p === 'name' || p === 'faculty' || p === 'professor') {
-        if (h.includes('id') || h.includes('email') || h.includes('role')) return false;
+        if (h.includes('id') || h.includes('email') || h.includes('role') || h.includes('status')) return false;
       }
       return h.includes(p);
     }));
@@ -617,7 +669,8 @@ export function parseFacultyCSV(csvText) {
   const secEmailIdx = getCol(['secondary email', 'alt email', 'alternate email', 'secondary']);
   const phoneIdx = getCol(['phone', 'mobile', 'contact', 'whatsapp']);
   const deptIdx = getCol(['department', 'dept', 'subject', 'specialty']);
-  const roleIdx = getCol(['designation', 'role', 'title']);
+  const roleIdx = getCol(['role', 'portal role', 'access role']);
+  const desigIdx = getCol(['designation', 'designation role', 'title']);
   const statusIdx = getCol(['status', 'verification']);
   const permIdx = getCol(['can reschedule', 'reschedule', 'permission', 'reschedule cancel']);
   const cohortsIdx = getCol(['cohort', 'batch', 'assigned cohorts', 'batches']);
@@ -631,12 +684,42 @@ export function parseFacultyCSV(csvText) {
     const name = (nameIdx >= 0 ? r[nameIdx] : r[1]) || '';
     if (!name.trim()) continue;
 
-    const email = (emailIdx >= 0 ? r[emailIdx] : r[2]) || '';
-    const secEmail = (secEmailIdx >= 0 ? r[secEmailIdx] : r[3]) || '';
-    const phone = (phoneIdx >= 0 ? r[phoneIdx] : r[4]) || '98765 43210';
-    const dept = (deptIdx >= 0 ? r[deptIdx] : r[5]) || 'Medical Sciences';
-    const role = (roleIdx >= 0 ? r[roleIdx] : r[6]) || `Professor • ${dept}`;
-    const status = (statusIdx >= 0 ? r[statusIdx] : r[7]) || 'Verified';
+    const id = (idIdx >= 0 && r[idIdx] ? r[idIdx] : `fac-${i}`).trim();
+    const email = ((emailIdx >= 0 ? r[emailIdx] : r[2]) || '').trim();
+    const secEmail = ((secEmailIdx >= 0 ? r[secEmailIdx] : r[3]) || '').trim();
+    const phone = ((phoneIdx >= 0 ? r[phoneIdx] : r[4]) || '98765 43210').trim();
+    const dept = ((deptIdx >= 0 ? r[deptIdx] : r[5]) || 'Medical Sciences').trim();
+
+    // Determine Role & Designation
+    let role = 'Teacher';
+    let designation = `Professor • ${dept}`;
+
+    const rawRole = (roleIdx >= 0 ? r[roleIdx] : '').trim();
+    const rawDesig = (desigIdx >= 0 ? r[desigIdx] : '').trim();
+
+    if (roleIdx >= 0 && desigIdx >= 0 && roleIdx !== desigIdx) {
+      // 12-column schema with separate Role and Designation
+      role = (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase().includes('admin')) ? 'Admin' : 'Teacher';
+      designation = rawDesig || (role === 'Admin' ? 'Academic Administration Lead' : `Professor • ${dept}`);
+    } else if (roleIdx >= 0 && desigIdx < 0) {
+      if (rawRole.toLowerCase() === 'admin' || rawRole.toLowerCase() === 'teacher') {
+        role = rawRole.toLowerCase() === 'admin' ? 'Admin' : 'Teacher';
+        designation = role === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${dept}`;
+      } else {
+        role = rawRole.toLowerCase().includes('admin') ? 'Admin' : 'Teacher';
+        designation = rawRole;
+      }
+    } else if (desigIdx >= 0) {
+      role = (rawDesig.toLowerCase().includes('admin') || id.includes('admin') || email.includes('admin')) ? 'Admin' : 'Teacher';
+      designation = rawDesig;
+    }
+
+    // Explicit ID or admin email check fallback
+    if (id.startsWith('fac-admin') || email === 'bhaskar.ekka@pw.live' || email === 'kanchan.gupta1@pw.live') {
+      role = 'Admin';
+    }
+
+    const status = ((statusIdx >= 0 ? r[statusIdx] : r[7]) || 'Verified').trim();
     const permVal = String(permIdx >= 0 ? r[permIdx] : (r[8] || '')).trim();
     const canRescheduleCancel = permVal.toUpperCase() !== 'FALSE' && permVal.toLowerCase() !== 'no';
     const cohortsRaw = (cohortsIdx >= 0 ? r[cohortsIdx] : r[9]) || '';
@@ -644,14 +727,15 @@ export function parseFacultyCSV(csvText) {
     const lastUpdated = (updatedIdx >= 0 ? r[updatedIdx] : r[10]) || new Date().toISOString();
 
     list.push({
-      id: (idIdx >= 0 && r[idIdx] ? r[idIdx] : `fac-${i}`),
+      id,
       name: name.trim(),
-      email: email.trim(),
-      secondaryEmail: secEmail.trim(),
-      phone: phone.trim(),
-      dept: dept.trim(),
-      role: role.trim(),
-      status: status.trim() || 'Verified',
+      email,
+      secondaryEmail: secEmail,
+      phone,
+      dept,
+      role,
+      designation,
+      status: status || 'Verified',
       canRescheduleCancel,
       cohorts,
       lastUpdated

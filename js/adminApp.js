@@ -478,12 +478,22 @@ class AdminDashboardController {
 
     const email = (user?.email || '').trim();
     let name = (user?.name || '').trim();
-    if (!name && email) {
+    let designation = (user?.designation || '').trim();
+
+    if (email) {
       const cleanEmail = email.toLowerCase();
-      if (cleanEmail === 'bhaskarekka27@gmail.com') name = 'Bhaskar Ekka';
-      else if (cleanEmail === 'kanchan.gupta1@pw.live') name = 'Kanchan Gupta';
-      else if (cleanEmail.includes('dean')) name = 'Dean Academic Office';
-      else name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const matched = reminderEmailService.findFacultyByEmail(cleanEmail);
+      if (matched) {
+        if (!name || name === 'Administrator' || name === 'Super Admin') {
+          name = matched.name;
+        }
+        if (!designation) {
+          designation = matched.designation || (matched.role === 'Admin' ? 'Lead Academic Directorate' : 'Academic Directorate');
+        }
+      } else if (!name) {
+        if (cleanEmail.includes('dean')) name = 'Dean Academic Office';
+        else name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
     }
     if (!name) name = 'Administrator';
 
@@ -5314,21 +5324,26 @@ class AdminDashboardController {
     const q = (this.onboardingSearchQuery || '').trim().toLowerCase();
     const dept = this.onboardingDeptFilter || 'All';
     const status = this.onboardingStatusFilter || 'All';
+    const roleFilter = this.onboardingRoleFilter || 'All';
 
     const filtered = this.facultyOnboardingList.filter(f => {
       const matchesQ = !q ||
         (f.name && f.name.toLowerCase().includes(q)) ||
         (f.email && f.email.toLowerCase().includes(q)) ||
+        (f.secondaryEmail && f.secondaryEmail.toLowerCase().includes(q)) ||
         (f.phone && f.phone.replace(/\s+/g, '').includes(q.replace(/\s+/g, ''))) ||
-        (f.dept && f.dept.toLowerCase().includes(q));
+        (f.dept && f.dept.toLowerCase().includes(q)) ||
+        (f.role && f.role.toLowerCase().includes(q)) ||
+        (f.designation && f.designation.toLowerCase().includes(q));
 
       const matchesDept = dept === 'All' || 
         (f.dept && (f.dept.toLowerCase() === dept.toLowerCase() || 
                     f.dept.toLowerCase().includes(dept.toLowerCase()) || 
                     dept.toLowerCase().includes(f.dept.toLowerCase())));
       const matchesStatus = status === 'All' || f.status === status;
+      const matchesRole = roleFilter === 'All' || (f.role || 'Teacher').toLowerCase() === roleFilter.toLowerCase();
 
-      return matchesQ && matchesDept && matchesStatus;
+      return matchesQ && matchesDept && matchesStatus && matchesRole;
     });
 
     // Update global stat cards
@@ -5369,7 +5384,7 @@ class AdminDashboardController {
         <div class="bg-white rounded-xl p-8 card-3d text-center border border-[#ded5c6]">
           <span class="material-symbols-outlined text-[36px] text-[#8b958c] mb-2 block">person_search</span>
           <h4 class="font-bold text-base text-[#2c332d]">No faculty instructors found</h4>
-          <p class="text-xs text-[#576058] mt-1">Try adjusting your search query, department filter, or status filter.</p>
+          <p class="text-xs text-[#576058] mt-1">Try adjusting your search query, department filter, or role/status filter.</p>
           <button id="btn-reset-onboarding-filters" class="mt-3 btn-3d-secondary text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer">Reset Filters</button>
         </div>
       `;
@@ -5378,8 +5393,17 @@ class AdminDashboardController {
 
     listContainer.innerHTML = pagedItems.map(f => {
       const isVerified = f.status === 'Verified';
+      const isAdmin = (f.role || '').toLowerCase() === 'admin';
       const canReschedule = f.canRescheduleCancel !== false;
-      const initials = (f.name || '').replace(/^(Dr\.|Prof\.)\s*/i, '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+      const initials = (f.name || '').replace(/^(Dr\.|Prof\.|Dean)\s*/i, '').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || (isAdmin ? 'AD' : 'DR');
+
+      const roleBadge = isAdmin
+        ? `<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold border border-purple-200 badge-3d shrink-0">
+             <span class="material-symbols-outlined text-[13px] text-purple-600">shield_person</span> Admin
+           </span>`
+        : `<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 badge-3d shrink-0">
+             <span class="material-symbols-outlined text-[13px] text-emerald-600">school</span> Teacher
+           </span>`;
 
       const statusBadge = isVerified
         ? `<span class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] font-bold border border-[#cde0d3] badge-3d shrink-0">
@@ -5389,9 +5413,11 @@ class AdminDashboardController {
              <span class="material-symbols-outlined text-[13px]">pending</span> Pending Invite
            </span>`;
 
-      const avatarBox = isVerified
-        ? `<div class="w-11 h-11 rounded-xl bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`
-        : `<div class="w-11 h-11 rounded-xl bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`;
+      const avatarBox = isAdmin
+        ? `<div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`
+        : isVerified
+          ? `<div class="w-11 h-11 rounded-xl bg-[#eef4f0] text-[#4a7c59] border border-[#cde0d3] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`
+          : `<div class="w-11 h-11 rounded-xl bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center font-bold text-sm shrink-0 select-none">${initials}</div>`;
 
       const rescheduleToggleHtml = `
         <div class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/80 shrink-0" title="${canReschedule ? 'Reschedule & cancellation enabled for faculty portal' : 'Reschedule & cancellation disabled (shows Close button only)'}">
@@ -5426,18 +5452,21 @@ class AdminDashboardController {
              <span class="material-symbols-outlined text-[16px]">delete</span>
            </button>`;
 
+      const displayDesignation = f.designation || (isAdmin ? 'Lead Academic Directorate' : `Professor • ${f.dept || 'Medicine'}`);
+
       return `
-        <div class="faculty-row bg-white rounded-xl p-4 sm:p-5 card-3d flex flex-col gap-3.5 transition-all hover:border-[#4a7c59]/40" data-id="${f.id}" data-dept="${f.dept}" data-name="${f.name}" data-status="${f.status}">
+        <div class="faculty-row bg-white rounded-xl p-4 sm:p-5 card-3d flex flex-col gap-3.5 transition-all hover:border-[#4a7c59]/40" data-id="${f.id}" data-dept="${f.dept}" data-name="${f.name}" data-status="${f.status}" data-role="${f.role || 'Teacher'}">
           <!-- Top Section: Avatar, Full Name & Role, Action Buttons -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
             <div class="flex items-center gap-3.5 min-w-0 flex-1">
               ${avatarBox}
               <div class="min-w-0 flex-1 space-y-0.5">
-                <div class="flex items-center gap-2.5 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
                   <h3 class="font-bold text-base text-[#2c332d] leading-snug tracking-tight">${f.name}</h3>
+                  ${roleBadge}
                   ${statusBadge}
                 </div>
-                <div class="text-xs font-semibold text-[#576058] truncate">${f.role || `Professor • ${f.dept}`}</div>
+                <div class="text-xs font-semibold text-[#576058] truncate">${displayDesignation}</div>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0 self-start sm:self-center pt-1 sm:pt-0">
@@ -5448,10 +5477,15 @@ class AdminDashboardController {
           <!-- Bottom Section: Email, Phone & Permission Toggle -->
           <div class="pt-3 border-t border-[#ded5c6]/60 flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
             <div class="flex flex-wrap items-center gap-2 text-[#68736a] min-w-0">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-mono text-[#4a524b] whitespace-nowrap">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-mono text-[#4a524b] whitespace-nowrap" title="Primary Email">
                 <span class="material-symbols-outlined text-[14px] text-[#8b958c]">alternate_email</span>
                 <span>${f.email}</span>
               </span>
+              ${f.secondaryEmail ? `
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-mono text-[#68736a] whitespace-nowrap" title="Secondary / Alt Email">
+                <span class="material-symbols-outlined text-[14px] text-[#8b958c]">mail</span>
+                <span>${f.secondaryEmail}</span>
+              </span>` : ''}
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#ded5c6]/70 text-[11px] font-medium text-[#4a524b] whitespace-nowrap">
                 <span class="material-symbols-outlined text-[14px] text-[#8b958c]">phone_iphone</span>
                 <span>+91 ${f.phone}</span>
@@ -5500,7 +5534,7 @@ class AdminDashboardController {
       const searchQ = (query || '').trim().toLowerCase();
       const filtered = list.filter((f, idx) => {
         if (!searchQ) return true;
-        const text = `${idx + 1} ${f.id} ${f.name} ${f.email} ${f.secondaryEmail || ''} ${f.phone || ''} ${f.dept || ''} ${f.role || ''} ${f.status || ''} ${f.cohorts ? f.cohorts.join(' ') : ''}`.toLowerCase();
+        const text = `${idx + 1} ${f.id} ${f.name} ${f.email} ${f.secondaryEmail || ''} ${f.phone || ''} ${f.dept || ''} ${f.role || ''} ${f.designation || ''} ${f.status || ''} ${f.cohorts ? f.cohorts.join(' ') : ''}`.toLowerCase();
         return text.includes(searchQ);
       });
 
@@ -5511,7 +5545,7 @@ class AdminDashboardController {
               <td colspan="12" class="py-10 text-center text-[#8b958c]">
                 <span class="material-symbols-outlined text-[28px] block mb-1 text-[#a3ada5]">search_off</span>
                 <span class="font-bold text-xs text-[#2c332d]">No matching spreadsheet rows found</span>
-                <p class="text-[11px] text-[#8b958c] mt-0.5">Try searching with a different name, email, department, or ID.</p>
+                <p class="text-[11px] text-[#8b958c] mt-0.5">Try searching with a different name, email, department, role, or ID.</p>
               </td>
             </tr>
           `,
@@ -5534,6 +5568,10 @@ class AdminDashboardController {
           ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Verified</span>`
           : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca]"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending</span>`;
         
+        const roleBadge = (f.role || '').toLowerCase() === 'admin'
+          ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200">🛡️ Admin</span>`
+          : `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">👨‍🏫 Teacher</span>`;
+
         const reschedBadge = f.canRescheduleCancel !== false
           ? `<span class="text-[11px] font-bold text-[#2d4d37] bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">TRUE</span>`
           : `<span class="text-[11px] font-bold text-[#b91c1c] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">FALSE</span>`;
@@ -5543,6 +5581,7 @@ class AdminDashboardController {
         ).join('');
 
         const updatedStr = f.lastUpdated ? new Date(f.lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Live Synced';
+        const displayDesig = f.designation || (f.role === 'Admin' ? 'Lead Academic Faculty' : `Professor • ${f.dept || 'Medicine'}`);
 
         return `
           <tr class="${rowBg} transition-colors border-b border-[#ded5c6]/50">
@@ -5553,7 +5592,8 @@ class AdminDashboardController {
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] text-[#68736a] whitespace-nowrap">${f.secondaryEmail || '<span class="text-neutral-300">-</span>'}</td>
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-mono text-[11px] text-[#576058] whitespace-nowrap">${f.phone || '-'}</td>
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 font-semibold text-[#2c332d] whitespace-nowrap">${f.dept || 'Medicine'}</td>
-            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-[#576058] text-[11px] whitespace-nowrap">${f.role || `Professor • ${f.dept || 'Medicine'}`}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center whitespace-nowrap">${roleBadge}</td>
+            <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-[#576058] text-[11px] whitespace-nowrap">${displayDesig}</td>
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center whitespace-nowrap">${statusBadge}</td>
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-center whitespace-nowrap font-mono">${reschedBadge}</td>
             <td class="py-2.5 px-3 border-r border-[#ded5c6]/60 text-[11px]">${cohortsHtml}</td>
@@ -5940,6 +5980,14 @@ class AdminDashboardController {
       this.renderOnboardingList();
     });
 
+    // 3b. Role filter (All, Teachers Only, Admins Only)
+    const roleFilterSelect = document.getElementById('role-filter-select');
+    roleFilterSelect?.addEventListener('change', (e) => {
+      this.onboardingRoleFilter = e.target.value;
+      this.onboardingPage = 1;
+      this.renderOnboardingList();
+    });
+
     // 4. Pagination
     prevBtn?.addEventListener('click', () => {
       if (this.onboardingPage > 1) {
@@ -6010,6 +6058,16 @@ class AdminDashboardController {
     const resetFormState = () => {
       this.editingFacultyId = null;
       form?.reset();
+
+      const teacherRadio = document.getElementById('onboard-role-teacher');
+      if (teacherRadio) teacherRadio.checked = true;
+
+      const desigInput = document.getElementById('onboard-designation-input');
+      if (desigInput) desigInput.value = '';
+
+      const secEmailInput = document.getElementById('onboard-sec-email-input');
+      if (secEmailInput) secEmailInput.value = '';
+
       const reschedToggle = document.getElementById('onboard-reschedule-toggle');
       if (reschedToggle) reschedToggle.checked = true;
 
@@ -6048,10 +6106,12 @@ class AdminDashboardController {
         this.onboardingSearchQuery = '';
         this.onboardingDeptFilter = 'All';
         this.onboardingStatusFilter = 'All';
+        this.onboardingRoleFilter = 'All';
         if (searchInput) searchInput.value = '';
         if (searchClearBtn) searchClearBtn.classList.add('hidden');
         if (deptFilter) deptFilter.value = 'All';
         if (statusFilter) statusFilter.value = 'All';
+        if (roleFilterSelect) roleFilterSelect.value = 'All';
         this.onboardingPage = 1;
         this.renderOnboardingList();
         return;
@@ -6100,13 +6160,26 @@ class AdminDashboardController {
         this.editingFacultyId = id;
         const nameInput = document.getElementById('onboard-name-input');
         const emailInput = document.getElementById('onboard-email-input');
+        const secEmailInput = document.getElementById('onboard-sec-email-input');
+        const desigInput = document.getElementById('onboard-designation-input');
         const phoneInput = document.getElementById('onboard-phone-input');
         const reschedToggle = document.getElementById('onboard-reschedule-toggle');
+        const roleTeacherRadio = document.getElementById('onboard-role-teacher');
+        const roleAdminRadio = document.getElementById('onboard-role-admin');
 
         if (nameInput) nameInput.value = fac.name;
         if (emailInput) emailInput.value = fac.email;
+        if (secEmailInput) secEmailInput.value = fac.secondaryEmail || '';
+        if (desigInput) desigInput.value = fac.designation || '';
         if (phoneInput) phoneInput.value = (fac.phone || '').replace(/\D/g, '');
         if (reschedToggle) reschedToggle.checked = fac.canRescheduleCancel !== false;
+
+        const isAdm = (fac.role || '').toLowerCase() === 'admin';
+        if (isAdm && roleAdminRadio) {
+          roleAdminRadio.checked = true;
+        } else if (roleTeacherRadio) {
+          roleTeacherRadio.checked = true;
+        }
 
         // Deactivate all chips first
         subjectChips?.querySelectorAll('.subject-chip').forEach(c => setChipState(c, false));
@@ -6174,11 +6247,16 @@ class AdminDashboardController {
       e.preventDefault();
       const nameInput = document.getElementById('onboard-name-input');
       const emailInput = document.getElementById('onboard-email-input');
+      const secEmailInput = document.getElementById('onboard-sec-email-input');
+      const desigInput = document.getElementById('onboard-designation-input');
       const phoneInput = document.getElementById('onboard-phone-input');
       const reschedToggle = document.getElementById('onboard-reschedule-toggle');
+      const roleRadio = document.querySelector('input[name="onboard-role-radio"]:checked') || document.querySelector('input[name="onboard-role"]:checked');
 
       const nameVal = (nameInput?.value || '').trim();
       const emailVal = (emailInput?.value || '').trim();
+      const secEmailVal = (secEmailInput?.value || '').trim();
+      const selectedRole = roleRadio ? roleRadio.value : 'Teacher';
       const phoneVal = (phoneInput?.value || '').trim();
       const canReschedVal = reschedToggle ? reschedToggle.checked : true;
 
@@ -6190,9 +6268,10 @@ class AdminDashboardController {
       // Collect active subjects safely
       const activeChips = Array.from(subjectChips?.querySelectorAll('.subject-chip.active, .subject-chip[data-selected="true"]') || []);
       const selectedSubjects = activeChips.map(c => c.getAttribute('data-subject')).filter(Boolean);
-      const primarySubject = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'General Medicine';
+      const primarySubject = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : (selectedRole === 'Admin' ? 'Medical Sciences' : 'General Medicine');
+      const desigVal = (desigInput?.value || '').trim() || (selectedRole === 'Admin' ? 'Lead Academic Directorate' : `Professor • ${primarySubject}`);
 
-      const cleanName = nameVal.startsWith('Dr.') || nameVal.startsWith('Prof.') ? nameVal : `Dr. ${nameVal}`;
+      const cleanName = nameVal.startsWith('Dr.') || nameVal.startsWith('Prof.') ? nameVal : (selectedRole === 'Admin' ? nameVal : `Dr. ${nameVal}`);
       const defaultCohorts = ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"];
 
       if (this.editingFacultyId) {
@@ -6200,9 +6279,11 @@ class AdminDashboardController {
         if (fac) {
           fac.name = cleanName;
           fac.email = emailVal;
+          fac.secondaryEmail = secEmailVal;
           fac.phone = phoneVal;
           fac.dept = primarySubject;
-          fac.role = `Professor • ${primarySubject}`;
+          fac.role = selectedRole;
+          fac.designation = desigVal;
           fac.cohorts = defaultCohorts;
           fac.canRescheduleCancel = canReschedVal;
           fac.lastUpdated = new Date().toISOString();
@@ -6214,12 +6295,14 @@ class AdminDashboardController {
         this.renderOnboardingList();
       } else {
         const newFaculty = {
-          id: `fac-${Date.now()}`,
+          id: selectedRole === 'Admin' ? `fac-admin-${Date.now()}` : `fac-${Date.now()}`,
           name: cleanName,
           email: emailVal,
+          secondaryEmail: secEmailVal,
           phone: phoneVal || '98765 43210',
           dept: primarySubject,
-          role: `Professor • ${primarySubject}`,
+          role: selectedRole,
+          designation: desigVal,
           status: 'Verified',
           canRescheduleCancel: canReschedVal,
           cohorts: defaultCohorts,
@@ -6232,9 +6315,10 @@ class AdminDashboardController {
         autoSyncFacultyMutation('add', newFaculty, this.facultyOnboardingList);
         resetFormState();
         this.renderOnboardingList();
-        this.showToast(`Faculty ${cleanName} onboarded & mapped successfully!`);
+        this.showToast(`${selectedRole} ${cleanName} onboarded & mapped successfully!`);
       }
     });
+  }
   }
 
 

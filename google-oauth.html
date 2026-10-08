@@ -202,21 +202,6 @@
       'Kanchan@2026'
     ];
 
-    const ADMIN_AUTHORIZED_EMAILS = [
-      'bhaskarekka27@gmail.com',
-      'bhaskar.ekka@pw.live',
-      'kanchan.gupta1@pw.live',
-      'admin.office@pwmeded.edu.in',
-      'dean.office@pwmeded.edu.in',
-      'admin.office@pw.live'
-    ];
-
-    function isValidEmailFormat(email) {
-      if (!email) return false;
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return re.test(email.trim());
-    }
-
     function isEmailAllowedInSpreadsheet(email) {
       if (!email) return false;
       const clean = email.trim().toLowerCase();
@@ -239,10 +224,6 @@
         return pEmail === clean || (sEmail && sEmail === clean);
       });
       if (seedFound) return true;
-
-      // 3. Authorized Admin Accounts
-      if (ADMIN_AUTHORIZED_EMAILS.includes(clean)) return true;
-      if (clean.endsWith('@pwmeded.edu.in') || clean.endsWith('@pw.live')) return true;
 
       return false;
     }
