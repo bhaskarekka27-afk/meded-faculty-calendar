@@ -42,11 +42,11 @@ export const INITIAL_REQUESTS_DATA = [
     timeAgo: '4 hours ago',
     currentSlot: 'Thursday, October 15, 2026 • 5:00 PM – 7:00 PM',
     originalSlot: 'Thursday, October 15, 2026 • 5:00 PM – 7:00 PM',
-    currentVenue: 'LT-1 Lecture Hall',
+    currentVenue: 'Studio 01 • App Live',
     proposedSlot: 'No substitute (Class Cancelled)',
-    proposedVenue: 'LT-1 Lecture Hall',
+    proposedVenue: 'Studio 01 • App Live',
     substituteFaculty: 'Dr. Priya Sharma (Verified NMC Faculty)',
-    reason: 'Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person LT-1.',
+    reason: 'Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person Studio 01.',
     avatarBg: 'bg-[#fbf3ec] text-[#c26d3e]',
     typeBg: 'bg-[#ffdad8] text-[#690005]',
     status: 'pending',
@@ -73,9 +73,9 @@ export function getStoredRequests() {
 }
 
 /**
- * Save requests list to localStorage
+ * Save requests list to localStorage and persist to server
  */
-export function saveStoredRequests(requests) {
+export function saveStoredRequests(requests, syncToServer = true) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
@@ -83,6 +83,34 @@ export function saveStoredRequests(requests) {
   } catch (e) {
     console.error('Error saving requests to localStorage:', e);
   }
+  if (syncToServer && typeof fetch !== 'undefined') {
+    fetch('/api/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests })
+    }).catch(() => {});
+  }
+}
+
+export async function pullServerRequests() {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/requests', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.requests)) {
+        const curList = getStoredRequests();
+        if (JSON.stringify(curList) !== JSON.stringify(data.requests)) {
+          saveStoredRequests(data.requests, false);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('meded:requests_updated', { detail: data.requests }));
+          }
+          return data.requests;
+        }
+      }
+    }
+  } catch (_) {}
+  return null;
 }
 
 /**
@@ -143,6 +171,7 @@ export function updateRequestStatus(requestId, newStatus, sheetSync = undefined)
   const item = list.find(r => r.id === requestId);
   if (item) {
     item.status = newStatus;
+    item.resolvedAt = new Date().toISOString();
     if (sheetSync !== undefined) item.sheetSync = sheetSync;
     saveStoredRequests(list);
   }
@@ -592,18 +621,18 @@ function renderCardsHtml(requests, currentFilter = 'all') {
                 <span>Processed ${isApproved ? 'Approval' : 'Declined'}</span>
               </div>
             ` : isCancellation ? `
-              <button class="open-approve-cancellation-btn btn-3d-primary px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
+              <button class="open-approve-cancellation-btn btn-approve-cancellation btn-3d-primary px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
                 <span class="material-symbols-outlined text-[16px]">check_circle</span>
                 <span>Approve Cancellation</span>
               </button>
-              <button class="open-reject-cancellation-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#b83230] hover:text-[#962624] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
+              <button class="open-reject-cancellation-btn btn-reject-cancellation-open btn-3d-secondary px-4 py-2 rounded-xl text-[#b83230] hover:text-[#962624] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
                 Reject Cancellation
               </button>
             ` : `
-              <button class="decline-session-btn btn-3d-secondary px-4 py-2 rounded-xl text-[#576058] hover:text-[#2c332d] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
+              <button class="decline-session-btn btn-decline-reschedule btn-3d-secondary px-4 py-2 rounded-xl text-[#576058] hover:text-[#2c332d] font-bold text-xs border border-[#ded5c6] transition-all cursor-pointer whitespace-nowrap" data-req-id="${req.id}" data-batch="${req.batch}" data-faculty="${req.faculty || req.facultyName}" data-session="${req.currentSlot || req.originalSlot}" data-subject="${req.subject}" type="button">
                 Decline
               </button>
-              <button class="open-reschedule-modal-btn btn-3d-primary px-5 py-2 rounded-xl text-white font-bold text-xs shadow-md hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
+              <button class="open-reschedule-modal-btn btn-open-reschedule-modal btn-3d-primary px-5 py-2 rounded-xl text-white font-bold text-xs shadow-md hover:brightness-105 transition-all cursor-pointer border-none whitespace-nowrap flex items-center gap-1.5" data-req-id="${req.id}" type="button">
                 <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
                 <span>Approve</span>
               </button>

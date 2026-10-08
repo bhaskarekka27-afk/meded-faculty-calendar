@@ -124,7 +124,8 @@ global.document = {
 global.window = {
   addEventListener: () => {},
   requestAnimationFrame: (cb) => cb(),
-  setTimeout: (cb) => cb()
+  setTimeout: (cb) => cb(),
+  location: { search: '', pathname: '/faculty.html', hostname: 'localhost' }
 };
 
 const storage = {};
@@ -281,6 +282,7 @@ import('./js/facultyApp.js').then(async ({ FacultyDashboardController }) => {
   console.log('\n================================================================');
   console.log('🎉 ALL MOBILE FUNCTIONALITY TESTS PASSED 100%!');
   console.log('================================================================\n');
+  process.exit(0);
 }).catch(err => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);

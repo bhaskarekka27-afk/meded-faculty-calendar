@@ -26,3 +26,9 @@ dist-ssr
 # Scratch & temporary test scripts
 scratch/
 .system_generated/
+raw_tab_*.csv
+all_tabs_summary.json
+fetch_all_tabs.mjs
+inspect_workload_sheet.mjs
+scratch_inspect_scripts.mjs
+

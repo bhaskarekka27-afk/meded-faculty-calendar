@@ -1501,7 +1501,7 @@
             </p>
           </div>
         </div>
-        <button aria-label="Close dialog" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeModalIconBtn" type="button">
+        <button aria-label="Close dialog" class="w-8 h-8 rounded-lg bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#4a4e4a] hover:text-[#2e3230] flex items-center justify-center transition-colors cursor-pointer border-none" id="closeRescheduleModalIconBtn" type="button">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -1674,9 +1674,9 @@
                 <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
                   <span class="text-[10px] text-[#4a4e4a] font-medium">5:00 – 7:00 PM</span>
                   <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
-                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Physiology (LT-1)</span>
+                    <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Physiology (Studio 01)</span>
                     <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Vivek Nalgirkar</span>
-                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Booked • Hall 1</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Booked • Studio 01</span>
                   </div>
                 </div>
                 <div class="p-2 bg-[#f5f1ea]/60 flex flex-col justify-between">
@@ -1684,7 +1684,7 @@
                   <div class="my-auto p-2 rounded-lg bg-white border border-[#e8e2d8] shadow-xs">
                     <span class="text-[10px] font-bold text-[#2e3230] block leading-tight">Anatomy Lab</span>
                     <span class="text-[9px] text-[#4a4e4a] block mt-0.5">Dr. Pradeep Pawar</span>
-                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Dissection Hall</span>
+                    <span class="text-[8px] font-bold text-[#74796e] uppercase tracking-wider block mt-1">Studio 02</span>
                   </div>
                 </div>
                 <div class="p-2 bg-[#f0ece4]/40 flex flex-col justify-center items-center text-center">
@@ -1846,15 +1846,15 @@
       <!-- Modal Footer -->
       <div class="px-6 py-4 border-t border-[#e8e2d8] bg-[#fbf9f5] flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-2 w-full sm:w-auto">
-          <button class="px-4 py-2 rounded-xl bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer w-full sm:w-auto border-none" id="closeModalBtn" type="button">
+          <button class="px-4 py-2 rounded-xl bg-[#f0ece4] hover:bg-[#e4e0d8] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer w-full sm:w-auto border-none" id="rescheduleModalDeclineBtn" type="button">
             Decline / Suggest Alt Slot
           </button>
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rescheduleCancelBtn" type="button">
+          <button class="px-4 py-2 rounded-xl border border-[#c4c8bc] hover:bg-[#f5f1ea] text-[#2e3230] text-xs font-semibold transition-colors cursor-pointer" id="rescheduleModalCancelBtn" type="button">
             Cancel
           </button>
-          <button class="px-5 py-2 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer border-none" id="confirmApproveBtn" type="button">
+          <button class="px-5 py-2 rounded-xl bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer border-none" id="rescheduleModalConfirmBtn" type="button">
             <span class="material-symbols-outlined text-[18px]">check_circle</span>
             <span>Confirm Reschedule &amp; Approve</span>
           </button>
@@ -1892,14 +1892,14 @@
         <div class="p-4 rounded-2xl bg-[#faf6f0] border border-[#e8e2d8] text-xs space-y-2.5">
           <div class="flex items-start justify-between gap-2">
             <span class="font-medium text-[#74796e] shrink-0">Cancelled Session:</span>
-            <span class="font-bold text-[#2e3230] text-right" id="approveCancellationModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM (LT-1 Lecture Hall)</span>
+            <span class="font-bold text-[#2e3230] text-right" id="approveCancellationModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM (Studio 01 • App Live)</span>
           </div>
           <div class="flex items-start justify-between gap-2 pt-2 border-t border-[#e8e2d8]">
             <span class="font-medium text-[#74796e] shrink-0">Substitute Faculty:</span>
             <span class="font-bold text-[#4a7c59] text-right" id="approveCancellationModalSubstitute">Dr. Priya Sharma (Verified NMC Faculty)</span>
           </div>
           <div class="pt-2 border-t border-[#e8e2d8]">
-            <p class="text-[#4a4e4a] italic text-[11px]" id="approveCancellationModalFacultyNote">“Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person LT-1.”</p>
+            <p class="text-[#4a4e4a] italic text-[11px]" id="approveCancellationModalFacultyNote">“Sudden clinical emergency duty at affiliated ICU. Unable to conduct in-person Studio 01.”</p>
           </div>
         </div>
 
@@ -1965,7 +1965,7 @@
           <span class="material-symbols-outlined text-[#b3532c] text-[20px] shrink-0 mt-0.5">info</span>
           <div class="text-xs space-y-1">
             <div class="font-bold text-[#2e3230]">Cancelled Session Details</div>
-            <p class="text-[#4a4e4a]" id="rejectModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM • LT-1 Lecture Hall (Renal Hemodynamics)</p>
+            <p class="text-[#4a4e4a]" id="rejectModalSessionDetails">Thu, 15 Oct • 5:00 PM – 7:00 PM • Studio 01 Live (Renal Hemodynamics)</p>
             <p class="text-[#b3532c] font-medium text-[11px]" id="rejectModalFacultyNote">Faculty note: “Sudden clinical emergency duty at affiliated ICU.”</p>
           </div>
         </div>
@@ -1974,7 +1974,7 @@
           <label class="block text-xs font-bold uppercase tracking-wider text-[#2e3230] font-label">Quick-Select Reason</label>
           <div class="flex flex-wrap gap-2" id="quickReasonButtonGroup">
             <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="Crucial Exam Milestone: Upcoming mid-term practical assessments depend directly on Renal Hemodynamics coverage." type="button">Crucial Exam Milestone</button>
-            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="No Equivalent Alternate Slot: The batch calendar has zero open lecture hall slots available prior to syllabus freeze." type="button">No Equivalent Alternate Slot</button>
+            <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="No Equivalent Alternate Slot: The batch calendar has zero open studio streaming slots available prior to syllabus freeze." type="button">No Equivalent Alternate Slot</button>
             <button class="btn-quick-reason px-3 py-1.5 rounded-full text-xs font-medium border border-[#c4c8bc] bg-[#f5f1ea] hover:border-[#4a7c59] hover:bg-[#f0f6f2] text-[#2e3230] transition-all cursor-pointer" data-reason="" type="button">Other</button>
           </div>
         </div>

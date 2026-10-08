@@ -227,6 +227,252 @@ export default defineConfig({
               return;
             }
           }
+
+          const BATCHES_JSON_FILE = resolve(__dirname, 'data_batches.json');
+          const REQUESTS_JSON_FILE = resolve(__dirname, 'data_requests.json');
+          const SETTINGS_JSON_FILE = resolve(__dirname, 'data_settings.json');
+
+          if (req.url && req.url.startsWith('/api/batches')) {
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 204;
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              res.end();
+              return;
+            }
+            if (req.method === 'GET') {
+              try {
+                if (fs.existsSync(BATCHES_JSON_FILE)) {
+                  const content = fs.readFileSync(BATCHES_JSON_FILE, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, batches: parsed }));
+                  return;
+                }
+              } catch (e) {}
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ success: true, batches: [] }));
+              return;
+            }
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', () => {
+                try {
+                  const data = JSON.parse(body);
+                  let list = [];
+                  if (fs.existsSync(BATCHES_JSON_FILE)) {
+                    try { list = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')); } catch (_) {}
+                  }
+                  if (Array.isArray(data.batches)) {
+                    fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(data.batches, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: data.batches.length, batches: data.batches }));
+                    return;
+                  } else if (data.batch && data.batch.id) {
+                    const idx = list.findIndex(b => b.id === data.batch.id);
+                    if (idx >= 0) list[idx] = data.batch;
+                    else list.push(data.batch);
+                    fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: list.length, batch: data.batch }));
+                    return;
+                  } else if (data.action === 'delete' && data.id) {
+                    list = list.filter(b => b.id !== data.id);
+                    fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: list.length }));
+                    return;
+                  }
+                } catch (err) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: err.message }));
+                  return;
+                }
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid batch data' }));
+              });
+              return;
+            }
+          }
+
+          if (req.url && req.url.startsWith('/api/requests')) {
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 204;
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              res.end();
+              return;
+            }
+            if (req.method === 'GET') {
+              try {
+                if (fs.existsSync(REQUESTS_JSON_FILE)) {
+                  const content = fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, requests: parsed }));
+                  return;
+                }
+              } catch (e) {}
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ success: true, requests: [] }));
+              return;
+            }
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', () => {
+                try {
+                  const data = JSON.parse(body);
+                  let list = [];
+                  if (fs.existsSync(REQUESTS_JSON_FILE)) {
+                    try { list = JSON.parse(fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8')); } catch (_) {}
+                  }
+                  if (Array.isArray(data.requests)) {
+                    fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(data.requests, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: data.requests.length, requests: data.requests }));
+                    return;
+                  } else if (data.request && data.request.id) {
+                    const idx = list.findIndex(r => r.id === data.request.id);
+                    if (idx >= 0) list[idx] = data.request;
+                    else list.unshift(data.request);
+                    fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.end(JSON.stringify({ success: true, count: list.length, request: data.request }));
+                    return;
+                  } else if (data.action === 'update_status' && data.id) {
+                    const reqItem = list.find(r => r.id === data.id);
+                    if (reqItem) {
+                      reqItem.status = data.status || 'approved';
+                      reqItem.resolvedAt = new Date().toISOString();
+                      if (data.notes) reqItem.notes = data.notes;
+                      fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+                      res.statusCode = 200;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.setHeader('Access-Control-Allow-Origin', '*');
+                      res.end(JSON.stringify({ success: true, request: reqItem }));
+                      return;
+                    }
+                    res.statusCode = 404;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ error: 'Request not found' }));
+                    return;
+                  }
+                } catch (err) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: err.message }));
+                  return;
+                }
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid requests data' }));
+              });
+              return;
+            }
+          }
+
+          if (req.url && req.url.startsWith('/api/settings')) {
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 204;
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              res.end();
+              return;
+            }
+            if (req.method === 'GET') {
+              try {
+                if (fs.existsSync(SETTINGS_JSON_FILE)) {
+                  const content = fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, settings: parsed }));
+                  return;
+                }
+              } catch (e) {}
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ success: true, settings: {} }));
+              return;
+            }
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', () => {
+                try {
+                  const data = JSON.parse(body);
+                  let settings = {};
+                  if (fs.existsSync(SETTINGS_JSON_FILE)) {
+                    try { settings = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8')); } catch (_) {}
+                  }
+                  if (data.key) {
+                    settings[data.key] = data.value;
+                  } else if (data.settings && typeof data.settings === 'object') {
+                    settings = { ...settings, ...data.settings };
+                  }
+                  fs.writeFileSync(SETTINGS_JSON_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, settings }));
+                  return;
+                } catch (err) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: err.message }));
+                  return;
+                }
+              });
+              return;
+            }
+          }
+
+          if (req.url && req.url.startsWith('/api/sync-state')) {
+            const getMtime = (f) => {
+              try { return fs.statSync(f).mtimeMs; } catch (_) { return 0; }
+            };
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify({
+              success: true,
+              state: {
+                batches: getMtime(BATCHES_JSON_FILE),
+                onboarding: getMtime(ONBOARDING_JSON_FILE),
+                requests: getMtime(REQUESTS_JSON_FILE),
+                settings: getMtime(SETTINGS_JSON_FILE)
+              }
+            }));
+            return;
+          }
+
           if (req.url === '/' || req.url === '/index.html') {
             req.url = '/admin.html';
           } else if (req.url === '/admin-login' || req.url === '/admin/login') {

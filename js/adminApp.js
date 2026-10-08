@@ -4,6 +4,9 @@
  */
 
 import { BatchManager, detectGoogleSheetTabs } from './sheetConnector.js';
+import { startSharedSettingsSync } from './sharedSettings.js';
+
+startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
@@ -174,7 +177,7 @@ class AdminDashboardController {
     });
 
     // Synchronize with server spreadsheet on initial load
-    if (typeof fetch !== 'undefined') {
+    if (typeof fetch !== 'undefined' && typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(window.location.hostname)) {
       fetch('/api/faculty-onboarding')
         .then(r => r.json())
         .then(res => {
@@ -192,6 +195,18 @@ class AdminDashboardController {
   }
 
   setupHashListener() {
+    // A change made in another admin login: refresh what is on screen.
+    window.addEventListener('meded:settings_synced', () => {
+      this.populateEmailSettingsFields(false);
+      this.renderConnectedSheetsSettings();
+      if (document.body.style.overflow === 'hidden') return; // a modal is open; don't disturb it
+      if (this.mainTab === 'requests') {
+        renderRequestsView(document.getElementById('viewSectionRequests'), this.requestsState, this);
+      }
+    });
+    window.addEventListener('meded:email_settings_updated', () => {
+      this.populateEmailSettingsFields(false);
+    });
     window.addEventListener('hashchange', () => {
       this.handleHashChange();
     });
@@ -2118,10 +2133,10 @@ class AdminDashboardController {
     // Reschedule Modal
     const rescheduleModal = document.getElementById('rescheduleModal');
     const rescheduleBackdrop = document.getElementById('modalBackdrop');
-    const closeRescheduleIconBtn = document.getElementById('closeModalIconBtn');
-    const rescheduleCancelBtn = document.getElementById('rescheduleCancelBtn');
-    const rescheduleDeclineBtn = document.getElementById('closeModalBtn');
-    const confirmApproveBtn = document.getElementById('confirmApproveBtn');
+    const closeRescheduleIconBtn = document.getElementById('closeRescheduleModalIconBtn') || document.getElementById('closeModalIconBtn');
+    const rescheduleCancelBtn = document.getElementById('rescheduleModalCancelBtn') || document.getElementById('rescheduleCancelBtn');
+    const rescheduleDeclineBtn = document.getElementById('rescheduleModalDeclineBtn') || document.getElementById('closeModalBtn');
+    const confirmApproveBtn = document.getElementById('rescheduleModalConfirmBtn') || document.getElementById('confirmApproveBtn');
 
     const closeRescheduleModal = () => {
       if (rescheduleModal) {
@@ -2334,16 +2349,22 @@ class AdminDashboardController {
       });
     }
 
-    // Escape Key Handler
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (altSlotModal && !altSlotModal.classList.contains('hidden')) closeAltSlotModal();
-        else if (declineModal && !declineModal.classList.contains('hidden')) closeDeclineModal();
-        else if (approveCancelModal && !approveCancelModal.classList.contains('hidden')) closeApproveCancelModal();
-        else if (rejectCancelModal && !rejectCancelModal.classList.contains('hidden')) closeRejectCancelModal();
-        else if (rescheduleModal && !rescheduleModal.classList.contains('hidden')) closeRescheduleModal();
-      }
-    });
+    // Expose methods on controller instance for test suites and external modal triggers
+    this.openDeclineModal = openDeclineModal;
+    this.closeDeclineModal = closeDeclineModal;
+    this.openRescheduleModal = openRescheduleModal;
+    this.closeRescheduleModal = closeRescheduleModal;
+    this.openApproveCancellationModal = openApproveCancelModal;
+    this.closeApproveCancellationModal = closeApproveCancelModal;
+    this.openApproveCancelModal = openApproveCancelModal;
+    this.closeApproveCancelModal = closeApproveCancelModal;
+    this.openRejectCancellationModal = openRejectCancelModal;
+    this.closeRejectCancellationModal = closeRejectCancelModal;
+    this.openRejectCancelModal = openRejectCancelModal;
+    this.closeRejectCancelModal = closeRejectCancelModal;
+    this.openAltSlotModal = openAltSlotModal;
+    this.closeAltSlotModal = closeAltSlotModal;
+    this.setupRequestsModalHandlers = () => {};
   }
 
   // --- 6. Month Calendar Grid View ---
@@ -7237,7 +7258,9 @@ class AdminDashboardController {
         this.currentBatchId = newBatch.id;
         this.renderAll();
         this.renderConnectedSheetsSettings();
-        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! Real-time sync is now active.`);
+        const shared = newBatch.publishResult;
+        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! ` +
+          (shared && shared.ok ? 'Shared with all admin and faculty logins.' : `Saved on this device only: ${(shared && shared.error) || 'not shared'}`));
       } catch (err) {
         alert(`Failed to connect sheet: ${err.message}`);
       } finally {
@@ -7727,7 +7750,9 @@ class AdminDashboardController {
         if (statusDiv) statusDiv.classList.add('hidden');
         if (chipsContainer) chipsContainer.classList.add('hidden');
         lastDetectedUrl = '';
-        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! Real-time sync is active.`);
+        const shared = newBatch.publishResult;
+        this.showToast(`Connected "${newBatch.name}" with ${newBatch.events.length} lectures! ` +
+          (shared && shared.ok ? 'Shared with all admin and faculty logins.' : `Saved on this device only: ${(shared && shared.error) || 'not shared'}`));
       } catch (err) {
         alert(`Failed to connect sheet: ${err.message}`);
       } finally {

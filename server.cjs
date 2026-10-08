@@ -291,19 +291,220 @@ function handleFacultyOnboardingApi(req, res, pathname) {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        let list = [];
+        if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+          try { list = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8')); } catch (_) {}
+        }
+
         if (Array.isArray(data.list)) {
-          fs.writeFileSync(ONBOARDING_JSON_FILE, JSON.stringify(data.list, null, 2), 'utf-8');
-          const csvText = facultyListToCSV(data.list);
-          fs.writeFileSync(ONBOARDING_CSV_FILE, csvText, 'utf-8');
-          return json(res, 200, { success: true, count: data.list.length });
+          list = data.list;
+        } else if (data.action === 'add' && data.faculty) {
+          list.unshift(data.faculty);
+        } else if (data.action === 'update' && data.faculty) {
+          const idx = list.findIndex(f => f.id === data.faculty.id || (f.email && f.email.toLowerCase() === (data.faculty.email || '').toLowerCase()));
+          if (idx >= 0) list[idx] = { ...list[idx], ...data.faculty };
+          else list.push(data.faculty);
+        } else if (data.action === 'delete' && (data.faculty || data.id)) {
+          const targetId = (data.faculty && data.faculty.id) || data.id;
+          const targetEmail = (data.faculty && data.faculty.email) || data.email;
+          list = list.filter(f => f.id !== targetId && (!targetEmail || f.email?.toLowerCase() !== targetEmail.toLowerCase()));
+        }
+
+        fs.writeFileSync(ONBOARDING_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+        const csvText = facultyListToCSV(list);
+        fs.writeFileSync(ONBOARDING_CSV_FILE, csvText, 'utf-8');
+        return json(res, 200, { success: true, count: list.length, list });
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+}
+
+const BATCHES_JSON_FILE = path.join(ROOT, 'data_batches.json');
+const REQUESTS_JSON_FILE = path.join(ROOT, 'data_requests.json');
+const SETTINGS_JSON_FILE = path.join(ROOT, 'data_settings.json');
+
+function handleBatchesApi(req, res, pathname) {
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.end();
+  }
+
+  if (req.method === 'GET') {
+    try {
+      if (fs.existsSync(BATCHES_JSON_FILE)) {
+        const content = fs.readFileSync(BATCHES_JSON_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        return json(res, 200, { success: true, batches: parsed });
+      }
+    } catch (e) {}
+    return json(res, 200, { success: true, batches: [] });
+  }
+
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        let list = [];
+        if (fs.existsSync(BATCHES_JSON_FILE)) {
+          try { list = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')); } catch (_) {}
+        }
+
+        if (Array.isArray(data.batches)) {
+          fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(data.batches, null, 2), 'utf-8');
+          return json(res, 200, { success: true, count: data.batches.length, batches: data.batches });
+        } else if (data.batch && data.batch.id) {
+          const idx = list.findIndex(b => b.id === data.batch.id);
+          if (idx >= 0) {
+            list[idx] = data.batch;
+          } else {
+            list.push(data.batch);
+          }
+          fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+          return json(res, 200, { success: true, count: list.length, batch: data.batch });
+        } else if (data.action === 'delete' && data.id) {
+          list = list.filter(b => b.id !== data.id);
+          fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+          return json(res, 200, { success: true, count: list.length });
         }
       } catch (err) {
         return json(res, 400, { error: err.message });
       }
-      return json(res, 400, { error: 'Invalid data' });
+      return json(res, 400, { error: 'Invalid batch data' });
     });
     return;
   }
+}
+
+function handleRequestsApi(req, res, pathname) {
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.end();
+  }
+
+  if (req.method === 'GET') {
+    try {
+      if (fs.existsSync(REQUESTS_JSON_FILE)) {
+        const content = fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        return json(res, 200, { success: true, requests: parsed });
+      }
+    } catch (e) {}
+    return json(res, 200, { success: true, requests: [] });
+  }
+
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        let list = [];
+        if (fs.existsSync(REQUESTS_JSON_FILE)) {
+          try { list = JSON.parse(fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8')); } catch (_) {}
+        }
+
+        if (Array.isArray(data.requests)) {
+          fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(data.requests, null, 2), 'utf-8');
+          return json(res, 200, { success: true, count: data.requests.length, requests: data.requests });
+        } else if (data.request && data.request.id) {
+          const idx = list.findIndex(r => r.id === data.request.id);
+          if (idx >= 0) {
+            list[idx] = data.request;
+          } else {
+            list.unshift(data.request);
+          }
+          fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+          return json(res, 200, { success: true, count: list.length, request: data.request });
+        } else if (data.action === 'update_status' && data.id) {
+          const reqItem = list.find(r => r.id === data.id);
+          if (reqItem) {
+            reqItem.status = data.status || 'approved';
+            reqItem.resolvedAt = new Date().toISOString();
+            if (data.notes) reqItem.notes = data.notes;
+            fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(list, null, 2), 'utf-8');
+            return json(res, 200, { success: true, request: reqItem });
+          }
+          return json(res, 404, { error: 'Request not found' });
+        }
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+      return json(res, 400, { error: 'Invalid requests data' });
+    });
+    return;
+  }
+}
+
+function handleSettingsApi(req, res, pathname) {
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.end();
+  }
+
+  if (req.method === 'GET') {
+    try {
+      if (fs.existsSync(SETTINGS_JSON_FILE)) {
+        const content = fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8');
+        const parsed = JSON.parse(content);
+        return json(res, 200, { success: true, settings: parsed });
+      }
+    } catch (e) {}
+    return json(res, 200, { success: true, settings: {} });
+  }
+
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        let settings = {};
+        if (fs.existsSync(SETTINGS_JSON_FILE)) {
+          try { settings = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8')); } catch (_) {}
+        }
+
+        if (data.key) {
+          settings[data.key] = data.value;
+        } else if (data.settings && typeof data.settings === 'object') {
+          settings = { ...settings, ...data.settings };
+        }
+        fs.writeFileSync(SETTINGS_JSON_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+        return json(res, 200, { success: true, settings });
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+}
+
+function handleSyncStateApi(req, res) {
+  const getMtime = (f) => {
+    try { return fs.statSync(f).mtimeMs; } catch (_) { return 0; }
+  };
+  return json(res, 200, {
+    success: true,
+    state: {
+      batches: getMtime(BATCHES_JSON_FILE),
+      onboarding: getMtime(ONBOARDING_JSON_FILE),
+      requests: getMtime(REQUESTS_JSON_FILE),
+      settings: getMtime(SETTINGS_JSON_FILE)
+    }
+  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -313,6 +514,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/api/detect-tabs')) return detectTabs(res, parsed.query);
   if (pathname.startsWith('/api/fetch-sheet')) return fetchSheet(res, parsed.query);
   if (pathname.startsWith('/api/faculty-onboarding')) return handleFacultyOnboardingApi(req, res, pathname);
+  if (pathname.startsWith('/api/batches')) return handleBatchesApi(req, res, pathname);
+  if (pathname.startsWith('/api/requests')) return handleRequestsApi(req, res, pathname);
+  if (pathname.startsWith('/api/settings')) return handleSettingsApi(req, res, pathname);
+  if (pathname.startsWith('/api/sync-state')) return handleSyncStateApi(req, res);
 
   if (ROUTES[pathname]) pathname = ROUTES[pathname];
 

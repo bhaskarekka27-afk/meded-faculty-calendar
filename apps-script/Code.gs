@@ -80,6 +80,14 @@ function doGet(e) {
     return json_(getFacultyRecords_());
   }
 
+  if (action === 'get_batches') {
+    return json_(getBatchRegistry_());
+  }
+
+  if (action === 'get_settings') {
+    return json_(getSettings_());
+  }
+
   if (action === 'setup_faculty_sheet') {
     if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
     return json_(setupFacultySheet_({}));
@@ -119,6 +127,12 @@ function doPost(e) {
     if (action === 'get_faculty') {
       return json_(getFacultyRecords_());
     }
+
+    if (action === 'get_batches') return json_(getBatchRegistry_());
+    if (action === 'upsert_batch') return json_(upsertBatch_(body.batch));
+    if (action === 'remove_batch') return json_(removeBatch_(body.batch));
+    if (action === 'get_settings') return json_(getSettings_());
+    if (action === 'set_setting') return json_(setSetting_(body.setting));
 
     if (action === 'add_faculty') {
       return json_(addFacultyRecord_(body.faculty || {}));
@@ -857,3 +871,150 @@ function batchUpdateFacultyRecords_(fullList) {
   return { ok: true, message: 'Synchronized ' + rows.length + ' faculty records.' };
 }
 
+// ---------------------------------------------------------------------------
+// Shared Batch Registry — one row per connected Lecture Planner sheet.
+// Every portal login (admin or faculty) reads this tab, so a sheet connected by
+// one admin shows up for everyone. Removal is soft (Active = FALSE) so other
+// browsers learn about it.
+// ---------------------------------------------------------------------------
+
+var BATCH_REGISTRY_TAB = 'Batch Registry';
+var BATCH_REGISTRY_HEADERS = ['Batch ID', 'Name', 'Source URL', 'Tab Name', 'Platform', 'Active', 'Updated By', 'Updated At'];
+
+function batchRegistrySheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(BATCH_REGISTRY_TAB);
+  if (!sh) sh = ss.insertSheet(BATCH_REGISTRY_TAB);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, BATCH_REGISTRY_HEADERS.length).setValues([BATCH_REGISTRY_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function sheetIdOf_(url) {
+  var m = String(url || '').match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : '';
+}
+
+function findBatchRow_(sh, batch) {
+  var last = sh.getLastRow();
+  if (last < 2) return -1;
+  var vals = sh.getRange(2, 1, last - 1, 3).getValues();
+  var sid = sheetIdOf_(batch.sourceUrl);
+  for (var i = 0; i < vals.length; i++) {
+    if ((batch.id && String(vals[i][0]) === String(batch.id)) ||
+        (sid && sheetIdOf_(vals[i][2]) === sid)) return i + 2;
+  }
+  return -1;
+}
+
+function getBatchRegistry_() {
+  var sh = batchRegistrySheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return { ok: true, batches: [] };
+  var rows = sh.getRange(2, 1, last - 1, BATCH_REGISTRY_HEADERS.length).getValues();
+  return { ok: true, batches: rows.map(function (r) {
+    return { id: r[0], name: r[1], sourceUrl: r[2], tabName: r[3], platform: r[4], active: String(r[5]).toUpperCase() !== 'FALSE' };
+  }) };
+}
+
+function upsertBatch_(batch) {
+  batch = batch || {};
+  if (!batch.sourceUrl) return { ok: false, error: 'sourceUrl is required' };
+  var sh = batchRegistrySheet_();
+  var row = findBatchRow_(sh, batch);
+  var existingId = row > 0 ? sh.getRange(row, 1).getValue() : '';
+  var values = [[
+    existingId || batch.id || ('batch-' + new Date().getTime()),
+    batch.name || '', batch.sourceUrl, batch.tabName || 'Lecture Planner', batch.platform || '',
+    true, Session.getActiveUser().getEmail() || 'portal', new Date().toISOString()
+  ]];
+  if (row > 0) sh.getRange(row, 1, 1, values[0].length).setValues(values);
+  else sh.appendRow(values[0]);
+  return { ok: true, id: values[0][0] };
+}
+
+function removeBatch_(batch) {
+  var sh = batchRegistrySheet_();
+  var row = findBatchRow_(sh, batch || {});
+  if (row < 0) return { ok: true, removed: false };
+  sh.getRange(row, 6).setValue(false);
+  sh.getRange(row, 8).setValue(new Date().toISOString());
+  return { ok: true, removed: true };
+}
+
+/** Run once from the Apps Script toolbar to create the tab up front. */
+function setup_batch_registry() {
+  batchRegistrySheet_();
+}
+
+// ---------------------------------------------------------------------------
+// Shared Portal Settings — key/value rows mirrored to every admin/faculty login.
+// Values are stored as text (JSON). Last write wins per key via Updated At.
+// The write-back token is never stored here.
+// ---------------------------------------------------------------------------
+
+var PORTAL_SETTINGS_TAB = 'Portal Settings';
+var PORTAL_SETTINGS_HEADERS = ['Key', 'Value', 'Updated At', 'Updated By'];
+var PORTAL_SETTINGS_ALLOWED = [
+  'meded_email_settings',
+  'pw_meded_email_settings',
+  'meded_sync_settings_v1',
+  'pw_faculty_spreadsheet_url',
+  'meded_sheet_writeback_config_v1',
+  'pw_meded_faculty_requests'
+];
+
+function portalSettingsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(PORTAL_SETTINGS_TAB);
+  if (!sh) sh = ss.insertSheet(PORTAL_SETTINGS_TAB);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, PORTAL_SETTINGS_HEADERS.length).setValues([PORTAL_SETTINGS_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    // Plain text so timestamps and JSON are never auto-converted by Sheets.
+    sh.getRange(1, 1, sh.getMaxRows(), PORTAL_SETTINGS_HEADERS.length).setNumberFormat('@');
+  }
+  return sh;
+}
+
+function getSettings_() {
+  var sh = portalSettingsSheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return { ok: true, settings: [] };
+  return { ok: true, settings: sh.getRange(2, 1, last - 1, 3).getValues().map(function (r) {
+    return { key: r[0], value: r[1], updatedAt: r[2] };
+  }) };
+}
+
+function setSetting_(s) {
+  s = s || {};
+  var key = String(s.key || '');
+  if (PORTAL_SETTINGS_ALLOWED.indexOf(key) < 0) return { ok: false, error: 'Setting not allowed: ' + key };
+  var value = String(s.value == null ? '' : s.value);
+  if (value.length > 45000) return { ok: false, error: 'Value too large' };
+  var updatedAt = String(s.updatedAt || new Date().toISOString());
+  var sh = portalSettingsSheet_();
+  var last = sh.getLastRow();
+  var row = -1;
+  if (last >= 2) {
+    var keys = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = 0; i < keys.length; i++) if (String(keys[i][0]) === key) { row = i + 2; break; }
+  }
+  if (row > 0) {
+    var existing = String(sh.getRange(row, 3).getValue());
+    if (existing && existing > updatedAt) return { ok: true, stale: true };
+  } else {
+    row = last + 1;
+  }
+  var cells = sh.getRange(row, 1, 1, 4);
+  cells.setNumberFormat('@');
+  cells.setValues([[key, value, updatedAt, Session.getActiveUser().getEmail() || 'portal']]);
+  return { ok: true };
+}
+
+/** Run once from the Apps Script toolbar to create the tab up front. */
+function setup_portal_settings() {
+  portalSettingsSheet_();
+}

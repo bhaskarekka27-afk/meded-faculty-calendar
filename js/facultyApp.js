@@ -14,6 +14,9 @@
  */
 
 import { BatchManager } from './sheetConnector.js';
+import { startSharedSettingsSync } from './sharedSettings.js';
+
+startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
@@ -24,7 +27,7 @@ export class FacultyDashboardController {
   constructor() {
     this.batchManager = new BatchManager();
     this.batches = this.batchManager.getBatches();
-    this.activeBatchId = this.batches[0] ? this.batches[0].id : null;
+    this.activeBatchId = 'all';
 
     // Faculty identity (defaults to Dr. Rajesh Jambhulkar)
     this.currentFaculty = 'Dr. Rajesh Jambhulkar';
@@ -53,6 +56,8 @@ export class FacultyDashboardController {
 
   init() {
     this.loadFacultySession();
+    this.batches = this.getVisibleBatches();
+    this.activeBatchId = this.batches[0] ? this.batches[0].id : 'all';
     this.bindDOM();
     this.bindMobileDOM();
     this.populateBatchDropdown();
@@ -77,13 +82,23 @@ export class FacultyDashboardController {
 
   setupBatchRealTimeSyncListener() {
     window.addEventListener('meded:batches_updated', (e) => {
-      this.batches = this.batchManager.getBatches();
+      this.batches = this.getVisibleBatches();
       if (this.activeBatchId !== 'all' && !this.batches.some(b => b.id === this.activeBatchId)) {
-        this.activeBatchId = this.batches[0] ? this.batches[0].id : 'batch-prarambh-2026';
+        this.activeBatchId = 'all';
       }
       this.populateBatchDropdown();
       this.populateMobileBatchDropdown();
       this.render();
+      this.renderFacultyNotifications();
+    });
+
+    window.addEventListener('meded:faculty_onboarding_updated', (e) => {
+      this.populateFacultySwitcher();
+      this.populateMobileFacultySwitcher();
+      this.render();
+    });
+
+    window.addEventListener('meded:requests_updated', () => {
       this.renderFacultyNotifications();
     });
   }
@@ -255,13 +270,40 @@ export class FacultyDashboardController {
     });
   }
 
+  /** True for 'All Faculty' views, where no per-faculty filtering applies. */
+  isAllFacultyView() {
+    return !this.currentFaculty || this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all';
+  }
+
+  /** A class row that belongs to the logged-in faculty member. */
+  isMyClass(ev) {
+    if (!ev || ev.eventType !== 'class') return false;
+    if (this.isAllFacultyView()) return true;
+    const me = (this.currentFaculty || '').toLowerCase().trim();
+    return Boolean(ev.faculty && ev.faculty.toLowerCase().includes(me));
+  }
+
+  countMyClasses(batch) {
+    return (batch && batch.events ? batch.events : []).filter(ev => this.isMyClass(ev)).length;
+  }
+
+  /**
+   * Batches this faculty member should see: only those whose sheet actually
+   * lists classes taught by them. Admin-connected sheets with none of their
+   * classes stay hidden from the dropdown and calendar.
+   */
+  getVisibleBatches() {
+    const all = this.batchManager.getBatches();
+    if (this.isAllFacultyView()) return all;
+    return all.filter(b => this.countMyClasses(b) > 0);
+  }
+
   populateBatchDropdown() {
     if (!this.batchDropdownList) return;
     this.batchDropdownList.innerHTML = '';
 
-    this.batches = this.batchManager.getBatches();
-    const allEvents = this.batchManager.getAllEvents('all');
-    const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
+    this.batches = this.getVisibleBatches();
+    const totalAllClasses = this.batches.reduce((n, b) => n + this.countMyClasses(b), 0);
     const isAllSelected = this.activeBatchId === 'all';
 
     const appBatches = this.batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
@@ -282,7 +324,7 @@ export class FacultyDashboardController {
             <span class="block font-semibold truncate text-xs">${batch.name}</span>
             ${platformBadge}
           </div>
-          <span class="text-[10px] text-[#788279] block truncate">${batch.sheetTabName || 'Lecture Planner'} • ${batch.events ? batch.events.length : 0} classes</span>
+          <span class="text-[10px] text-[#788279] block truncate">${batch.sheetTabName || 'Lecture Planner'} • ${this.countMyClasses(batch)} classes</span>
         </div>
         ${isSelected ? '<span class="material-symbols-outlined text-[16px] text-[#4a7c59] shrink-0">check</span>' : ''}
       `;
@@ -352,10 +394,14 @@ export class FacultyDashboardController {
   switchBatch(batchId) {
     this.activeBatchId = batchId;
     const isAll = batchId === 'all';
-    const batch = isAll ? null : this.batches.find(b => b.id === batchId);
+    const batch = isAll ? null : (this.batchManager?.getBatches?.().find(b => b.id === batchId) || this.batches.find(b => b.id === batchId));
 
+    const labelText = isAll ? 'All Batches • Combined Schedule' : (batch ? batch.name : 'Batch');
     if (this.batchLabel) {
-      this.batchLabel.textContent = isAll ? 'All Batches • Combined Schedule' : (batch ? batch.name : 'Batch');
+      this.batchLabel.textContent = labelText;
+    }
+    if (this.mobileBatchLabel) {
+      this.mobileBatchLabel.textContent = labelText;
     }
 
     // Auto adjust calendar dates to the newly selected batch
@@ -530,13 +576,15 @@ export class FacultyDashboardController {
     if (!this.currentFaculty || this.currentFaculty === 'All Faculty' || this.currentFaculty === 'all') {
       return allBatchEvents;
     }
-    const facultyLower = (this.currentFaculty || '').toLowerCase().trim();
+    const visibleIds = new Set(this.getVisibleBatches().map(b => b.id));
 
     return allBatchEvents.filter(ev => {
+      // Never surface a batch in which this faculty member has no classes
+      if (ev.batchId && !visibleIds.has(ev.batchId)) return false;
       // Keep cool_off / holiday markers for calendar structure
       if (ev.eventType === 'cool_off' || ev.eventType === 'holiday') return true;
       // Strictly match current faculty
-      return ev.eventType === 'class' && ev.faculty && ev.faculty.toLowerCase().includes(facultyLower);
+      return this.isMyClass(ev);
     });
   }
 
@@ -1941,10 +1989,9 @@ export class FacultyDashboardController {
     if (!this.mobileBatchDropdownList) return;
     this.mobileBatchDropdownList.innerHTML = '';
 
-    const batches = this.batchManager.getBatches();
+    const batches = this.getVisibleBatches();
     const isAll = this.activeBatchId === 'all';
-    const allEvents = this.batchManager.getAllEvents('all');
-    const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
+    const totalAllClasses = batches.reduce((n, b) => n + this.countMyClasses(b), 0);
 
     // 1. All Batches item
     const allItem = document.createElement('button');
@@ -1983,7 +2030,7 @@ export class FacultyDashboardController {
             <span class="block font-semibold text-xs truncate">${b.name}</span>
             <span class="text-[9px] font-bold px-1 py-0.5 rounded border ${badgeClass} shrink-0">${badgeText}</span>
           </div>
-          <span class="text-[10px] text-terra-muted block truncate">${b.events ? b.events.length : 0} classes</span>
+          <span class="text-[10px] text-terra-muted block truncate">${this.countMyClasses(b)} classes</span>
         </div>
         ${isSelected ? '<svg class="w-4 h-4 text-terra-forest shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
       `;
@@ -2009,7 +2056,7 @@ export class FacultyDashboardController {
       if (this.activeBatchId === 'all') {
         this.mobileBatchLabel.textContent = 'All Batches (Combined Schedule)';
       } else {
-        const b = this.batches.find(x => x.id === this.activeBatchId);
+        const b = this.batchManager?.getBatches?.().find(x => x.id === this.activeBatchId) || this.batches.find(x => x.id === this.activeBatchId);
         this.mobileBatchLabel.textContent = b ? b.name : 'Select Batch';
       }
     }

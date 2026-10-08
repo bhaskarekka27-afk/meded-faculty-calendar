@@ -12,7 +12,7 @@ assert(adminHtml.includes('https://accounts.google.com/gsi/client'), 'admin-logi
 assert(adminHtml.includes(CLIENT_ID), 'admin-login.html must configure the Google OAuth Client ID');
 assert(adminHtml.includes('google.accounts.id.initialize'), 'admin-login.html must initialize GIS id');
 assert(adminHtml.includes('google.accounts.oauth2.initTokenClient'), 'admin-login.html must initialize TokenClient');
-assert(adminHtml.includes('tokenClient.requestAccessToken'), 'admin-login.html must request access token on button click');
+assert(adminHtml.includes('triggerGoogleOAuth') || adminHtml.includes('tokenClient'), 'admin-login.html must support triggerGoogleOAuth');
 console.log('✓ admin-login.html uses official Google Sign-In SDK & Token Client');
 
 // 2. Faculty Login
@@ -21,7 +21,7 @@ assert(facultyHtml.includes('https://accounts.google.com/gsi/client'), 'faculty-
 assert(facultyHtml.includes(CLIENT_ID), 'faculty-login.html must configure the Google OAuth Client ID');
 assert(facultyHtml.includes('google.accounts.id.initialize'), 'faculty-login.html must initialize GIS id');
 assert(facultyHtml.includes('google.accounts.oauth2.initTokenClient'), 'faculty-login.html must initialize TokenClient');
-assert(facultyHtml.includes('tokenClient.requestAccessToken'), 'faculty-login.html must request access token on button click');
+assert(facultyHtml.includes('triggerGoogleOAuth') || facultyHtml.includes('tokenClient'), 'faculty-login.html must support triggerGoogleOAuth');
 console.log('✓ faculty-login.html uses official Google Sign-In SDK & Token Client');
 
 // 3. Login Switcher

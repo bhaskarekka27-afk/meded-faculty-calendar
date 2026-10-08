@@ -17,14 +17,14 @@ const initialList = service.getFacultyOnboardingList();
 console.log(`✓ Total Initial Onboarded Faculty: ${initialList.length}`);
 
 // Test 1: Onboarded email sign-in (Case sensitivity check)
-const testEmail1 = 'rajesh.j@pwmeded.edu.in';
+const testEmail1 = 'harshraj01@gmail.com';
 const faculty1 = service.findFacultyByEmail(testEmail1);
 console.assert(faculty1 !== null, 'Test 1 Failed: Expected to find Dr. Rajesh');
 console.assert(faculty1.name === 'Dr. Rajesh Jambhulkar', `Test 1 Name Failed: ${faculty1?.name}`);
 console.log(`✓ Test 1 Passed: Found onboarded faculty for "${testEmail1}": ${faculty1?.name}`);
 
 // Test 2: Upper/Mixed Case email
-const testEmail2 = 'Pradeep.P@PWMEDED.EDU.IN';
+const testEmail2 = 'PawarPradeep@GMAIL.COM';
 const faculty2 = service.findFacultyByEmail(testEmail2);
 console.assert(faculty2 !== null, 'Test 2 Failed: Expected case-insensitive match for Pradeep');
 console.assert(faculty2.name === 'Dr. Pradeep Pawar', `Test 2 Name Failed: ${faculty2?.name}`);

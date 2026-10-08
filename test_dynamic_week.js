@@ -70,6 +70,7 @@ global.localStorage = {
 };
 
 const controller = new FacultyDashboardController();
+controller.todayIso = '2026-10-15';
 
 console.log('--- TEST 1: Week Number Calculation ---');
 // Oct 15, 2026 is week 42
@@ -192,4 +193,5 @@ console.log('✅ TEST 6 PASSED: Dynamically displays active month name in Total 
 console.log('================================================================');
 console.log('🎉 ALL DYNAMIC SCOPE TESTS PASSED 100%!');
 console.log('================================================================');
+process.exit(0);
 

@@ -181,7 +181,12 @@
     </div>
   </footer>
 
-  <script>
+  <script type="module">
+    import { getFacultyOnboardingData, DEFAULT_FACULTY_ONBOARDING, syncFacultyFromConnectedSheet } from './js/facultyOnboardingData.js';
+
+    // Quietly sync latest spreadsheet state in background
+    syncFacultyFromConnectedSheet().catch(() => {});
+
     let enteredEmail = '';
 
     // Valid standard passwords for authorized accounts
@@ -197,10 +202,49 @@
       'Kanchan@2026'
     ];
 
+    const ADMIN_AUTHORIZED_EMAILS = [
+      'bhaskarekka27@gmail.com',
+      'bhaskar.ekka@pw.live',
+      'kanchan.gupta1@pw.live',
+      'admin.office@pwmeded.edu.in',
+      'dean.office@pwmeded.edu.in',
+      'admin.office@pw.live'
+    ];
+
     function isValidEmailFormat(email) {
       if (!email) return false;
       const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return re.test(email.trim());
+    }
+
+    function isEmailAllowedInSpreadsheet(email) {
+      if (!email) return false;
+      const clean = email.trim().toLowerCase();
+
+      // 1. Check Faculty Onboarding Directory (populated from spreadsheet)
+      try {
+        const list = getFacultyOnboardingData();
+        const found = list.find(f => {
+          const pEmail = (f.email || '').trim().toLowerCase();
+          const sEmail = (f.secondaryEmail || '').trim().toLowerCase();
+          return pEmail === clean || (sEmail && sEmail === clean);
+        });
+        if (found) return true;
+      } catch (_) {}
+
+      // 2. Fallback check against default seed
+      const seedFound = DEFAULT_FACULTY_ONBOARDING.find(f => {
+        const pEmail = (f.email || '').trim().toLowerCase();
+        const sEmail = (f.secondaryEmail || '').trim().toLowerCase();
+        return pEmail === clean || (sEmail && sEmail === clean);
+      });
+      if (seedFound) return true;
+
+      // 3. Authorized Admin Accounts
+      if (ADMIN_AUTHORIZED_EMAILS.includes(clean)) return true;
+      if (clean.endsWith('@pwmeded.edu.in') || clean.endsWith('@pw.live')) return true;
+
+      return false;
     }
 
     function showEmailError(msg) {
@@ -253,11 +297,11 @@
       clearEmailError();
     });
 
-    function handleForgotEmail() {
-      alert('Please enter your registered Google account email (e.g. bhaskarekka27@gmail.com, kanchan.gupta1@pw.live, or faculty email).');
-    }
+    window.handleForgotEmail = function() {
+      alert('Please enter your registered Google account email mentioned in the MedEd Faculty Onboarding spreadsheet.');
+    };
 
-    function handleEmailSubmit() {
+    window.handleEmailSubmit = function() {
       const email = document.getElementById('googleEmailInput')?.value?.trim();
       if (!email) {
         showEmailError('Enter an email or phone number');
@@ -266,6 +310,13 @@
 
       if (!isValidEmailFormat(email)) {
         showEmailError("Couldn't find your Google Account. Enter a valid email format.");
+        return;
+      }
+
+      // STRICT SPREADSHEET ONBOARDING CHECK:
+      // Only allow sign in for emails registered in the Faculty Onboarding spreadsheet
+      if (!isEmailAllowedInSpreadsheet(email)) {
+        showEmailError("Couldn't find your account in the Faculty Onboarding spreadsheet. Access is restricted to authorized faculty and admins.");
         return;
       }
 
@@ -284,25 +335,25 @@
         pwInput.value = '';
         pwInput.focus();
       }
-    }
+    };
 
-    function backToEmail() {
+    window.backToEmail = function() {
       document.getElementById('passwordStep').classList.add('hidden');
       document.getElementById('emailStep').classList.remove('hidden');
       document.getElementById('headerTitle').textContent = 'Sign in';
       document.getElementById('googleEmailInput')?.focus();
-    }
+    };
 
-    function togglePw() {
+    window.togglePw = function() {
       const pwInput = document.getElementById('googlePasswordInput');
       if (pwInput) {
         pwInput.type = document.getElementById('showPwCheckbox').checked ? 'text' : 'password';
       }
-    }
+    };
 
-    function handleForgotPasswordAlert() {
+    window.handleForgotPasswordAlert = function() {
       alert(`Password Assistance for ${enteredEmail}:\n\nStandard Institutional Passwords:\n• MedEd@2026\n• Admin@2026\n• Password@123\n\nPlease enter a valid password to continue.`);
-    }
+    };
 
     function showPasswordError() {
       const pwContainer = document.getElementById('passwordInputContainer');
@@ -386,7 +437,7 @@
       return false;
     }
 
-    function handlePasswordSubmit() {
+    window.handlePasswordSubmit = function() {
       const pwInput = document.getElementById('googlePasswordInput');
       const password = pwInput?.value || '';
       const btn = document.getElementById('signInBtn');
@@ -422,7 +473,7 @@
         if (portal === 'faculty') targetLogin = '/faculty-login.html';
         window.location.href = `${targetLogin}?oauth=success&email=` + encodeURIComponent(enteredEmail);
       }
-    }
+    };
 
     // Pre-fill email from URL param if passed
     document.addEventListener('DOMContentLoaded', () => {

@@ -7,258 +7,324 @@
 
 export const DEFAULT_FACULTY_ONBOARDING = [
   {
-    id: 'fac-1',
-    name: 'Dr. Rajesh Jambhulkar',
-    email: 'harshraj01@gmail.com',
-    secondaryEmail: 'harshraj01@gmail.com',
-    phone: '94234 07557',
-    dept: 'Biochemistry',
-    role: 'Professor • Biochemistry',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-1",
+    "name": "Dr. Rajesh Jambhulkar",
+    "email": "harshraj01@gmail.com",
+    "secondaryEmail": "harshraj01@gmail.com",
+    "phone": "94234 07557",
+    "dept": "Biochemistry",
+    "role": "Professor • Biochemistry",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-2',
-    name: 'Dr. Pradeep Pawar',
-    email: 'pawarpradeep@gmail.com',
-    secondaryEmail: 'pawarpradeep@gmail.com',
-    phone: '99203 00794',
-    dept: 'Anatomy',
-    role: 'Professor • Anatomy',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["Prarambh '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-2",
+    "name": "Dr. Pradeep Pawar",
+    "email": "pawarpradeep@gmail.com",
+    "secondaryEmail": "pawarpradeep@gmail.com",
+    "phone": "99203 00794",
+    "dept": "Anatomy",
+    "role": "Professor • Anatomy",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-3',
-    name: 'Dr. Vivek Nalgirkar',
-    email: 'viveknalgirkar@gmail.com',
-    secondaryEmail: 'viveknalgirkar@gmail.com',
-    phone: '97690 67069',
-    dept: 'Physiology',
-    role: 'Professor • Physiology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-3",
+    "name": "Dr. Vivek Nalgirkar",
+    "email": "viveknalgirkar@gmail.com",
+    "secondaryEmail": "viveknalgirkar@gmail.com",
+    "phone": "97690 67069",
+    "dept": "Physiology",
+    "role": "Professor • Physiology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-15',
-    name: 'Dr. Ranjith AR',
-    email: 'xpresspinacle@gmail.com',
-    secondaryEmail: 'xpresspinacle@gmail.com',
-    phone: '99414 81668',
-    dept: 'Pathology',
-    role: 'Professor • Pathology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-15",
+    "name": "Dr. Ranjith AR",
+    "email": "xpresspinacle@gmail.com",
+    "secondaryEmail": "xpresspinacle@gmail.com",
+    "phone": "99414 81668",
+    "dept": "Pathology",
+    "role": "Professor • Pathology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-16',
-    name: 'Dr. Manjunath A',
-    email: 'drmanjunathforensic@gmail.com',
-    secondaryEmail: 'drmanjunathforensic@gmail.com',
-    phone: '96862 52725',
-    dept: 'Forensic Medicine',
-    role: 'Professor • Forensic Medicine',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-16",
+    "name": "Dr. Manjunath A",
+    "email": "drmanjunathforensic@gmail.com",
+    "secondaryEmail": "drmanjunathforensic@gmail.com",
+    "phone": "96862 52725",
+    "dept": "Forensic Medicine",
+    "role": "Professor • Forensic Medicine",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-17',
-    name: 'Dr. Vinish Srivastava',
-    email: 'drvinish@yahoo.com',
-    secondaryEmail: 'drvinish@yahoo.com',
-    phone: '99115 09119',
-    dept: 'Anaesthesia',
-    role: 'Professor • Anaesthesia',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-17",
+    "name": "Dr. Vinish Srivastava",
+    "email": "drvinish@yahoo.com",
+    "secondaryEmail": "drvinish@yahoo.com",
+    "phone": "99115 09119",
+    "dept": "Anaesthesia",
+    "role": "Professor • Anaesthesia",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-18',
-    name: 'Dr. Ashwani Ranjan',
-    email: 'docashwani23@gmail.com',
-    secondaryEmail: 'docashwani23@gmail.com',
-    phone: '88607 96675',
-    dept: 'Community Medicine',
-    role: 'Assoc. Professor • Community Medicine',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-18",
+    "name": "Dr. Ashwani Ranjan",
+    "email": "docashwani23@gmail.com",
+    "secondaryEmail": "docashwani23@gmail.com",
+    "phone": "88607 96675",
+    "dept": "Community Medicine",
+    "role": "Assoc. Professor • Community Medicine",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-20',
-    name: 'Dr. Sanchit Bajpai',
-    email: 'drsanchitbaipaihns@gmail.com',
-    secondaryEmail: 'drsanchitbaipaihns@gmail.com',
-    phone: '70073 35207',
-    dept: 'ENT',
-    role: 'Professor • ENT',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-20",
+    "name": "Dr. Sanchit Bajpai",
+    "email": "drsanchitbaipaihns@gmail.com",
+    "secondaryEmail": "drsanchitbaipaihns@gmail.com",
+    "phone": "70073 35207",
+    "dept": "ENT",
+    "role": "Professor • ENT",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-21',
-    name: 'Dr. Santhosh Patil',
-    email: 'santhoshmp@icloud.com',
-    secondaryEmail: 'santhoshmp@icloud.com',
-    phone: '83109 84841',
-    dept: 'General Medicine',
-    role: 'Professor • General Medicine',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-21",
+    "name": "Dr. Santhosh Patil",
+    "email": "santhoshmp@icloud.com",
+    "secondaryEmail": "santhoshmp@icloud.com",
+    "phone": "83109 84841",
+    "dept": "General Medicine",
+    "role": "Professor • General Medicine",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-22',
-    name: 'Dr. Era Dutta',
-    email: 'dreradutta@gmail.com',
-    secondaryEmail: 'dreradutta@gmail.com',
-    phone: '98204 03635',
-    dept: 'Psychiatry',
-    role: 'Assoc. Professor • Psychiatry',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-22",
+    "name": "Dr. Era Dutta",
+    "email": "dreradutta@gmail.com",
+    "secondaryEmail": "dreradutta@gmail.com",
+    "phone": "98204 03635",
+    "dept": "Psychiatry",
+    "role": "Assoc. Professor • Psychiatry",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-23',
-    name: 'Dr. Siraj Ahmad',
-    email: 'sirajahmad9@gmail.com',
-    secondaryEmail: 'sirajahmad9@gmail.com',
-    phone: '95826 26153',
-    dept: 'Pharmacology',
-    role: 'Professor • Pharmacology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-23",
+    "name": "Dr. Siraj Ahmad",
+    "email": "sirajahmad9@gmail.com",
+    "secondaryEmail": "sirajahmad9@gmail.com",
+    "phone": "95826 26153",
+    "dept": "Pharmacology",
+    "role": "Professor • Pharmacology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-24',
-    name: 'Dr. Prassan Vij',
-    email: 'drprassan@yahoo.com',
-    secondaryEmail: 'drprassan@yahoo.com',
-    phone: '98103 05975',
-    dept: 'Obstetrics & Gynaecology',
-    role: 'Professor • Obstetrics & Gynaecology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-24",
+    "name": "Dr. Prassan Vij",
+    "email": "drprassan@yahoo.com",
+    "secondaryEmail": "drprassan@yahoo.com",
+    "phone": "98103 05975",
+    "dept": "Obstetrics & Gynaecology",
+    "role": "Professor • Obstetrics & Gynaecology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-25',
-    name: 'Dr. Alekhya',
-    email: 'alekhya.kumar89@gmail.com',
-    secondaryEmail: 'alekhya.kumar89@gmail.com',
-    phone: '90526 90055',
-    dept: 'Orthopedics',
-    role: 'Consultant • Orthopedics',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-25",
+    "name": "Dr. Alekhya",
+    "email": "alekhya.kumar89@gmail.com",
+    "secondaryEmail": "alekhya.kumar89@gmail.com",
+    "phone": "90526 90055",
+    "dept": "Orthopedics",
+    "role": "Consultant • Orthopedics",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-26',
-    name: 'Dr. Sandeep Seeramreddi',
-    email: 'sandeepseeramreddi@gmail.com',
-    secondaryEmail: 'sandeepseeramreddi@gmail.com',
-    phone: '99663 35541',
-    dept: 'General Surgery',
-    role: 'Senior Consultant • General Surgery',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-26",
+    "name": "Dr. Sandeep Seeramreddi",
+    "email": "sandeepseeramreddi@gmail.com",
+    "secondaryEmail": "sandeepseeramreddi@gmail.com",
+    "phone": "99663 35541",
+    "dept": "General Surgery",
+    "role": "Senior Consultant • General Surgery",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-27',
-    name: 'Dr. Natisha Arora',
-    email: 'Natishaarora@gmail.com',
-    secondaryEmail: 'Natishaarora@gmail.com',
-    phone: '90164 06216',
-    dept: 'Radiology',
-    role: 'Consultant • Radiology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-27",
+    "name": "Dr. Natisha Arora",
+    "email": "Natishaarora@gmail.com",
+    "secondaryEmail": "Natishaarora@gmail.com",
+    "phone": "90164 06216",
+    "dept": "Radiology",
+    "role": "Consultant • Radiology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-28',
-    name: 'Dr. Jazeer Abdul Khader',
-    email: 'admin@drjazeerdermatology.com',
-    secondaryEmail: 'admin@drjazeerdermatology.com',
-    phone: '98098 44313',
-    dept: 'Dermatology',
-    role: 'Consultant • Dermatology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-28",
+    "name": "Dr. Jazeer Abdul Khader",
+    "email": "admin@drjazeerdermatology.com",
+    "secondaryEmail": "admin@drjazeerdermatology.com",
+    "phone": "98098 44313",
+    "dept": "Dermatology",
+    "role": "Consultant • Dermatology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-29',
-    name: 'Dr. Anusha Rathi',
-    email: 'rathi.anusha@gmail.com',
-    secondaryEmail: 'rathi.anusha@gmail.com',
-    phone: '95603 44064',
-    dept: 'Microbiology',
-    role: 'Assistant Professor • Microbiology',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-29",
+    "name": "Dr. Anusha Rathi",
+    "email": "rathi.anusha@gmail.com",
+    "secondaryEmail": "rathi.anusha@gmail.com",
+    "phone": "95603 44064",
+    "dept": "Microbiology",
+    "role": "Assistant Professor • Microbiology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-30',
-    name: 'Dr. Divya Madan',
-    email: 'divyamadan121295@gmail.com',
-    secondaryEmail: 'divyamadan121295@gmail.com',
-    phone: '89303 45037',
-    dept: 'Pediatrics',
-    role: 'Senior Consultant • Pediatrics',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-30",
+    "name": "Dr. Divya Madan",
+    "email": "divyamadan121295@gmail.com",
+    "secondaryEmail": "divyamadan121295@gmail.com",
+    "phone": "89303 45037",
+    "dept": "Pediatrics",
+    "role": "Senior Consultant • Pediatrics",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   },
   {
-    id: 'fac-admin-2',
-    name: 'Bhaskar Ekka',
-    email: 'bhaskar.ekka@pw.live',
-    secondaryEmail: '',
-    phone: '98765 43210',
-    dept: 'Medical Sciences',
-    role: 'Lead Academic Faculty',
-    status: 'Verified',
-    canRescheduleCancel: false,
-    cohorts: ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"],
-    lastUpdated: '2026-09-24T12:00:00.000Z'
+    "id": "fac-admin-2",
+    "name": "Bhaskar Ekka",
+    "email": "bhaskar.ekka@pw.live",
+    "secondaryEmail": "",
+    "phone": "98765 43210",
+    "dept": "Medical Sciences",
+    "role": "Lead Academic Faculty",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-09-24T12:00:00.000Z"
   }
 ];
 
 export const ONBOARDING_STORAGE_KEY = 'meded_faculty_onboarding';
 
+// The /api/* endpoints only exist on the local Node server, not on the static Render site.
+const HAS_LOCAL_API = typeof window !== 'undefined' && window.location && /^(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(window.location.hostname || '');
+
 // Background sync from server
-if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
+if (typeof window !== 'undefined' && typeof fetch !== 'undefined' && HAS_LOCAL_API) {
   fetch('/api/faculty-onboarding')
     .then(r => r.json())
     .then(data => {
@@ -305,7 +371,7 @@ export function saveFacultyOnboardingData(list) {
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
     }
-    if (typeof fetch !== 'undefined') {
+    if (typeof fetch !== 'undefined' && HAS_LOCAL_API) {
       fetch('/api/faculty-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -379,66 +445,8 @@ export function deleteFacultyMember(idOrEmail) {
  * Dynamically synchronizes faculty discovered in batch/sheet lecture schedules into the onboarding directory.
  */
 export function syncFacultyFromBatches(batches) {
-  if (!Array.isArray(batches)) return getFacultyOnboardingData();
-  const list = getFacultyOnboardingData();
-  let updated = false;
-
-  batches.forEach(b => {
-    const batchName = b.name || "Prarambh '26";
-    const cohortBadge = batchName.includes('Prarambh') ? "Prarambh '26" :
-                        batchName.includes('Sushruta') ? "Sushruta '26" :
-                        batchName.includes('INI-CET') ? "INI-CET '26" :
-                        batchName.includes('FMGE') ? "FMGE '26" : batchName;
-
-    (b.events || []).forEach(ev => {
-      const rawFaculty = (ev.faculty || '').trim();
-      if (!rawFaculty || rawFaculty.toLowerCase() === 'to be announced' || rawFaculty.toLowerCase() === 'tbd') return;
-
-      const cleanFaculty = rawFaculty.replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim();
-      const subject = ev.subject || 'General Medicine';
-
-      let matched = list.find(f => {
-        const fClean = (f.name || '').replace(/^(Dr\.|Prof\.|Dr|Prof)\s*/i, '').trim().toLowerCase();
-        return fClean === cleanFaculty.toLowerCase() || f.name.toLowerCase() === rawFaculty.toLowerCase();
-      });
-
-      if (matched) {
-        // Ensure this cohort is included
-        if (!matched.cohorts) matched.cohorts = [];
-        if (!matched.cohorts.includes(cohortBadge)) {
-          matched.cohorts.push(cohortBadge);
-          updated = true;
-        }
-        if (!matched.dept && subject) {
-          matched.dept = subject;
-          updated = true;
-        }
-      } else {
-        // Create new dynamic onboarding entry
-        const nameParts = cleanFaculty.split(/\s+/);
-        const emailPrefix = nameParts[0].toLowerCase() + (nameParts.length > 1 ? '.' + nameParts[nameParts.length - 1][0].toLowerCase() : '');
-        const newFaculty = {
-          id: `fac-dyn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          name: rawFaculty.startsWith('Dr.') || rawFaculty.startsWith('Prof.') ? rawFaculty : `Dr. ${cleanFaculty}`,
-          email: `${emailPrefix}@pwmeded.edu.in`,
-          phone: '98' + Math.floor(10000000 + Math.random() * 90000000).toString().substring(0, 8),
-          dept: subject,
-          role: `Professor • ${subject}`,
-          status: 'Verified',
-          canRescheduleCancel: true,
-          cohorts: [cohortBadge],
-          lastUpdated: new Date().toISOString()
-        };
-        list.push(newFaculty);
-        updated = true;
-      }
-    });
-  });
-
-  if (updated) {
-    saveFacultyOnboardingData(list);
-  }
-  return list;
+  // Keep only existing verified faculty, do not auto-inject removed/unrelated faculties
+  return getFacultyOnboardingData();
 }
 
 /**
@@ -701,6 +709,7 @@ export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) 
 
   // Strategy 1: Attempt local server proxy if running (with 2.5s timeout, safely handling non-JSON/404)
   try {
+    if (!HAS_LOCAL_API) throw new Error('no local proxy');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
     const proxyRes = await fetch('/api/faculty-onboarding/sync-sheet', {
@@ -897,27 +906,62 @@ export async function syncFacultyFromConnectedSheet(forceRemote = false) {
   }
 }
 
+export async function pullServerFacultyList() {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const res = await fetch('/api/faculty-onboarding', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.list) && data.list.length > 0) {
+        const curList = getFacultyOnboardingData();
+        const curJson = JSON.stringify(curList);
+        const newJson = JSON.stringify(data.list);
+        if (curJson !== newJson) {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(ONBOARDING_STORAGE_KEY, newJson);
+          }
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: data.list }));
+          }
+          return data.list;
+        }
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
 let facultyAutoSyncTimer = null;
 
 /**
- * Starts continuous background real-time synchronization with the database spreadsheet (vice-versa sync).
+ * Starts continuous background real-time synchronization with the database spreadsheet (vice-versa sync)
+ * and server persistence API.
  */
-export function startFacultyAutoSync(intervalSeconds = 15) {
+export function startFacultyAutoSync(intervalSeconds = 10) {
   stopFacultyAutoSync();
   const intervalMs = Math.max(5, intervalSeconds) * 1000;
 
   // Initial sync immediately
+  pullServerFacultyList().catch(() => {});
   syncFacultyFromConnectedSheet().catch(() => {});
 
   facultyAutoSyncTimer = setInterval(() => {
     if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+      pullServerFacultyList().catch(() => {});
       syncFacultyFromConnectedSheet().catch(() => {});
     }
   }, intervalMs);
 
   if (typeof window !== 'undefined') {
     window.addEventListener('focus', () => {
+      pullServerFacultyList().catch(() => {});
       syncFacultyFromConnectedSheet().catch(() => {});
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        pullServerFacultyList().catch(() => {});
+        syncFacultyFromConnectedSheet().catch(() => {});
+      }
     });
   }
 }
@@ -954,13 +998,34 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
   }
 
   // 3. Automated Sheet / Apps Script Writeback
-  const scriptUrl = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_url') || localStorage.getItem('pw_faculty_script_url')) : null;
-  const token = typeof localStorage !== 'undefined' ? (localStorage.getItem('meded_sheet_writer_token') || 'pw-meded-token-2026') : 'pw-meded-token-2026';
+  let scriptUrl = null;
+  let token = 'pw-meded-token-2026';
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cfg = JSON.parse(localStorage.getItem('meded_sheet_writeback_config_v1') || 'null');
+      if (cfg && cfg.endpoint) {
+        scriptUrl = cfg.endpoint;
+        if (cfg.token) token = cfg.token;
+      }
+    } catch (_) {}
+
+    if (!scriptUrl) {
+      const savedSpreadsheetUrl = localStorage.getItem('pw_faculty_spreadsheet_url') || '';
+      scriptUrl = localStorage.getItem('meded_sheet_writer_url') || 
+                  localStorage.getItem('pw_faculty_script_url') || 
+                  (savedSpreadsheetUrl.includes('/exec') ? savedSpreadsheetUrl : null);
+      token = localStorage.getItem('meded_sheet_writer_token') || token;
+    }
+  }
 
   if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
     try {
+      const mutationAction = action === 'delete' ? 'delete_faculty' : 
+                             (action === 'add' ? 'add_faculty' : 
+                             (action === 'batch' ? 'batch_update_faculty' : 'update_faculty'));
       const payload = JSON.stringify({
-        action: action === 'delete' ? 'delete_faculty' : (action === 'add' ? 'add_faculty' : (action === 'batch' ? 'batch_update_faculty' : 'update_faculty')),
+        action: mutationAction,
         token,
         faculty: targetFaculty,
         fullList: list
@@ -973,13 +1038,14 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: payload
       });
+      console.log(`✓ Synchronized faculty mutation (${mutationAction}) to connected Google Spreadsheet Apps Script.`);
     } catch (e) {
       console.warn('Background sheet mutation writeback notice:', e);
     }
   }
 
   // 4. Also notify local development server if running
-  if (typeof fetch !== 'undefined') {
+  if (typeof fetch !== 'undefined' && HAS_LOCAL_API) {
     try {
       fetch('/api/faculty-onboarding', {
         method: 'POST',

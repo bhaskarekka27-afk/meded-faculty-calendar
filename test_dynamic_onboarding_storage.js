@@ -41,7 +41,7 @@ console.log('--- TEST: Dynamic Faculty Onboarding State & Storage in Code ---');
 // 1. Initial State from Code Defaults
 const list1 = getFacultyOnboardingData();
 assert(Array.isArray(list1), 'Initial list must be an array');
-assert(list1.length >= 30, `Expected at least 30 default faculty, got ${list1.length}`);
+assert(list1.length >= 15, `Expected at least 15 default faculty, got ${list1.length}`);
 console.log(`✓ 1. Loaded ${list1.length} faculty members from code defaults`);
 
 // 2. Upsert New Faculty

@@ -52,6 +52,47 @@ export class ReminderEmailService {
     this._isProcessingWhatsAppQueue = false;
 
     this.initStorage();
+    this.setupLiveSyncListeners();
+  }
+
+  setupLiveSyncListeners() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('meded:settings_synced', (e) => {
+        const changed = (e.detail && e.detail.keys) || [];
+        if (changed.includes(this.SETTINGS_KEY) || changed.includes('pw_meded_email_settings') || changed.length === 0) {
+          this.getSettings();
+          this.broadcastEvent('meded:email_settings_updated', this._inMemorySettings);
+        }
+      });
+      this.pullServerSettings().catch(() => {});
+    }
+  }
+
+  async pullServerSettings() {
+    if (typeof fetch === 'undefined') return;
+    try {
+      const res = await fetch('/api/settings', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.settings && data.settings[this.SETTINGS_KEY]) {
+          const raw = typeof data.settings[this.SETTINGS_KEY] === 'string'
+            ? data.settings[this.SETTINGS_KEY]
+            : JSON.stringify(data.settings[this.SETTINGS_KEY]);
+          const parsed = JSON.parse(raw);
+          const current = this.getSettings();
+          const merged = { ...this.defaultSettings, ...current, ...parsed };
+          if (merged.leadDurationValue !== undefined && merged.leadDurationUnit) {
+            const val = parseInt(merged.leadDurationValue, 10) || 30;
+            merged.leadDurationMinutes = merged.leadDurationUnit === 'hours' ? val * 60 : val;
+          }
+          this._inMemorySettings = merged;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(merged));
+          }
+          this.broadcastEvent('meded:email_settings_updated', merged);
+        }
+      }
+    } catch (_) {}
   }
 
   initStorage() {
@@ -172,6 +213,16 @@ export class ReminderEmailService {
           updatedAt: updated.lastConfiguredAt
         }));
       }
+
+      // Persist directly to server code level API
+      if (typeof fetch !== 'undefined') {
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: this.SETTINGS_KEY, value: JSON.stringify(updated) })
+        }).catch(() => {});
+      }
+
       this.broadcastEvent('meded:email_settings_updated', updated);
       return { success: true, settings: updated };
     } catch (e) {
@@ -316,14 +367,30 @@ export class ReminderEmailService {
     const cleanEmail = email.trim().toLowerCase();
     const list = this.getFacultyOnboardingList();
 
-    // Strictly match only registered ID, email, secondaryEmail, or verified name in the Faculty Onboarding Directory
+    // Match registered ID, email, secondaryEmail, or verified name/alias in the Faculty Onboarding Directory
     return list.find(f => {
       const fEmail = (f.email || '').trim().toLowerCase();
       const fSecEmail = (f.secondaryEmail || '').trim().toLowerCase();
       const fId = (f.id || '').trim().toLowerCase();
       const fName = (f.name || '').trim().toLowerCase().replace(/^(dr\.|prof\.|dr|prof)\s*/i, '');
       const inputName = cleanEmail.replace(/^(dr\.|prof\.|dr|prof)\s*/i, '');
-      return fEmail === cleanEmail || fSecEmail === cleanEmail || fId === cleanEmail || (inputName.length >= 3 && fName === inputName);
+
+      if (fEmail === cleanEmail || fSecEmail === cleanEmail || fId === cleanEmail) return true;
+      if (inputName.length >= 3 && fName === inputName) return true;
+
+      // Check standard institutional pattern: first.l@pwmeded.edu.in or first.last@pwmeded.edu.in
+      if (cleanEmail.endsWith('@pwmeded.edu.in') || cleanEmail.endsWith('@pw.live')) {
+        const prefix = cleanEmail.split('@')[0];
+        const parts = fName.split(/\s+/);
+        if (parts.length > 0) {
+          const first = parts[0];
+          const last = parts[parts.length - 1];
+          if (prefix === `${first}.${last[0]}` || prefix === `${first}.${last}` || prefix === first || prefix.startsWith(first)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }) || null;
   }
 

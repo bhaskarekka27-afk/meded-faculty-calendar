@@ -6,7 +6,7 @@
     "secondaryEmail": "harshraj01@gmail.com",
     "phone": "94234 07557",
     "dept": "Biochemistry",
-    "role": "Biochemistry",
+    "role": "Professor • Biochemistry",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -24,7 +24,7 @@
     "secondaryEmail": "pawarpradeep@gmail.com",
     "phone": "99203 00794",
     "dept": "Anatomy",
-    "role": "Anatomy",
+    "role": "Professor • Anatomy",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -41,7 +41,7 @@
     "secondaryEmail": "viveknalgirkar@gmail.com",
     "phone": "97690 67069",
     "dept": "Physiology",
-    "role": "Physiology",
+    "role": "Professor • Physiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -58,7 +58,7 @@
     "secondaryEmail": "xpresspinacle@gmail.com",
     "phone": "99414 81668",
     "dept": "Pathology",
-    "role": "Pathology",
+    "role": "Professor • Pathology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -74,7 +74,7 @@
     "secondaryEmail": "drmanjunathforensic@gmail.com",
     "phone": "96862 52725",
     "dept": "Forensic Medicine",
-    "role": "Forensic Medicine",
+    "role": "Professor • Forensic Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -90,7 +90,7 @@
     "secondaryEmail": "drvinish@yahoo.com",
     "phone": "99115 09119",
     "dept": "Anaesthesia",
-    "role": "Anaesthesia",
+    "role": "Professor • Anaesthesia",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -104,9 +104,9 @@
     "name": "Dr. Ashwani Ranjan",
     "email": "docashwani23@gmail.com",
     "secondaryEmail": "docashwani23@gmail.com",
-    "phone": "\n88607 96675",
+    "phone": "88607 96675",
     "dept": "Community Medicine",
-    "role": "Community Medicine",
+    "role": "Assoc. Professor • Community Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -122,7 +122,7 @@
     "secondaryEmail": "drsanchitbaipaihns@gmail.com",
     "phone": "70073 35207",
     "dept": "ENT",
-    "role": "ENT",
+    "role": "Professor • ENT",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -138,7 +138,7 @@
     "secondaryEmail": "santhoshmp@icloud.com",
     "phone": "83109 84841",
     "dept": "General Medicine",
-    "role": "General Medicine",
+    "role": "Professor • General Medicine",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -154,7 +154,7 @@
     "secondaryEmail": "dreradutta@gmail.com",
     "phone": "98204 03635",
     "dept": "Psychiatry",
-    "role": "Psychiatry",
+    "role": "Assoc. Professor • Psychiatry",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -168,9 +168,9 @@
     "name": "Dr. Siraj Ahmad",
     "email": "sirajahmad9@gmail.com",
     "secondaryEmail": "sirajahmad9@gmail.com",
-    "phone": " 95826 26153",
+    "phone": "95826 26153",
     "dept": "Pharmacology",
-    "role": "Pharmacology",
+    "role": "Professor • Pharmacology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -186,7 +186,7 @@
     "secondaryEmail": "drprassan@yahoo.com",
     "phone": "98103 05975",
     "dept": "Obstetrics & Gynaecology",
-    "role": "Obstetrics & Gynaecology",
+    "role": "Professor • Obstetrics & Gynaecology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -202,7 +202,7 @@
     "secondaryEmail": "alekhya.kumar89@gmail.com",
     "phone": "90526 90055",
     "dept": "Orthopedics",
-    "role": "Orthopedics",
+    "role": "Consultant • Orthopedics",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -218,7 +218,7 @@
     "secondaryEmail": "sandeepseeramreddi@gmail.com",
     "phone": "99663 35541",
     "dept": "General Surgery",
-    "role": "General Surgery",
+    "role": "Senior Consultant • General Surgery",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -234,7 +234,7 @@
     "secondaryEmail": "Natishaarora@gmail.com",
     "phone": "90164 06216",
     "dept": "Radiology",
-    "role": "Radiology",
+    "role": "Consultant • Radiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -250,7 +250,7 @@
     "secondaryEmail": "admin@drjazeerdermatology.com",
     "phone": "98098 44313",
     "dept": "Dermatology",
-    "role": "Dermatology",
+    "role": "Consultant • Dermatology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -266,7 +266,7 @@
     "secondaryEmail": "rathi.anusha@gmail.com",
     "phone": "95603 44064",
     "dept": "Microbiology",
-    "role": "Microbiology",
+    "role": "Assistant Professor • Microbiology",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -278,11 +278,11 @@
   {
     "id": "fac-30",
     "name": "Dr. Divya Madan",
-    "email": " divyamadan121295@gmail.com",
-    "secondaryEmail": " divyamadan121295@gmail.com",
-    "phone": " 89303 45037",
+    "email": "divyamadan121295@gmail.com",
+    "secondaryEmail": "divyamadan121295@gmail.com",
+    "phone": "89303 45037",
     "dept": "Pediatrics",
-    "role": "Pediatrics",
+    "role": "Senior Consultant • Pediatrics",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
@@ -298,7 +298,7 @@
     "secondaryEmail": "",
     "phone": "98765 43210",
     "dept": "Medical Sciences",
-    "role": "Medical Sciences",
+    "role": "Lead Academic Faculty",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [

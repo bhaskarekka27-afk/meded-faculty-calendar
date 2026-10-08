@@ -172,6 +172,7 @@ async function run() {
   console.log('================================================================');
   console.log('🎉 ALL BATCH SELECTION & FACULTY HIGHLIGHTS MONTH TESTS PASSED (100%)!');
   console.log('================================================================');
+  process.exit(0);
 }
 
 run().catch(err => {

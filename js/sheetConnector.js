@@ -413,6 +413,13 @@ export function fetchGoogleSheetJSONP(sheetId, tabName = 'Lecture Planner') {
 /**
  * Auto-detect available sheet tabs and identify the Lecture Planner tab
  */
+/**
+ * The /api/* sheet proxy only exists on the local Node server (server.cjs / vite).
+ * The deployed static site (Render) has none, so calling it just produced a 404
+ * on every connect and every 30s sync before falling back to the direct reads.
+ */
+export const HAS_LOCAL_SHEET_PROXY = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(window.location.hostname);
+
 export async function detectGoogleSheetTabs(sourceUrl) {
   const details = extractSheetDetails(sourceUrl);
   if (!details || !details.sheetId) {
@@ -426,6 +433,7 @@ export async function detectGoogleSheetTabs(sourceUrl) {
     : 'http://localhost:5173';
 
   try {
+    if (!HAS_LOCAL_SHEET_PROXY) throw new Error('no local proxy');
     const res = await fetch(`${apiBase}/api/detect-tabs?sheetId=${details.sheetId}&_t=${timestamp}`, {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
@@ -438,7 +446,7 @@ export async function detectGoogleSheetTabs(sourceUrl) {
       }
     }
   } catch (e) {
-    console.warn('Proxy tab detection failed, trying htmlview...', e);
+    if (HAS_LOCAL_SHEET_PROXY) console.warn('Proxy tab detection failed, trying htmlview...', e);
   }
 
   // Strategy 2: Direct htmlview fetch (fallback)
@@ -506,6 +514,7 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
     : 'http://localhost:5173';
 
   try {
+    if (!HAS_LOCAL_SHEET_PROXY) throw new Error('no local proxy');
     let proxyUrl = `${apiBase}/api/fetch-sheet?sheetId=${details.sheetId}&sheet=${encodeURIComponent(targetTab)}&_t=${timestamp}`;
     if (details.gid) {
       proxyUrl += `&gid=${details.gid}`;
@@ -524,7 +533,7 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
       }
     }
   } catch (err) {
-    console.warn('Local proxy fetch failed, trying JSONP...', err);
+    if (HAS_LOCAL_SHEET_PROXY) console.warn('Local proxy fetch failed, trying JSONP...', err);
   }
 
   // Strategy 2: Client-side JSONP with candidate tabs
@@ -575,6 +584,101 @@ export async function fetchGoogleSheetCSV(sourceUrl, tabName = '') {
   throw new Error(`Unable to load tab "${targetTab}" from Google Sheets. Make sure the sheet is shared as "Anyone with the link can view".`);
 }
 
+// ---------------------------------------------------------------------------
+// Shared Batch Registry
+//
+// Connected batches used to live only in the connecting browser's localStorage,
+// so nobody else (other admins, any faculty) ever saw them. The registry is a
+// "Batch Registry" tab in the master Google Sheet: admins publish to it through
+// the Apps Script web app, and EVERY login (admin or faculty) reads it back
+// through the public sheet read path and builds the same batches locally.
+// ---------------------------------------------------------------------------
+const REGISTRY_TAB = 'Batch Registry';
+const REGISTRY_DEFAULT_SHEET_ID = '1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE';
+
+function registryLS(key) {
+  try { return (typeof localStorage !== 'undefined' && localStorage.getItem(key)) || ''; } catch (_) { return ''; }
+}
+
+export function getRegistrySheetId() {
+  const saved = registryLS('pw_faculty_spreadsheet_url');
+  if (saved && !saved.includes('script.google.com')) {
+    const d = extractSheetDetails(saved);
+    if (d && d.sheetId) return d.sheetId;
+  }
+  return REGISTRY_DEFAULT_SHEET_ID;
+}
+
+/** Apps Script endpoint + token if THIS browser is set up to write (admins). */
+export function getRegistryWriter() {
+  let endpoint = '';
+  let token = '';
+  try {
+    const cfg = JSON.parse(registryLS('meded_sheet_writeback_config_v1') || 'null') || {};
+    endpoint = cfg.endpoint || '';
+    token = cfg.token || '';
+  } catch (_) { /* ignore */ }
+  const saved = registryLS('pw_faculty_spreadsheet_url');
+  endpoint = endpoint || registryLS('meded_sheet_writer_url') || registryLS('pw_faculty_script_url') || (saved.includes('/exec') ? saved : '');
+  token = token || registryLS('meded_sheet_writer_token') || 'pw-meded-token-2026';
+  endpoint = endpoint.trim();
+  if (!endpoint.includes('script.google.com/macros/s/')) return null;
+  return { endpoint, token: token.trim() };
+}
+
+/**
+ * Read the shared registry. Resolves to an array of rows, or null when the
+ * registry cannot be read (so callers never mistake "offline" for "empty").
+ */
+export async function fetchBatchRegistry() {
+  let csv = '';
+  try {
+    csv = await fetchGoogleSheetJSONP(getRegistrySheetId(), REGISTRY_TAB);
+  } catch (_) {
+    try {
+      const res = await fetch(`https://docs.google.com/spreadsheets/d/${getRegistrySheetId()}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(REGISTRY_TAB)}&_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) csv = await res.text();
+    } catch (__) { return null; }
+  }
+  if (!csv) return null;
+  const rows = parseCSV(csv);
+  if (!rows.length) return null;
+  const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+  const col = (name) => header.indexOf(name);
+  const iId = col('batch id'), iName = col('name'), iUrl = col('source url'), iTab = col('tab name'),
+        iPlat = col('platform'), iAct = col('active');
+  // Missing tab => Google serves some other sheet; the header check rejects that.
+  if (iId < 0 || iUrl < 0) return null;
+  return rows.slice(1)
+    .filter(r => r && String(r[iUrl] || '').trim())
+    .map(r => ({
+      id: String(r[iId] || '').trim(),
+      name: String(r[iName] || '').trim(),
+      sourceUrl: String(r[iUrl] || '').trim(),
+      tabName: String(r[iTab] || '').trim() || 'Lecture Planner',
+      platform: String(r[iPlat] || '').trim(),
+      active: !/^(false|no|0)$/i.test(String(r[iAct] == null ? 'TRUE' : r[iAct]).trim())
+    }));
+}
+
+export async function postRegistryAction(action, payload, field = 'batch') {
+  const writer = getRegistryWriter();
+  if (!writer) {
+    return { ok: false, error: 'Sheet write-back URL is not set on this device, so the batch was saved here only.' };
+  }
+  try {
+    const res = await fetch(writer.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, token: writer.token, [field]: payload })
+    });
+    const json = await res.json();
+    return json && json.ok ? { ok: true } : { ok: false, error: (json && json.error) || 'Apps Script rejected the request' };
+  } catch (e) {
+    return { ok: false, error: e.message || 'Could not reach the Apps Script web app' };
+  }
+}
+
 export const SYNC_SETTINGS_KEY = 'meded_sync_settings_v1';
 
 /**
@@ -619,6 +723,16 @@ export class BatchManager {
     } catch (e) {
       console.error('Failed to save sync settings:', e);
     }
+
+    // Persist sync settings to server code level
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: SYNC_SETTINGS_KEY, value: JSON.stringify(this.syncSettings) })
+      }).catch(() => {});
+    }
+
     this.broadcastSyncStatus();
     if (this.syncSettings.autoSyncEnabled) {
       this.startAutoSync();
@@ -640,6 +754,35 @@ export class BatchManager {
       this.startAutoSync();
     }
 
+    // Listen for remote settings sync updates
+    window.addEventListener('meded:settings_synced', (e) => {
+      const changed = (e.detail && e.detail.keys) || [];
+      if (changed.includes(SYNC_SETTINGS_KEY) || changed.length === 0) {
+        const reloaded = this.loadSyncSettings();
+        const intervalChanged = this.syncSettings.intervalSeconds !== reloaded.intervalSeconds;
+        const autoChanged = this.syncSettings.autoSyncEnabled !== reloaded.autoSyncEnabled;
+        this.syncSettings = reloaded;
+        if (autoChanged || intervalChanged) {
+          if (this.syncSettings.autoSyncEnabled) {
+            this.startAutoSync();
+          } else {
+            this.stopAutoSync();
+          }
+        }
+        this.broadcastSyncStatus();
+      }
+    });
+
+    // Pull from central server immediately on startup
+    this.pullServerBatches().catch(() => {});
+
+    // Fast server sync check every 3 seconds for instant multi-login synchronization
+    this.serverPollTimer = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        this.pullServerBatches().catch(() => {});
+      }
+    }, 3000);
+
     // Trigger immediate background sync on initial page load
     setTimeout(() => {
       this.syncAllBatches({ background: true }).catch(() => {});
@@ -647,16 +790,56 @@ export class BatchManager {
 
     // Refresh instantly when user switches back to this browser tab
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.syncSettings.autoSyncEnabled) {
-        this.syncAllBatches({ background: true }).catch(() => {});
+      if (document.visibilityState === 'visible') {
+        this.pullServerBatches().catch(() => {});
+        if (this.syncSettings.autoSyncEnabled) {
+          this.syncAllBatches({ background: true }).catch(() => {});
+        }
       }
     });
 
     window.addEventListener('focus', () => {
+      this.pullServerBatches().catch(() => {});
       if (this.syncSettings.autoSyncEnabled) {
         this.syncAllBatches({ background: true }).catch(() => {});
       }
     });
+  }
+
+  async pullServerBatches() {
+    if (typeof fetch === 'undefined') return false;
+    try {
+      const res = await fetch('/api/batches', { cache: 'no-store' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.batches) && data.batches.length > 0) {
+        const curJson = JSON.stringify(this.batches || []);
+        const newJson = JSON.stringify(data.batches);
+        if (curJson !== newJson) {
+          this.batches = data.batches;
+          this.saveToStorage(false);
+          this.broadcastBatchesUpdated(true);
+          return true;
+        }
+      }
+    } catch (e) {
+      // Offline or fallback to local
+    }
+    return false;
+  }
+
+  async saveBatchesToServer() {
+    if (typeof fetch === 'undefined') return false;
+    try {
+      const res = await fetch('/api/batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batches: this.batches })
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
   }
 
   startAutoSync(intervalSeconds = null) {
@@ -735,7 +918,8 @@ export class BatchManager {
                 }
               }
               this.batches = parsed;
-              this.saveToStorage();
+              this.saveToStorage(false);
+              this.pullServerBatches().catch(() => {});
               return;
             }
           }
@@ -745,16 +929,20 @@ export class BatchManager {
       console.warn('Failed to load batches from localStorage, falling back to default:', e);
     }
     this.batches = JSON.parse(JSON.stringify(DEFAULT_BATCHES));
-    this.saveToStorage();
+    this.saveToStorage(true);
+    this.pullServerBatches().catch(() => {});
   }
 
-  saveToStorage() {
+  saveToStorage(syncToServer = true) {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.batches));
       }
     } catch (e) {
       console.error('Failed to save batches to localStorage:', e);
+    }
+    if (syncToServer) {
+      this.saveBatchesToServer().catch(() => {});
     }
   }
 
@@ -825,9 +1013,84 @@ export class BatchManager {
       this.batches.push(newBatch);
     }
 
-    this.saveToStorage();
+    this.saveToStorage(true);
     this.broadcastBatchesUpdated(true, newBatch.id);
+
+    // Share it: write to the registry so every other login picks it up.
+    newBatch.publishResult = await this.publishBatchToRegistry(newBatch);
     return newBatch;
+  }
+
+  async publishBatchToRegistry(batch) {
+    const result = await postRegistryAction('upsert_batch', {
+      id: batch.id,
+      name: batch.name,
+      sourceUrl: batch.sourceUrl,
+      tabName: batch.sheetTabName || 'Lecture Planner',
+      platform: batch.platform || ''
+    });
+    if (result.ok) {
+      batch.fromRegistry = true;
+      this.saveToStorage(true);
+    }
+    return result;
+  }
+
+  /**
+   * Pull the shared registry: add batches other admins connected, drop the ones
+   * they removed, and (from an admin browser) publish batches that were only
+   * ever stored locally. Safe to call repeatedly.
+   */
+  async pullRegistry() {
+    const rows = await fetchBatchRegistry();
+    if (!rows) return false;
+    let changed = false;
+    const activeIds = new Set();
+
+    for (const r of rows) {
+      if (!r.active) continue;
+      activeIds.add(r.id);
+      const sid = (extractSheetDetails(r.sourceUrl) || {}).sheetId;
+      const existing = this.batches.find(b => b.id === r.id ||
+        (sid && (extractSheetDetails(b.sourceUrl) || {}).sheetId === sid));
+      if (existing) {
+        if (!existing.fromRegistry) { existing.fromRegistry = true; changed = true; }
+        if (existing.id !== r.id) activeIds.add(existing.id);
+        continue;
+      }
+      try {
+        const csv = await fetchGoogleSheetCSV(r.sourceUrl, r.tabName);
+        const batch = processRawCSVToBatch(csv, r.id, r.sourceUrl, r.tabName, r.name);
+        batch.lastSynced = new Date().toISOString();
+        batch.fromRegistry = true;
+        this.batches.push(batch);
+        changed = true;
+      } catch (err) {
+        console.warn(`Registry batch "${r.name}" could not be loaded:`, err.message);
+      }
+    }
+
+    // Removed by an admin elsewhere
+    const before = this.batches.length;
+    this.batches = this.batches.filter(b => !(b.fromRegistry && !activeIds.has(b.id)) || this.batches.length <= 1);
+    if (this.batches.length !== before) changed = true;
+
+    // Admin browsers: share batches that predate the registry
+    if (getRegistryWriter()) {
+      const defaultIds = new Set(DEFAULT_BATCHES.map(b => b.id));
+      for (const b of this.batches) {
+        if (b.sourceUrl && !b.fromRegistry && !defaultIds.has(b.id)) {
+          const res = await this.publishBatchToRegistry(b);
+          if (res.ok) changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      this.saveToStorage();
+      this.broadcastBatchesUpdated(true);
+    }
+    return true;
   }
 
   /**
@@ -870,7 +1133,8 @@ export class BatchManager {
     let hasAnyChanges = false;
 
     try {
-      for (const b of this.batches) {
+      await this.pullRegistry().catch(() => {});
+      for (const b of [...this.batches]) {
         if (b.sourceUrl) {
           try {
             const oldEventsStr = JSON.stringify(b.events || []);
@@ -904,9 +1168,14 @@ export class BatchManager {
     if (this.batches.length <= 1) {
       throw new Error('At least one batch must remain active.');
     }
+    const removed = this.batches.find(b => b.id === id);
     this.batches = this.batches.filter(b => b.id !== id);
     this.saveToStorage();
     this.broadcastBatchesUpdated(true);
+    if (removed && removed.fromRegistry) {
+      postRegistryAction('remove_batch', { id: removed.id, sourceUrl: removed.sourceUrl })
+        .then(r => { if (!r.ok) console.warn('Registry removal not shared:', r.error); });
+    }
   }
 
   resetToDefaults() {
