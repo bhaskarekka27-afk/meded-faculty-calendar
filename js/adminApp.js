@@ -6328,13 +6328,9 @@ class AdminDashboardController {
     const openBtn = document.getElementById('openNotificationBtn');
     const closeBtn = document.getElementById('closeNotificationBtn');
     const markAllReadBtn = document.getElementById('adminMarkAllReadBtn');
-    const filterAllBtn = document.getElementById('btnAdminNotifFilterAll');
-    const filterEmailsBtn = document.getElementById('btnAdminNotifFilterEmails');
-
-    let currentFilter = 'all';
 
     const openDrawer = () => {
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
       modal?.classList.remove('hidden', 'pointer-events-none');
       backdrop?.classList.remove('pointer-events-none', 'opacity-0');
       backdrop?.classList.add('opacity-100', 'pointer-events-auto');
@@ -6366,58 +6362,15 @@ class AdminDashboardController {
       }
     });
 
-    filterAllBtn?.addEventListener('click', () => {
-      currentFilter = 'all';
-      filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] cursor-pointer';
-      if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
-      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
-      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      this.renderAdminNotifications(currentFilter);
-    });
-
-    filterEmailsBtn?.addEventListener('click', () => {
-      currentFilter = 'emails';
-      filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc] cursor-pointer';
-      if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
-      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
-      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      this.renderAdminNotifications(currentFilter);
-    });
-
-    const filterWABtn = document.getElementById('btnAdminNotifFilterWhatsApp');
-    filterWABtn?.addEventListener('click', () => {
-      currentFilter = 'whatsapp';
-      filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] cursor-pointer flex items-center gap-1';
-      if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      const filterSysBtn = document.getElementById('btnAdminNotifFilterSystem');
-      if (filterSysBtn) filterSysBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      this.renderAdminNotifications(currentFilter);
-    });
-
-    const filterSystemBtn = document.getElementById('btnAdminNotifFilterSystem');
-    filterSystemBtn?.addEventListener('click', () => {
-      currentFilter = 'system';
-      filterSystemBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] cursor-pointer flex items-center gap-1';
-      if (filterAllBtn) filterAllBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      if (filterEmailsBtn) filterEmailsBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer';
-      if (filterWABtn) filterWABtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1';
-      this.renderAdminNotifications(currentFilter);
-    });
-
     markAllReadBtn?.addEventListener('click', () => {
       reminderEmailService.markAllAsRead('admin');
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
       this.showToast('All admin notifications marked as read.');
     });
 
     // Cross-tab and service event sync
     window.addEventListener('meded:email_dispatched', (e) => {
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
       const detail = e.detail;
       if (detail?.faculty?.name) {
         this.showToast(`📧 Automated email reminder sent to ${detail.faculty.name} (${detail.faculty.email})`);
@@ -6425,7 +6378,7 @@ class AdminDashboardController {
     });
 
     window.addEventListener('meded:whatsapp_dispatched', (e) => {
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
       const detail = e.detail;
       if (detail?.faculty?.name) {
         this.showToast(`💬 WhatsApp class reminder sent to ${detail.faculty.name} (${detail.phone?.formatted || ''})`);
@@ -6433,7 +6386,7 @@ class AdminDashboardController {
     });
 
     window.addEventListener('meded:admin_alert', (e) => {
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
       const notif = e.detail;
       if (notif && notif.title) {
         this.showToast(`${notif.title}: ${notif.body || ''}`);
@@ -6441,12 +6394,12 @@ class AdminDashboardController {
     });
 
     window.addEventListener('meded:notifications_updated', () => {
-      this.renderAdminNotifications(currentFilter);
+      this.renderAdminNotifications();
     });
 
     window.addEventListener('storage', (e) => {
       if (e.key === 'meded_notifications' || e.key === 'meded_sync_trigger') {
-        this.renderAdminNotifications(currentFilter);
+        this.renderAdminNotifications();
       }
       if (e.key === 'meded_active_user') {
         this.initLoggedInUserProfile();
@@ -6454,24 +6407,19 @@ class AdminDashboardController {
     });
 
     // Initial render
-    this.renderAdminNotifications(currentFilter);
+    this.renderAdminNotifications();
   }
 
-  renderAdminNotifications(filter = 'all') {
+  renderAdminNotifications() {
     const feed = document.getElementById('adminNotificationFeed');
     const badgePulse = document.getElementById('adminNotifPulse');
     const badgeDot = document.getElementById('adminNotifDot');
     const badgeCount = document.getElementById('adminNotifBadgeCount');
+    const totalBadge = document.getElementById('adminNotifTotalBadge');
     if (!feed) return;
 
-    let notifs = reminderEmailService.getAdminNotifications();
-    if (filter === 'emails') {
-      notifs = notifs.filter(n => n.type === 'email_reminder_sent');
-    } else if (filter === 'whatsapp') {
-      notifs = notifs.filter(n => n.type === 'whatsapp_reminder_sent');
-    } else if (filter === 'system' || filter === 'settings') {
-      notifs = notifs.filter(n => n.type === 'setting_updated' || n.type === 'sheet_synced' || n.type === 'system');
-    }
+    // Single unified list of all notifications
+    const notifs = reminderEmailService.getAdminNotifications() || [];
 
     const unreadCount = reminderEmailService.getAdminUnreadCount();
     if (badgeCount) {
@@ -6482,12 +6430,18 @@ class AdminDashboardController {
       badgePulse.classList.toggle('hidden', unreadCount === 0);
       badgeDot.classList.toggle('hidden', unreadCount === 0);
     }
+    if (totalBadge) {
+      totalBadge.textContent = unreadCount > 0 ? `${unreadCount} Unread` : `${notifs.length} Total`;
+    }
 
     if (notifs.length === 0) {
       feed.innerHTML = `
-        <div class="py-10 text-center text-[#68736a] space-y-2">
-          <span class="material-symbols-outlined text-[32px] text-[#ded5c6]">notifications_off</span>
-          <p class="text-xs font-semibold">No notifications in this category.</p>
+        <div class="py-12 text-center text-[#68736a] space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-full bg-[#f4efe6] text-[#8b958c] flex items-center justify-center border border-[#e5dfd5]">
+            <span class="material-symbols-outlined text-[26px]">notifications_off</span>
+          </div>
+          <p class="text-xs font-bold text-[#2c332d]">No alerts or notifications yet</p>
+          <p class="text-[11px] text-[#68736a]">Automated class reminders, spreadsheet syncs, and system activities will appear here.</p>
         </div>
       `;
       return;
@@ -6497,58 +6451,92 @@ class AdminDashboardController {
       const timeAgo = this.formatTimeAgo(n.timestamp);
       const isUnread = !n.read;
 
+      // Category: Settings & Configuration
       if (n.type === 'setting_updated') {
         return `
-          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#705c30] ring-1 ring-[#705c30]/20' : 'border-[#e8dfcf]'} card-3d space-y-2">
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#705c30] border-l-[#705c30] ring-1 ring-[#705c30]/20' : 'border-[#e8dfcf] border-l-[#705c30]'} card-3d space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-[#705c30] bg-[#fdf8f0] px-2 py-0.5 rounded uppercase border border-[#ebe0ca] badge-3d flex items-center gap-1">
-                <span class="material-symbols-outlined text-[13px] text-[#705c30]">settings_suggest</span> Settings Updated
-              </span>
-              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#fdf8f0] text-[#705c30] border border-[#ebe0ca] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px]">settings_suggest</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#705c30] bg-[#fdf8f0] px-2 py-0.5 rounded uppercase border border-[#ebe0ca] badge-3d">
+                  ⚙️ System Config
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#705c30] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
             </div>
             <div>
               <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Settings Changed'}</p>
               <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
-              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
+              <div class="flex items-center gap-2 mt-2 text-[10px] text-[#68736a] flex-wrap">
                 <span class="font-medium text-[#2c332d]">👤 By: <strong>${n.author || 'Administrator'}</strong></span>
                 <span>•</span>
-                <span class="text-[#4a7c59] font-medium">Applied for all users</span>
+                <span class="text-[#4a7c59] font-medium">Applied institution-wide</span>
               </div>
             </div>
           </div>
         `;
       }
 
-      if (n.type === 'sheet_synced') {
+      // Category: Spreadsheet Sync
+      if (n.type === 'sheet_synced' || n.id === 'notif-sync-1') {
         return `
-          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#4a7c59] ring-1 ring-[#4a7c59]/20' : 'border-[#d8e5dc]'} card-3d space-y-2">
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#4a7c59] border-l-[#4a7c59] ring-1 ring-[#4a7c59]/20' : 'border-[#d8e5dc] border-l-[#4a7c59]'} card-3d space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-[#2d4d37] bg-[#eef4f0] px-2 py-0.5 rounded uppercase border border-[#cde0d3] badge-3d flex items-center gap-1">
-                <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">table_chart_view</span> Spreadsheet Synced
-              </span>
-              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px]">table_chart_view</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#2d4d37] bg-[#eef4f0] px-2 py-0.5 rounded uppercase border border-[#cde0d3] badge-3d">
+                  📊 Sheet Sync
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
             </div>
             <div>
               <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Spreadsheet Synced'}</p>
               <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
-              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
-                <span class="font-medium text-[#2c332d]">👤 By: <strong>${n.author || 'Administrator'}</strong></span>
+              <div class="flex items-center gap-2 mt-2 text-[10px] text-[#68736a] flex-wrap">
+                <span class="font-medium text-[#2c332d]">👤 By: <strong>${n.author || 'Google Sheets Auto-Sync'}</strong></span>
                 <span>•</span>
                 <span class="text-[#4a7c59] font-medium">Visible across all logins</span>
               </div>
             </div>
+            ${n.id === 'notif-sync-1' ? `
+              <div class="pt-2 border-t border-[#e8e2d8] flex justify-end">
+                <button id="drawerSyncSheetBtn" class="text-xs font-bold text-[#4a7c59] hover:text-[#3b6347] flex items-center gap-1 cursor-pointer bg-transparent border-none">
+                  <span class="material-symbols-outlined text-[15px]">refresh</span> Sync Now
+                </button>
+              </div>
+            ` : ''}
           </div>
         `;
       }
 
+      // Category: WhatsApp Dispatch
       if (n.type === 'whatsapp_reminder_sent') {
         return `
-          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#25D366] shadow-xs' : 'border-[#d8e5dc]'} card-3d space-y-2">
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#25D366] border-l-[#25D366] shadow-xs' : 'border-[#d8e5dc] border-l-[#25D366]'} card-3d space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-[#1b7a3e] bg-[#eefbf3] px-2 py-0.5 rounded uppercase border border-[#c2ecd0] badge-3d flex items-center gap-1">
-                <span class="material-symbols-outlined text-[13px] text-[#25D366]">chat</span> Automated WhatsApp Dispatched
-              </span>
-              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px] text-[#25D366]">chat</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#1b7a3e] bg-[#eefbf3] px-2 py-0.5 rounded uppercase border border-[#c2ecd0] badge-3d">
+                  💬 WhatsApp Alert
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#25D366] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
             </div>
             <div>
               <p class="text-xs font-bold text-[#2c332d]">${n.topic || 'Medical Class Reminder'}</p>
@@ -6556,11 +6544,11 @@ class AdminDashboardController {
                 Recipient: <strong class="text-[#2c332d]">${n.facultyName || 'Faculty'}</strong> (<span class="font-mono text-[#1b7a3e] font-semibold">${n.recipientPhone || 'Registered Mobile'}</span>)
               </p>
               <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
-                <span class="font-medium text-[#2c332d]">⏰ ${n.timings || '7:00 PM'}</span>
+                <span class="font-medium text-[#2c332d]">⏰ ${n.timings || 'Scheduled Slot'}</span>
                 <span>•</span>
                 <span class="bg-[#f4efe6] px-1.5 py-0.2 rounded border border-[#ded5c6]">Lead: ${n.leadDurationText || '30 Mins'}</span>
                 <span>•</span>
-                <span class="text-[#25D366] font-medium">🛡️ Anti-Bot Safe Jitter</span>
+                <span class="text-[#25D366] font-medium">🛡️ Anti-Bot Safe</span>
               </div>
             </div>
             <div class="pt-2 border-t border-[#e8e2d8] flex items-center justify-between">
@@ -6578,14 +6566,23 @@ class AdminDashboardController {
         `;
       }
 
+      // Category: Automated Email Reminder
       if (n.type === 'email_reminder_sent') {
         return `
-          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border ${isUnread ? 'border-[#4a7c59] shadow-xs' : 'border-[#d8e5dc]'} card-3d space-y-2">
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#c26d3e] border-l-[#c26d3e] shadow-xs' : 'border-[#eed9cc] border-l-[#c26d3e]'} card-3d space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded uppercase border border-[#eed9cc] badge-3d flex items-center gap-1">
-                <span class="material-symbols-outlined text-[13px]">forward_to_inbox</span> Automated Email Dispatched
-              </span>
-              <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#fbf3ec] text-[#c26d3e] border border-[#eed9cc] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px]">forward_to_inbox</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded uppercase border border-[#eed9cc] badge-3d">
+                  ✉️ Class Email Reminder
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#c26d3e] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
             </div>
             <div>
               <p class="text-xs font-bold text-[#2c332d]">${n.topic || 'Medical Class Reminder'}</p>
@@ -6593,7 +6590,7 @@ class AdminDashboardController {
                 Recipient: <strong class="text-[#2c332d]">${n.facultyName || 'Faculty'}</strong> (<span class="font-mono text-[#4a7c59] font-medium">${n.recipientEmail}</span>)
               </p>
               <div class="flex items-center gap-2 mt-1.5 text-[10px] text-[#68736a] flex-wrap">
-                <span class="font-medium text-[#2c332d]">⏰ ${n.timings || '7:00 PM'}</span>
+                <span class="font-medium text-[#2c332d]">⏰ ${n.timings || 'Scheduled Slot'}</span>
                 <span>•</span>
                 <span class="bg-[#f4efe6] px-1.5 py-0.2 rounded border border-[#ded5c6]">Lead: ${n.leadDurationText || '30 Mins'}</span>
                 <span>•</span>
@@ -6610,24 +6607,79 @@ class AdminDashboardController {
         `;
       }
 
-      // Default system alert
-      return `
-        <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-[#d8e5dc] card-3d space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded uppercase border border-[#cde0d3] badge-3d">
-              ${n.title || 'System Alert'}
-            </span>
-            <span class="text-[10px] text-[#8b958c]">${timeAgo}</span>
-          </div>
-          <p class="text-xs font-bold text-[#2c332d]">${n.title}</p>
-          <p class="text-[11px] text-[#576058] leading-relaxed">${n.body}</p>
-          ${n.id === 'notif-sync-1' ? `
-            <div class="mt-2.5 pt-2 border-t border-[#e8e2d8] flex justify-end">
-              <button id="drawerSyncSheetBtn" class="text-xs font-bold text-[#4a7c59] hover:text-[#3b6347] flex items-center gap-1 cursor-pointer bg-transparent border-none">
-                <span class="material-symbols-outlined text-[16px]">refresh</span> Sync Now
-              </button>
+      // Category: Faculty Directory / Onboarding mutation
+      if (n.type === 'faculty_onboarding' || n.type === 'faculty_updated') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#335c96] border-l-[#335c96] ring-1 ring-[#335c96]/20' : 'border-[#d2def5] border-l-[#335c96]'} card-3d space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#f0f4fc] text-[#335c96] border border-[#c5d8f7] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px]">shield_person</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#2b528a] bg-[#f0f4fc] px-2 py-0.5 rounded uppercase border border-[#d2def5] badge-3d">
+                  👤 Faculty Directory
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#335c96] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
             </div>
-          ` : ''}
+            <div>
+              <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Faculty Directory Updated'}</p>
+              <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // Category: Schedule Request / Reschedule / Cancellation
+      if (n.type === 'reschedule_request' || n.type === 'class_rescheduled' || n.type === 'class_cancelled') {
+        return `
+          <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#8e294b] border-l-[#8e294b] ring-1 ring-[#8e294b]/20' : 'border-[#f5c7d8] border-l-[#8e294b]'} card-3d space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-[#fbf0f4] text-[#8e294b] border border-[#f5c7d8] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[16px]">event_repeat</span>
+                </div>
+                <span class="text-[10px] font-bold text-[#8e294b] bg-[#fbf0f4] px-2 py-0.5 rounded uppercase border border-[#f5c7d8] badge-3d">
+                  📅 Class Schedule
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#8e294b] animate-pulse"></span>' : ''}
+                <span class="text-[10px] text-[#8b958c] font-medium">${timeAgo}</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-[#2c332d]">${n.title || 'Schedule Request'}</p>
+              <p class="text-[11px] text-[#576058] mt-0.5 leading-snug">${n.body}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // Default System Notice
+      return `
+        <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-l-4 ${isUnread ? 'border-[#4a7c59] border-l-[#4a7c59]' : 'border-[#d8e5dc] border-l-[#68736a]'} card-3d space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-[#f4efe6] text-[#576058] border border-[#ded5c6] flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[16px]">notifications_active</span>
+              </div>
+              <span class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded uppercase border border-[#cde0d3] badge-3d">
+                🔔 System Notice
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              ${isUnread ? '<span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>' : ''}
+              <span class="text-[10px] text-[#8b958c]">${timeAgo}</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-[#2c332d]">${n.title || 'System Notice'}</p>
+            <p class="text-[11px] text-[#576058] leading-relaxed mt-0.5">${n.body}</p>
+          </div>
         </div>
       `;
     }).join('');

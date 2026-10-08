@@ -755,21 +755,11 @@
           </button>
         </div>
 
-        <!-- Notification Filters & Controls -->
+        <!-- Unified Notifications Header -->
         <div class="mt-4 flex items-center justify-between px-0.5 border-b border-[#ece5d8] pb-2.5">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <button type="button" id="btnAdminNotifFilterAll" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] cursor-pointer">
-              All Alerts
-            </button>
-            <button type="button" id="btnAdminNotifFilterSystem" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1">
-              <span class="material-symbols-outlined text-[13px] text-[#4a7c59]">sync</span> Settings &amp; Sheets
-            </button>
-            <button type="button" id="btnAdminNotifFilterEmails" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer">
-              Email Reminders
-            </button>
-            <button type="button" id="btnAdminNotifFilterWhatsApp" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#576058] hover:bg-[#f4efe6] border border-transparent cursor-pointer flex items-center gap-1">
-              <span class="material-symbols-outlined text-[14px] text-[#25D366]">chat</span> WhatsApp
-            </button>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-[#2c332d]">All Live Notifications</span>
+            <span id="adminNotifTotalBadge" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3] badge-3d">Activity Stream</span>
           </div>
           <button type="button" id="adminMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent whitespace-nowrap">
             Mark all read
