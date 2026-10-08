@@ -27,7 +27,12 @@ export function renderBatchBadge(batchName) {
     colorClasses = 'bg-[#eaf4f8] text-[#1c6e8c] border-[#c8e2ec]';
   }
 
-  return `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses} shrink-0">${tag}</span>`;
+  // Long custom batch names are cut by CSS (not mid-word dots) so the platform icons beside it always fit
+  const known = /Prarambh|Sushruta|INI-CET|INICET|FMGE/.test(batchName);
+  const label = known ? tag : batchName;
+  const safe = String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const title = String(batchName).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<span class="inline-block max-w-[84px] truncate align-middle text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses}" title="${title}">${safe}</span>`;
 }
 
 export function renderPlatformBadges(ev, options = { compact: false }) {
