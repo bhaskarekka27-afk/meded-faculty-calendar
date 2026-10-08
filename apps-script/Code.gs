@@ -1150,6 +1150,7 @@ function sendEmailViaAppsScript_(data) {
   var htmlBody = String(data.htmlBody || data.emailHtml || data.html || '').trim();
   var name = String(data.name || data.senderName || 'PW MedEd Academic Directorate').trim();
   var replyTo = String(data.replyTo || data.from || data.senderEmail || '').trim();
+  var requestedFrom = String(data.from || data.senderEmail || '').trim();
 
   if (!to) {
     return { ok: false, error: 'Recipient email address (to) is missing.' };
@@ -1166,17 +1167,36 @@ function sendEmailViaAppsScript_(data) {
       mailOptions.replyTo = replyTo;
     }
 
-    MailApp.sendEmail(mailOptions);
+    // If an alias matches configured Gmail send-as aliases, send with from alias
+    var aliasSent = false;
+    if (requestedFrom && requestedFrom.indexOf('@') > 0 && typeof GmailApp !== 'undefined') {
+      try {
+        var aliases = GmailApp.getAliases ? GmailApp.getAliases() : [];
+        if (aliases && aliases.indexOf(requestedFrom) !== -1) {
+          mailOptions.from = requestedFrom;
+          GmailApp.sendEmail(to, subject, '', mailOptions);
+          aliasSent = true;
+        }
+      } catch (aliasErr) {
+        Logger.log('Alias lookup note: ' + aliasErr.message);
+      }
+    }
+
+    if (!aliasSent) {
+      MailApp.sendEmail(mailOptions);
+    }
 
     return {
       ok: true,
       success: true,
       recipient: to,
       subject: subject,
+      senderName: name,
+      replyTo: replyTo,
       sentAt: new Date().toISOString()
     };
   } catch (err) {
-    Logger.log('MailApp.sendEmail error: ' + err.message);
+    Logger.log('Apps Script send email error: ' + err.message);
     return {
       ok: false,
       error: String((err && err.message) || err)
