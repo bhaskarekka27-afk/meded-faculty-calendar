@@ -4,6 +4,7 @@
  */
 
 import { BatchManager, detectGoogleSheetTabs } from './sheetConnector.js';
+import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
 
 startSharedSettingsSync();
@@ -563,6 +564,7 @@ class AdminDashboardController {
     // Toggle Batch Dropdown
     batchPill?.addEventListener('click', (e) => {
       e.stopPropagation();
+      this.updateHeaderBatchSelector();
       batchDropdown?.classList.toggle('hidden');
     });
 
@@ -949,7 +951,10 @@ class AdminDashboardController {
 
     const dropdownList = document.getElementById('adminBatchDropdownList');
     if (dropdownList) {
-      const batches = this.batchManager.getBatches();
+      let batches = this.batchManager.getBatches();
+      if (!batches || !Array.isArray(batches) || batches.length === 0) {
+        batches = DEFAULT_BATCHES;
+      }
       const isAllSelected = this.currentBatchId === 'all';
       const allEvents = this.batchManager.getAllEvents('all');
       const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;

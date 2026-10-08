@@ -14,6 +14,7 @@
  */
 
 import { BatchManager } from './sheetConnector.js';
+import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
 
 startSharedSettingsSync();
@@ -211,6 +212,7 @@ export class FacultyDashboardController {
     // Batch Dropdown Toggle
     this.batchPill?.addEventListener('click', (e) => {
       e.stopPropagation();
+      this.populateBatchDropdown();
       this.batchDropdown?.classList.toggle('hidden');
       this.profileDropdown?.classList.add('hidden');
     });
@@ -293,9 +295,13 @@ export class FacultyDashboardController {
    * classes stay hidden from the dropdown and calendar.
    */
   getVisibleBatches() {
-    const all = this.batchManager.getBatches();
+    let all = this.batchManager.getBatches();
+    if (!all || !Array.isArray(all) || all.length === 0) {
+      all = DEFAULT_BATCHES;
+    }
     if (this.isAllFacultyView()) return all;
-    return all.filter(b => this.countMyClasses(b) > 0);
+    const matched = all.filter(b => this.countMyClasses(b) > 0);
+    return matched.length > 0 ? matched : all;
   }
 
   populateBatchDropdown() {
