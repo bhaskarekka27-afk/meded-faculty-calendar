@@ -7195,9 +7195,37 @@ class AdminDashboardController {
     const liveStatusText = document.getElementById('waLiveStatusText');
 
     let pollInterval = null;
+    let pairingActive = false;
+    const qrMessage = document.getElementById('waQrMessage');
+    const gatewayInput = document.getElementById('waGatewayUrl');
+    const gatewaySave = document.getElementById('btnSaveWAGateway');
+    if (gatewayInput) gatewayInput.value = reminderEmailService.getWhatsAppGatewayBase();
+
+    const stopPolling = () => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } };
+    const showMessage = (text, isError) => {
+      if (!qrMessage) return;
+      qrMessage.textContent = text || '';
+      qrMessage.className = `text-[11px] font-semibold text-center max-w-xs mx-auto ${isError ? 'text-[#9b2c2c]' : 'text-[#576058]'} ${text ? '' : 'hidden'}`;
+    };
 
     const updateStatusUI = (statusData) => {
       if (!liveStatusPill || !liveStatusText) return;
+
+      if (statusData && statusData.unreachable) {
+        liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#fef9e7] text-[#8f6b00] border border-[#f5e6a4] flex items-center gap-1.5 badge-3d';
+        liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#e6a800]"></span><span>Gateway offline</span>';
+        if (startPairingBtn) startPairingBtn.classList.remove('hidden');
+        if (unlinkBtn) unlinkBtn.classList.add('hidden');
+        stopPolling();
+        if (pairingActive) {
+          // keep the panel open and say why there is no QR
+          if (pairingContainer) pairingContainer.classList.remove('hidden');
+          if (qrLoader) qrLoader.classList.add('hidden');
+          if (qrImage) qrImage.classList.add('hidden');
+          showMessage(statusData.error, true);
+        }
+        return;
+      }
 
       if (statusData && statusData.connected) {
         liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] flex items-center gap-1.5 badge-3d';
@@ -7216,6 +7244,7 @@ class AdminDashboardController {
         if (startPairingBtn) startPairingBtn.classList.remove('hidden');
         if (unlinkBtn) unlinkBtn.classList.add('hidden');
         if (pairingContainer) pairingContainer.classList.remove('hidden');
+        showMessage('');
         if (qrLoader) qrLoader.classList.add('hidden');
         if (qrImage) {
           qrImage.src = statusData.qrDataUrl;
@@ -7229,7 +7258,12 @@ class AdminDashboardController {
         liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#e53e3e]"></span><span>Not Paired</span>';
         if (startPairingBtn) startPairingBtn.classList.remove('hidden');
         if (unlinkBtn) unlinkBtn.classList.add('hidden');
-        if (pairingContainer) pairingContainer.classList.add('hidden');
+        // While a pairing attempt is running the panel stays open (the gateway briefly reports DISCONNECTED between retries)
+        if (pairingActive) {
+          if (statusData && statusData.lastError) showMessage(statusData.lastError, true);
+        } else if (pairingContainer) {
+          pairingContainer.classList.add('hidden');
+        }
       }
     };
 
@@ -7239,18 +7273,28 @@ class AdminDashboardController {
       return statusData;
     };
 
+    gatewaySave?.addEventListener('click', async () => {
+      reminderEmailService.setWhatsAppGatewayBase(gatewayInput ? gatewayInput.value : '');
+      const s = await checkStatus();
+      this.showToast(s && s.unreachable ? 'Saved, but that gateway cannot be reached.' : 'WhatsApp gateway address saved.');
+    });
+
     startPairingBtn?.addEventListener('click', async () => {
+      pairingActive = true;
+      showMessage('');
       if (pairingContainer) pairingContainer.classList.remove('hidden');
       if (qrLoader) qrLoader.classList.remove('hidden');
       if (qrImage) qrImage.classList.add('hidden');
 
       const initRes = await reminderEmailService.initWhatsAppBackendPairing(false);
       updateStatusUI(initRes);
+      if (initRes && initRes.unreachable) return;
 
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
         const s = await checkStatus();
         if (s && s.connected) {
+          pairingActive = false;
           this.showToast(`🎉 WhatsApp linked successfully! Node: +${s.connectedNumber}`);
           clearInterval(pollInterval);
           pollInterval = null;
@@ -7259,6 +7303,7 @@ class AdminDashboardController {
     });
 
     closePairingBtn?.addEventListener('click', () => {
+      pairingActive = false;
       if (pairingContainer) pairingContainer.classList.add('hidden');
       if (pollInterval) {
         clearInterval(pollInterval);

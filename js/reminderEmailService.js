@@ -1005,40 +1005,61 @@ export class ReminderEmailService {
   }
 
   // --- 6. WhatsApp Helpers, Anti-Bot Queued Dispatch Engine & Headless Backend Bridge ---
-  async getWhatsAppBackendStatus() {
+  /** Base URL of the Node gateway (server.cjs). Empty = same origin. Set it when the portal is on a static host. */
+  getWhatsAppGatewayBase() {
     try {
-      const res = await fetch('/api/whatsapp/status');
-      if (res.ok) return await res.json();
-    } catch (_) {}
-    return { status: 'DISCONNECTED', connected: false };
+      const v = (typeof localStorage !== 'undefined' && localStorage.getItem('meded_whatsapp_gateway_url')) || '';
+      return String(v).trim().replace(/\/+$/, '');
+    } catch (_) { return ''; }
+  }
+
+  setWhatsAppGatewayBase(url) {
+    try { localStorage.setItem('meded_whatsapp_gateway_url', String(url || '').trim()); } catch (_) {}
+  }
+
+  async whatsAppGatewayCall(path, options) {
+    const base = this.getWhatsAppGatewayBase();
+    const gatewayDown = (why) => ({
+      status: 'GATEWAY_OFFLINE', connected: false, unreachable: true,
+      error: base
+        ? `Cannot reach the WhatsApp gateway at ${base} (${why}). Check that the server is running and the address is correct.`
+        : `The WhatsApp gateway is not available on this site (${why}). WhatsApp linking needs the Node server (server.cjs / run-local.bat), which a static Render site does not run. Start it, or paste its https:// address in "Gateway server URL" below.`
+    });
+    try {
+      const res = await fetch(`${base}${path}`, options);
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (_) {}
+      if (!data || typeof data !== 'object') return gatewayDown(res.ok ? 'it answered with a web page, not the gateway' : `HTTP ${res.status}`);
+      if (!res.ok && !data.status) return { status: 'DISCONNECTED', connected: false, lastError: data.error || `HTTP ${res.status}` };
+      return data;
+    } catch (e) {
+      return gatewayDown((e && e.message) || 'network error');
+    }
+  }
+
+  async getWhatsAppBackendStatus() {
+    return this.whatsAppGatewayCall('/api/whatsapp/status');
   }
 
   async initWhatsAppBackendPairing(forceNew = false) {
-    try {
-      const res = await fetch('/api/whatsapp/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forceNew })
-      });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-    return { status: 'DISCONNECTED', error: 'Failed to reach local server' };
+    return this.whatsAppGatewayCall('/api/whatsapp/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ forceNew })
+    });
   }
 
   async unlinkWhatsAppBackendDevice() {
-    try {
-      const res = await fetch('/api/whatsapp/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (res.ok) return await res.json();
-    } catch (_) {}
-    return { status: 'DISCONNECTED' };
+    return this.whatsAppGatewayCall('/api/whatsapp/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   async sendWhatsAppBackendMessage(phone, message, meta = {}) {
     try {
-      const res = await fetch('/api/whatsapp/send', {
+      const res = await fetch(`${this.getWhatsAppGatewayBase()}/api/whatsapp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, message, ...meta })

@@ -1,0 +1,10 @@
+globalThis.localStorage={s:{},getItem(k){return this.s[k]??null},setItem(k,v){this.s[k]=String(v)}};
+globalThis.window={addEventListener(){},dispatchEvent(){return true}};globalThis.CustomEvent=class{};
+const {reminderEmailService:r}=await import('./js/reminderEmailService.js');
+const T=async(name,f,exp)=>{globalThis.fetch=f;const o=await r.getWhatsAppBackendStatus();console.log(o.unreachable===exp?'ok  ':'FAIL',name,o.status,(o.error||'').slice(0,60))};
+await T('404 html',async()=>({ok:false,status:404,text:async()=>'<html>Not found</html>'}),true);
+await T('200 html fallback',async()=>({ok:true,status:200,text:async()=>'<!doctype html>'}),true);
+await T('network',async()=>{throw new TypeError('Failed to fetch')},true);
+await T('real gateway',async()=>({ok:true,status:200,text:async()=>JSON.stringify({status:'QR_READY',hasQr:true,qrDataUrl:'data:x'})}),undefined);
+r.setWhatsAppGatewayBase('https://gw.example.com/');let u;globalThis.fetch=async x=>{u=x;return{ok:true,status:200,text:async()=>'{"status":"DISCONNECTED"}'}};await r.getWhatsAppBackendStatus();console.log(u==='https://gw.example.com/api/whatsapp/status'?'ok  ':'FAIL','base url',u);
+process.exit(0);
