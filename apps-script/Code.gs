@@ -79,7 +79,7 @@ function test_email_permissions() {
     to: activeUser,
     subject: '[PW MedEd] Apps Script Email Authorization Verified',
     htmlBody: '<h3>PW MedEd Apps Script Email Service Active</h3><p>MailApp.sendEmail is authorized and ready for live class reminder dispatches.</p>',
-    name: 'PW MedEd Academic Directorate',
+    name: 'PW MedEd Class Reminder',
     from: activeUser
   });
   Logger.log('Email Test Result: ' + JSON.stringify(res, null, 2));
@@ -1177,7 +1177,7 @@ function sendEmailViaAppsScript_(data) {
   var to = String(data.to || data.recipientEmail || data.recipient || '').trim();
   var subject = String(data.subject || '[PW MedEd] Class Reminder').trim();
   var htmlBody = String(data.htmlBody || data.emailHtml || data.html || '').trim();
-  var name = String(data.name || data.senderName || 'PW MedEd Academic Directorate').trim();
+  var name = String(data.name || data.senderName || 'PW MedEd Class Reminder').trim();
   var replyTo = String(data.replyTo || data.from || data.senderEmail || '').trim();
   var requestedFrom = String(data.from || data.senderEmail || '').trim();
 

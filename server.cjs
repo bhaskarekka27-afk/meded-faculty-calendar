@@ -674,7 +674,7 @@ async function handleEmailApi(req, res) {
         const subject = data.subject || '[PW MedEd] Class Reminder';
         const html = data.html || data.emailHtml || data.htmlBody || '';
         const senderEmail = data.from || data.senderEmail || '';
-        const senderName = data.name || data.senderName || 'PW MedEd Academic Directorate';
+        const senderName = data.name || data.senderName || 'PW MedEd Class Reminder';
         let scriptUrl = (data.scriptUrl || data.endpoint || '').trim();
         const token = (data.token || 'pw-meded-token-2026').trim();
 

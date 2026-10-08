@@ -20,6 +20,33 @@ import {
   exportFacultyOnboardingAsCode 
 } from './facultyOnboardingData.js';
 
+/** Display name shown as the sender of reminder emails. */
+export const EMAIL_SENDER_NAME = 'PW MedEd Class Reminder';
+
+/** Always use the current sender name (older saved values / callers still pass the previous one). */
+function emailSenderName(name) {
+  const n = String(name || '').trim();
+  if (!n || /^PW MedEd Academic Directorate$/i.test(n)) return EMAIL_SENDER_NAME;
+  return n;
+}
+
+/**
+ * Turn the editable preview markup into what is actually mailed: no editing attributes,
+ * and a complete HTML document (the preview only has the body fragment).
+ */
+export function prepareEmailHtmlForSend(html) {
+  let out = String(html || '')
+    .replace(/\scontenteditable="[^"]*"/gi, '')
+    .replace(/\stitle="Click to edit[^"]*"/gi, '')
+    .replace(/user-select:\s*none;?\s*/gi, '')
+    .replace(/outline:\s*none;\s*cursor:\s*text;?\s*/gi, '');
+  if (!/<html[\s>]/i.test(out)) {
+    out = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+      '<body style="margin:0;padding:0;background-color:#f1ede4;">' + out + '</body></html>';
+  }
+  return out;
+}
+
 export class ReminderEmailService {
   constructor() {
     this.SETTINGS_KEY = 'meded_email_settings';
@@ -29,7 +56,7 @@ export class ReminderEmailService {
 
     this.defaultSettings = {
       senderEmail: 'academic-reminders@pwmeded.edu.in',
-      senderName: 'PW MedEd Academic Directorate',
+      senderName: EMAIL_SENDER_NAME,
       replyTo: 'dean.office@pwmeded.edu.in',
       leadDurationMinutes: 30, // Default: 30 minutes prior to class
       leadDurationUnit: 'minutes',
@@ -462,279 +489,123 @@ export class ReminderEmailService {
 
   // --- 3. Email Template Generation (Matching PW MedEd 3D Portal Theme) ---
   generateEmailHtml({ facultyName, facultyEmail, senderEmail, event, leadDurationText }) {
-    const topic = event.topic || event.chapter || event.displayTitle || 'Medical Clinical Lecture';
-    const subject = event.subject || 'Biochemistry';
-    const batch = event.batchName || 'Prarambh 2026 Batch • MBBS 1st Year';
-    const dateRaw = event.dateRaw || event.isoDate || '2026-10-15';
-    const timings = event.timings || '7:00 PM - 9:00 PM';
-    const duration = event.duration || '2 Hours';
+    // Every style is inline and the layout is table-based: Gmail/Outlook drop <style> blocks and
+    // flex/grid, and the preview editor re-serialises the markup with innerHTML (which also loses
+    // <head> styles). That is why the delivered email used to arrive as unstyled plain text.
+    const esc = (v) => String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const topic = esc(event.topic || event.chapter || event.displayTitle || 'Medical Clinical Lecture');
+    const subject = esc(event.subject || 'Biochemistry');
+    const batch = esc(event.batchName || 'Prarambh 2026 Batch • MBBS 1st Year');
+    const dateRaw = esc(event.dateRaw || event.isoDate || '2026-10-15');
+    const timings = esc(event.timings || '7:00 PM - 9:00 PM');
+    const duration = esc(event.duration || '2 Hours');
+    const name = esc(facultyName);
+    const lead = esc(leadDurationText);
 
     const primary = '#4a7c59';
     const primaryDark = '#2d4d37';
-    const surfaceBg = '#fbf9f5';
-    const cardBg = '#ffffff';
-    const borderCol = '#ded5c6';
+    const pageBg = '#f1ede4';
+    const cardBorder = '#e3dccd';
     const textDark = '#2c332d';
-    const textMuted = '#576058';
+    const textMuted = '#68736a';
+    const labelCol = '#7a847b';
+    const font = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+    const detailRow = (icon, label, valueHtml, isLast) => `
+                <tr>
+                  <td style="padding:13px 0;${isLast ? '' : 'border-bottom:1px solid #ece6d9;'}">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="40%" valign="top" style="font-family:${font};font-size:11px;font-weight:700;letter-spacing:0.7px;text-transform:uppercase;color:${labelCol};padding-right:12px;">${icon}&nbsp; ${label}</td>
+                        <td valign="top" style="font-family:${font};font-size:14px;font-weight:600;line-height:1.5;color:${textDark};">${valueHtml}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>`;
 
     return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
   <title>Class Reminder: ${topic}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: ${surfaceBg};
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: ${textDark};
-      line-height: 1.5;
-    }
-    .wrapper {
-      max-width: 600px;
-      margin: 20px auto;
-      padding: 0 16px;
-    }
-    .email-card {
-      background: ${cardBg};
-      border-radius: 18px;
-      border: 1px solid ${borderCol};
-      overflow: hidden;
-      box-shadow: 0 8px 30px -4px rgba(44, 51, 45, 0.08), 0 2px 8px -1px rgba(44, 51, 45, 0.04);
-    }
-    .header-banner {
-      background: linear-gradient(135deg, ${primaryDark} 0%, ${primary} 100%);
-      color: #ffffff;
-      padding: 22px 26px;
-      border-bottom: 2px solid #3d6b4b;
-    }
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .brand-title {
-      font-size: 19px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .badge-reminder {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .lead-notice {
-      background: #eef4f0;
-      border-left: 4px solid ${primary};
-      padding: 12px 18px;
-      margin: 18px 22px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      color: ${primaryDark};
-      font-weight: 600;
-    }
-    .content-section {
-      padding: 0 22px 22px;
-    }
-    .session-card {
-      background: #faf7f2;
-      border: 1px solid ${borderCol};
-      border-radius: 14px;
-      padding: 16px 18px;
-      margin-top: 12px;
-    }
-    .topic-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: ${textDark};
-      margin: 0 0 10px 0;
-      line-height: 1.35;
-    }
-    .info-grid {
-      display: table;
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 6px;
-    }
-    .info-row {
-      display: table-row;
-    }
-    .info-cell-label {
-      display: table-cell;
-      padding: 5px 0;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: ${textMuted};
-      width: 35%;
-      letter-spacing: 0.3px;
-    }
-    .info-cell-val {
-      display: table-cell;
-      padding: 5px 0;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: ${textDark};
-    }
-    .badge-subject {
-      display: inline-block;
-      background: #eef4f0;
-      color: ${primaryDark};
-      border: 1px solid #cde0d3;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .actions-container {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid #e8e2d8;
-      text-align: center;
-    }
-    .btn-primary {
-      display: inline-block;
-      background: ${primary};
-      color: #ffffff !important;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 12.5px;
-      padding: 10px 22px;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(74, 124, 89, 0.3);
-      margin: 4px;
-    }
-    .btn-secondary {
-      display: inline-block;
-      background: #ffffff;
-      color: ${textDark} !important;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 12px;
-      padding: 9px 16px;
-      border-radius: 10px;
-      border: 1px solid ${borderCol};
-      margin: 4px;
-    }
-    .footer {
-      background: #f4efe6;
-      border-top: 1px solid ${borderCol};
-      padding: 16px 20px;
-      font-size: 11px;
-      color: ${textMuted};
-      text-align: center;
-      line-height: 1.5;
-    }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="email-card">
-      
-      <!-- Top Brand Header -->
-      <div class="header-banner">
-        <div class="header-top">
-          <h1 class="brand-title">🩺 PW MedEd</h1>
-          <span class="badge-reminder" contenteditable="true" title="Click to edit badge text">Class Reminder • ${leadDurationText} Prior</span>
-        </div>
-        <div style="font-size: 11px; opacity: 0.95; font-weight: 500;" contenteditable="true" title="Click to edit subtitle">
-          Academic Directorate &amp; Curriculum Governance
-        </div>
-      </div>
+<body style="margin:0;padding:0;background-color:${pageBg};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:${pageBg};">Your lecture "${topic}" starts in ${lead}.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${pageBg}" style="background-color:${pageBg};">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid ${cardBorder};border-radius:18px;overflow:hidden;">
 
-      <!-- Lead Duration Alert Banner (Generic - Editable) -->
-      <div class="lead-notice" contenteditable="true" title="Click to edit generic alert text" style="outline: none; cursor: text;">
-        ⏰ <strong>Upcoming Lecture Alert:</strong> Your scheduled lecture is commencing in <strong>${leadDurationText}</strong>.
-      </div>
+          <!-- Brand header -->
+          <tr>
+            <td bgcolor="${primaryDark}" style="background-color:${primaryDark};background-image:linear-gradient(135deg,${primaryDark} 0%,${primary} 100%);padding:30px 30px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:${font};font-size:26px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">&#129658;&nbsp;PW MedEd</td>
+                </tr>
+                <tr>
+                  <td style="padding-top:14px;">
+                    <span contenteditable="true" title="Click to edit badge text" style="display:inline-block;background-color:#5d8c6b;border:1px solid #8fb39b;border-radius:999px;padding:6px 14px;font-family:${font};font-size:11px;font-weight:700;letter-spacing:0.7px;text-transform:uppercase;color:#ffffff;">Class Reminder &bull; ${lead} Prior</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-      <!-- Content Area -->
-      <div class="content-section">
-        <!-- Generic Greeting & Intro (Editable) -->
-        <div contenteditable="true" title="Click to edit generic greeting and intro" style="outline: none; cursor: text; padding: 4px; border-radius: 6px;">
-          <p style="margin: 4px 0 10px; font-size: 13.5px; color: ${textDark};">
-            Dear <strong>${facultyName}</strong>,
-          </p>
-          <p style="margin: 0 0 10px; font-size: 12.5px; color: ${textMuted};">
-            This is an automated institutional notification dispatched to your registered onboarding email (<strong>${facultyEmail}</strong>) regarding your upcoming session:
-          </p>
-        </div>
+          <!-- Lead-time alert (editable in preview) -->
+          <tr>
+            <td style="padding:26px 30px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td contenteditable="true" title="Click to edit generic alert text" style="background-color:#eef4f0;border-left:4px solid ${primary};border-radius:8px;padding:15px 18px;font-family:${font};font-size:14px;line-height:1.55;color:${primaryDark};">
+                    &#9200; <strong>Upcoming Lecture Alert:</strong> Your scheduled lecture is commencing in <strong>${lead}</strong>.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-        <!-- Lecture Details Card (Dynamic Class & Batch Parameters - LOCKED) -->
-        <div class="session-card" contenteditable="false" style="user-select: none;">
-          <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; color: #576058; background: #e8e2d8; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px;">
-            🔒 Dynamic Academic Timetable Details (Auto-Locked)
-          </div>
-          <div class="topic-title">${topic}</div>
-          
-          <div class="info-grid">
-            <div class="info-row">
-              <div class="info-cell-label">Subject</div>
-              <div class="info-cell-val">
-                <span class="badge-subject">${subject}</span>
-              </div>
-            </div>
-            <div class="info-row">
-              <div class="info-cell-label">Cohort &amp; Batch</div>
-              <div class="info-cell-val">${batch}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-cell-label">Date &amp; Day</div>
-              <div class="info-cell-val">${dateRaw}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-cell-label">Scheduled Timings</div>
-              <div class="info-cell-val" style="color: ${primaryDark}; font-family: monospace; font-weight: 700;">
-                ${timings} (${duration})
-              </div>
-            </div>
-            <div class="info-row">
-              <div class="info-cell-label">Registered Faculty</div>
-              <div class="info-cell-val">${facultyName} &lt;${facultyEmail}&gt;</div>
-            </div>
-          </div>
-        </div>
+          <!-- Greeting (editable in preview) -->
+          <tr>
+            <td contenteditable="true" title="Click to edit generic greeting and intro" style="padding:24px 30px 6px;font-family:${font};">
+              <p style="margin:0 0 10px;font-size:16px;line-height:1.5;color:${textDark};">Dear <strong>${name}</strong>,</p>
+              <p style="margin:0;font-size:14px;line-height:1.6;color:${textMuted};">This is an automated notification regarding your upcoming session:</p>
+            </td>
+          </tr>
 
-        <!-- Generic Checklist Instructions (Editable) -->
-        <div contenteditable="true" title="Click to edit checklist text" style="margin-top: 14px; font-size: 11.5px; color: ${textMuted}; background: #ffffff; border: 1px dashed ${borderCol}; border-radius: 10px; padding: 10px 12px; outline: none; cursor: text;">
-          📌 <strong>Faculty Checklist:</strong> Please ensure your lecture slides and clinical case demonstrations are loaded 10-15 minutes prior to live transmission. Attendance will be auto-synchronized via the PW MedEd Faculty Portal.
-        </div>
+          <!-- Session details (class parameters, not editable) -->
+          <tr>
+            <td style="padding:16px 30px 34px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" contenteditable="false" style="background-color:#faf7f2;border:1px solid #e8e0d2;border-radius:14px;">
+                <tr>
+                  <td style="padding:22px 24px 8px;">
+                    <div style="font-family:${font};font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:${primary};padding-bottom:8px;">Session Details</div>
+                    <div style="font-family:${font};font-size:19px;font-weight:700;line-height:1.35;color:${textDark};padding-bottom:10px;border-bottom:2px solid ${primary};">${topic}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 24px 10px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${detailRow('&#128214;', 'Subject', `<span style="display:inline-block;background-color:#eef4f0;color:${primaryDark};border:1px solid #cde0d3;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;">${subject}</span>`, false)}${detailRow('&#128101;', 'Cohort &amp; Batch', batch, false)}${detailRow('&#128197;', 'Date &amp; Day', dateRaw, false)}${detailRow('&#128338;', 'Scheduled Timings', `<span style="color:${primaryDark};font-weight:700;">${timings}</span> <span style="color:${labelCol};font-weight:600;">(${duration})</span>`, true)}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-        <!-- Action Links -->
-        <div class="actions-container">
-          <a href="/faculty.html" class="btn-primary">
-            📅 Open Faculty Portal
-          </a>
-        </div>
-      </div>
+          <!-- Brand accent bar -->
+          <tr>
+            <td bgcolor="${primary}" height="6" style="background-color:${primary};font-size:0;line-height:0;height:6px;">&nbsp;</td>
+          </tr>
 
-      <!-- Institutional Footer (Generic - Editable) -->
-      <div class="footer" contenteditable="true" title="Click to edit footer text" style="outline: none; cursor: text;">
-        <p style="margin: 0 0 5px;">
-          Generated by <strong>PW MedEd Automated Academic Notification System</strong>.
-        </p>
-        <p style="margin: 0 0 5px;">
-          From: <strong>${senderEmail}</strong> | Configured Lead: <strong>${leadDurationText} before session</strong>
-        </p>
-        <p style="margin: 0; font-size: 10px; color: #8b958c;">
-          PW MedEd Academic Directorate • NMC CBME Guidelines Compliant
-        </p>
-      </div>
-
-    </div>
-  </div>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
   }
@@ -834,7 +705,7 @@ export class ReminderEmailService {
       subject: subject,
       emailHtml: emailHtml,
       senderEmail: senderEmail,
-      senderName: customOptions.senderName || 'PW MedEd Academic Directorate',
+      senderName: emailSenderName(customOptions.senderName),
       force: customOptions.force || false
     }).catch(err => {
       console.warn('Google Apps Script email dispatch notice:', err);
@@ -861,6 +732,8 @@ export class ReminderEmailService {
    */
   async sendEmailViaAppsScript({ to, recipientName, subject, emailHtml, senderName, senderEmail, force = false }) {
     if (!to) return { success: false, error: 'Recipient email is required.' };
+    const mailHtml = prepareEmailHtmlForSend(emailHtml);
+    const displayName = emailSenderName(senderName);
 
     // Resolve Apps Script Web App URL and token
     let scriptUrl = '';
@@ -891,11 +764,11 @@ export class ReminderEmailService {
       recipientEmail: to,
       recipientName: recipientName || '',
       subject: subject || '[PW MedEd] Class Reminder',
-      html: emailHtml,
-      emailHtml: emailHtml,
-      htmlBody: emailHtml,
-      senderName: senderName || 'PW MedEd Academic Directorate',
-      name: senderName || 'PW MedEd Academic Directorate',
+      html: mailHtml,
+      emailHtml: mailHtml,
+      htmlBody: mailHtml,
+      senderName: displayName,
+      name: displayName,
       senderEmail: senderEmail || 'academic-reminders@pwmeded.edu.in',
       from: senderEmail || 'academic-reminders@pwmeded.edu.in',
       scriptUrl: scriptUrl,
@@ -936,9 +809,9 @@ export class ReminderEmailService {
           email: {
             to: to,
             subject: subject,
-            htmlBody: emailHtml,
-            name: senderName || 'PW MedEd Academic Directorate',
-            senderName: senderName || 'PW MedEd Academic Directorate',
+            htmlBody: mailHtml,
+            name: displayName,
+            senderName: displayName,
             from: senderEmail,
             replyTo: senderEmail
           }
