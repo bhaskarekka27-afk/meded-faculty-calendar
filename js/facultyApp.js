@@ -24,6 +24,34 @@ import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from 
 import { addFacultyRequest } from './requestsView.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, isInMonth, nearestMonthWithEvents } from './dateUtils.js';
 
+// ---- matching the logged-in faculty against the "Faculty" cell of a lecture row ----
+const NAME_NOISE = new Set(['dr', 'prof', 'professor', 'mr', 'ms', 'mrs', 'miss', 'sir', 'maam', 'mam', 'madam', 'er']);
+function nameTokens(str) {
+  return String(str || '').toLowerCase()
+    .replace(/ma['\u2019]?am/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t && !NAME_NOISE.has(t));
+}
+/**
+ * "Dr. Anusha Ma'am + Malvika" is two people. A row belongs to a faculty member when any
+ * of its names matches theirs: same words (ignoring Dr./Sir/Ma'am), e.g. the sheet's
+ * "Dr. Rajesh Sir" matches the logged-in "Dr. Rajesh Jambhulkar".
+ */
+export function facultyCellMatches(cell, me) {
+  const mine = String(me || '').toLowerCase().trim();
+  const text = String(cell || '').toLowerCase();
+  if (!mine || !text) return false;
+  if (text.includes(mine)) return true;
+  const myTokens = nameTokens(mine);
+  if (myTokens.length === 0) return false;
+  return text.split(/\s*(?:\+|&|,|\/|;|\band\b)\s*/).some(part => {
+    const pt = nameTokens(part);
+    if (pt.length === 0) return false;
+    return pt.every(t => myTokens.includes(t)) || myTokens.every(t => pt.includes(t));
+  });
+}
+
 export class FacultyDashboardController {
   constructor() {
     this.batchManager = new BatchManager();
@@ -281,8 +309,7 @@ export class FacultyDashboardController {
   isMyClass(ev) {
     if (!ev || ev.eventType !== 'class') return false;
     if (this.isAllFacultyView()) return true;
-    const me = (this.currentFaculty || '').toLowerCase().trim();
-    return Boolean(ev.faculty && ev.faculty.toLowerCase().includes(me));
+    return facultyCellMatches(ev.faculty, this.currentFaculty);
   }
 
   countMyClasses(batch) {
@@ -300,8 +327,18 @@ export class FacultyDashboardController {
       all = DEFAULT_BATCHES;
     }
     if (this.isAllFacultyView()) return all;
-    const matched = all.filter(b => this.countMyClasses(b) > 0);
-    return matched.length > 0 ? matched : all;
+    // Strict: only batches in which this faculty member actually has classes
+    return all.filter(b => this.countMyClasses(b) > 0);
+  }
+
+  /** Re-derive the batches this faculty can see and keep the selected batch valid. */
+  refreshVisibleBatches() {
+    this.batches = this.getVisibleBatches();
+    if (this.activeBatchId !== 'all' && !this.batches.some(b => b.id === this.activeBatchId)) {
+      this.activeBatchId = this.batches.length === 1 ? this.batches[0].id : 'all';
+    }
+    this.populateBatchDropdown();
+    this.populateMobileBatchDropdown();
   }
 
   populateBatchDropdown() {
@@ -312,7 +349,7 @@ export class FacultyDashboardController {
     const totalAllClasses = this.batches.reduce((n, b) => n + this.countMyClasses(b), 0);
     const isAllSelected = this.activeBatchId === 'all';
 
-    const appBatches = this.batches.filter(b => b.platform === 'app' || b.platform === 'youtube_app' || (!b.isYoutube && b.platform !== 'youtube'));
+    const appBatches = this.batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
     const ytBatches = this.batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
 
     const renderBatchButton = (batch) => {
@@ -474,6 +511,7 @@ export class FacultyDashboardController {
   switchFaculty(name, subject) {
     this.currentFaculty = name;
     this.facultySubject = subject || this.facultySubject;
+    this.refreshVisibleBatches();
     this.updateFacultyProfileUI();
     // Close profile dropdown immediately
     this.profileDropdown?.classList.add('hidden');
