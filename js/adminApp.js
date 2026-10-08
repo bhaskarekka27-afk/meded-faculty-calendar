@@ -6783,6 +6783,120 @@ class AdminDashboardController {
   }
 
   // --- 12b. Admin Settings Modal with Automated Email & WhatsApp Configuration ---
+  populateEmailSettingsFields(skipIfActive = false) {
+    const settings = reminderEmailService.getSettings();
+    const senderEmailInput = document.getElementById('settingSenderEmail');
+    const autoToggle = document.getElementById('settingAutoReminderToggle');
+    const statusBadge = document.getElementById('settingsStatusBadge');
+    const leadDurationNum = document.getElementById('settingLeadDurationNum');
+    const leadDurationUnit = document.getElementById('settingLeadDurationUnit');
+    const leadSummaryBadge = document.getElementById('settingLeadSummaryBadge');
+    const presetBtns = document.querySelectorAll('.btn-lead-preset');
+
+    const waToggle = document.getElementById('settingWhatsAppToggle');
+    const waStatusBadge = document.getElementById('settingsWhatsAppStatusBadge');
+    const waCadenceNum = document.getElementById('settingWhatsAppCadenceNum');
+    const waJitterNum = document.getElementById('settingWhatsAppJitterNum');
+    const waCadenceBadge = document.getElementById('settingWhatsAppCadenceBadge');
+    const waSenderNameInput = document.getElementById('settingWhatsAppSenderName');
+    const waSenderNumberInput = document.getElementById('settingWhatsAppSenderNumber');
+    const waCountryCodeSelect = document.getElementById('settingWhatsAppCountryCode');
+    const waPresetBtns = document.querySelectorAll('.btn-wa-cadence');
+
+    const appsScriptEmailUrlInput = document.getElementById('settingAppsScriptEmailUrl');
+    const emailScriptPill = document.getElementById('emailScriptLiveStatusPill');
+    const emailScriptText = document.getElementById('emailScriptLiveStatusText');
+
+    if (senderEmailInput && (!skipIfActive || document.activeElement !== senderEmailInput)) {
+      senderEmailInput.value = settings.senderEmail || 'academic-reminders@pwmeded.edu.in';
+    }
+    if (autoToggle) {
+      autoToggle.checked = settings.isEnabled !== false;
+      if (statusBadge) {
+        statusBadge.textContent = settings.isEnabled !== false ? 'Active' : 'Disabled';
+        statusBadge.className = settings.isEnabled !== false 
+          ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d'
+          : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
+      }
+    }
+
+    const val = settings.leadDurationValue || 30;
+    const unit = settings.leadDurationUnit || 'minutes';
+    const mins = unit === 'hours' ? val * 60 : val;
+
+    if (leadDurationNum && (!skipIfActive || document.activeElement !== leadDurationNum)) {
+      leadDurationNum.value = val;
+    }
+    if (leadDurationUnit && (!skipIfActive || document.activeElement !== leadDurationUnit)) {
+      leadDurationUnit.value = unit;
+    }
+    if (leadSummaryBadge) {
+      leadSummaryBadge.textContent = `${reminderEmailService.getLeadDurationText(mins)} Prior`;
+    }
+
+    presetBtns.forEach(b => {
+      const bVal = parseInt(b.getAttribute('data-val'), 10);
+      const bUnit = b.getAttribute('data-unit');
+      const matches = bVal === val && bUnit === unit;
+      b.className = matches 
+        ? 'btn-lead-preset active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#4a7c59] text-white border-[#3d6b4b] shadow-xs'
+        : 'btn-lead-preset py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#f4efe6] text-[#2c332d] border-[#ded5c6] hover:bg-[#ede7da]';
+    });
+
+    // Apps Script Email status and URL
+    const wbConfig = getSheetWriterConfig();
+    const effectiveUrl = settings.appsScriptUrl || wbConfig.endpoint || '';
+    if (appsScriptEmailUrlInput && (!skipIfActive || document.activeElement !== appsScriptEmailUrlInput)) {
+      appsScriptEmailUrlInput.value = effectiveUrl;
+    }
+    if (emailScriptText && emailScriptPill) {
+      const hasScript = Boolean(effectiveUrl && effectiveUrl.includes('script.google.com/macros/s/'));
+      emailScriptText.textContent = hasScript ? 'MailApp Relay Connected' : 'Apps Script Ready';
+      emailScriptPill.className = hasScript
+        ? 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center gap-1.5 badge-3d'
+        : 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#fdf8ed] text-[#8e6216] border border-[#eedab2] flex items-center gap-1.5 badge-3d';
+    }
+
+    // WhatsApp fields
+    if (waToggle) {
+      waToggle.checked = settings.whatsappEnabled !== false;
+      if (waStatusBadge) {
+        waStatusBadge.textContent = settings.whatsappEnabled !== false ? 'Active' : 'Disabled';
+        waStatusBadge.className = settings.whatsappEnabled !== false 
+          ? 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] badge-3d'
+          : 'text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#fdf2f2] text-[#b83230] border border-[#fed7d7] badge-3d';
+      }
+    }
+    const sec = settings.whatsappCadenceSeconds || 25;
+    const jitter = settings.whatsappJitterSeconds !== undefined ? settings.whatsappJitterSeconds : 10;
+    if (waCadenceNum && (!skipIfActive || document.activeElement !== waCadenceNum)) {
+      waCadenceNum.value = sec;
+    }
+    if (waJitterNum && (!skipIfActive || document.activeElement !== waJitterNum)) {
+      waJitterNum.value = jitter;
+    }
+    if (waCadenceBadge) {
+      waCadenceBadge.textContent = `${sec}s ± ${jitter}s Jitter (Anti-Bot Safe)`;
+    }
+    if (waSenderNameInput && (!skipIfActive || document.activeElement !== waSenderNameInput)) {
+      waSenderNameInput.value = settings.whatsappSenderName || 'PW MedEd Academic Directorate';
+    }
+    if (waSenderNumberInput && (!skipIfActive || document.activeElement !== waSenderNumberInput)) {
+      waSenderNumberInput.value = settings.whatsappSenderNumber || '94234 07557';
+    }
+    if (waCountryCodeSelect && (!skipIfActive || document.activeElement !== waCountryCodeSelect)) {
+      waCountryCodeSelect.value = settings.whatsappCountryCode || '+91';
+    }
+    waPresetBtns.forEach(b => {
+      const bSec = parseInt(b.getAttribute('data-sec'), 10);
+      const bJitter = parseInt(b.getAttribute('data-jitter'), 10);
+      const matches = bSec === sec && bJitter === jitter;
+      b.className = matches
+        ? 'btn-wa-cadence active py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-[#25D366] text-white border-[#1ebc57] shadow-xs'
+        : 'btn-wa-cadence py-1.5 px-2 rounded-lg text-[11px] font-bold text-center border transition-all cursor-pointer bg-white text-[#2c332d] border-[#cde0d3] hover:bg-[#eef4f0]';
+    });
+  }
+
   setupAdminSettingsModal() {
     const modal = document.getElementById('adminSettingsModal');
     const closeBtn = document.getElementById('closeAdminSettingsBtn');
@@ -6791,6 +6905,7 @@ class AdminDashboardController {
     const tabSheetBtn = document.getElementById('tabSettingsSheetBtn');
 
     const senderEmailInput = document.getElementById('settingSenderEmail');
+    const appsScriptEmailUrlInput = document.getElementById('settingAppsScriptEmailUrl');
     const autoToggle = document.getElementById('settingAutoReminderToggle');
     const statusBadge = document.getElementById('settingsStatusBadge');
     const leadDurationNum = document.getElementById('settingLeadDurationNum');
@@ -6833,6 +6948,7 @@ class AdminDashboardController {
     // Live auto-save helper
     const autoSaveSettings = () => {
       const senderEmail = (senderEmailInput?.value || '').trim();
+      const appsScriptUrl = (appsScriptEmailUrlInput?.value || '').trim();
       const isEnabled = autoToggle?.checked !== false;
       const val = parseInt(leadDurationNum?.value, 10) || 30;
       const unit = leadDurationUnit?.value || 'minutes';
@@ -6847,6 +6963,7 @@ class AdminDashboardController {
 
       reminderEmailService.saveSettings({
         senderEmail,
+        appsScriptUrl,
         isEnabled,
         leadDurationValue: val,
         leadDurationUnit: unit,
@@ -6867,6 +6984,13 @@ class AdminDashboardController {
     });
     senderEmailInput?.addEventListener('blur', autoSaveSettings);
     senderEmailInput?.addEventListener('change', autoSaveSettings);
+
+    appsScriptEmailUrlInput?.addEventListener('input', () => {
+      clearTimeout(emailDebounceTimer);
+      emailDebounceTimer = setTimeout(autoSaveSettings, 400);
+    });
+    appsScriptEmailUrlInput?.addEventListener('blur', autoSaveSettings);
+    appsScriptEmailUrlInput?.addEventListener('change', autoSaveSettings);
 
     // Email Toggle switch
     autoToggle?.addEventListener('change', () => {

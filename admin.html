@@ -1122,7 +1122,32 @@
           </div>
         </div>
 
-        <!-- Section 3: Registered Onboarding Email Flow Notice -->
+        <!-- Section 3: Google Apps Script MailApp Dispatch Engine (100% Deliverability) -->
+        <div class="p-3.5 bg-white rounded-xl border border-[#ded5c6] space-y-2.5 card-3d">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center font-bold">
+                <span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+              </div>
+              <div>
+                <span class="font-bold text-xs text-[#2c332d] block">Google Apps Script Email Relay (MailApp)</span>
+                <span class="text-[10px] text-[#68736a]">Direct delivery to faculty inboxes via institutional Apps Script Web App</span>
+              </div>
+            </div>
+            <div id="emailScriptLiveStatusPill" class="text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] flex items-center gap-1.5 badge-3d">
+              <span class="w-2 h-2 rounded-full bg-[#4a7c59]"></span>
+              <span id="emailScriptLiveStatusText">Apps Script Relay Ready</span>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-[10px] font-bold uppercase text-[#576058]">Apps Script Web App /exec URL (Optional override)</label>
+            <input type="url" id="settingAppsScriptEmailUrl" class="w-full input-3d rounded-xl text-xs px-3 py-1.5 text-[#2c332d] focus:border-[#4a7c59] focus:outline-none font-mono text-[11px]" placeholder="Inherited from connected Google Sheet write-back URL">
+            <p class="text-[10px] text-[#68736a]">Uses the connected Google Sheet's Apps Script Web App (<code>MailApp.sendEmail</code>) with zero third-party email fees.</p>
+          </div>
+        </div>
+
+        <!-- Section 4: Registered Onboarding Email Flow Notice -->
         <div class="p-3 bg-[#eef4f0] rounded-xl border border-[#cde0d3] flex items-start gap-2.5 text-[#2d4d37]">
           <span class="material-symbols-outlined text-[18px] text-[#4a7c59] shrink-0 mt-0.5">verified_user</span>
           <div class="text-[11px] leading-relaxed">

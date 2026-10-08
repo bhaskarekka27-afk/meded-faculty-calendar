@@ -647,6 +647,89 @@ function handleSyncStateApi(req, res) {
   });
 }
 
+async function handleEmailApi(req, res) {
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const to = data.to || data.recipientEmail || data.recipient;
+        const subject = data.subject || '[PW MedEd] Class Reminder';
+        const html = data.html || data.emailHtml || data.htmlBody || '';
+        const senderEmail = data.from || data.senderEmail || '';
+        const senderName = data.name || data.senderName || 'PW MedEd Academic Directorate';
+        let scriptUrl = (data.scriptUrl || data.endpoint || '').trim();
+        const token = (data.token || 'pw-meded-token-2026').trim();
+
+        if (!to) return json(res, 400, { error: 'Recipient email is required' });
+
+        // If an Apps Script URL is not explicitly passed, resolve from saved settings
+        if (!scriptUrl) {
+          try {
+            if (fs.existsSync(SETTINGS_JSON_FILE)) {
+              const cfg = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
+              scriptUrl = cfg.appsScriptUrl || cfg.pw_faculty_script_url || cfg.meded_sheet_writer_url || '';
+              if (!scriptUrl && cfg.meded_sheet_writeback_config_v1) {
+                try {
+                  const parsedWb = JSON.parse(cfg.meded_sheet_writeback_config_v1);
+                  scriptUrl = parsedWb.endpoint || '';
+                } catch (_) {}
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
+          try {
+            const resp = await fetch(scriptUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'send_email',
+                token: token,
+                email: {
+                  to,
+                  subject,
+                  htmlBody: html,
+                  name: senderName,
+                  senderName,
+                  senderEmail,
+                  from: senderEmail,
+                  replyTo: senderEmail
+                }
+              })
+            });
+            const scriptRes = await resp.json().catch(() => ({ ok: true }));
+            return json(res, 200, {
+              success: true,
+              delivered: true,
+              via: 'Google Apps Script (MailApp)',
+              recipient: to,
+              scriptResponse: scriptRes
+            });
+          } catch (scriptErr) {
+            return json(res, 500, {
+              success: false,
+              error: 'Apps Script dispatch failed: ' + scriptErr.message
+            });
+          }
+        }
+
+        return json(res, 200, {
+          success: true,
+          delivered: false,
+          note: 'Apps Script URL not set. Connect Google Apps Script Web App URL to dispatch directly to external inboxes.'
+        });
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+  return json(res, 405, { error: 'Method not allowed' });
+}
+
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsed.pathname);
@@ -657,6 +740,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/api/batches')) return handleBatchesApi(req, res, pathname);
   if (pathname.startsWith('/api/requests')) return handleRequestsApi(req, res, pathname);
   if (pathname.startsWith('/api/settings')) return handleSettingsApi(req, res, pathname);
+  if (pathname.startsWith('/api/send-email') || pathname.startsWith('/api/email')) return handleEmailApi(req, res);
   if (pathname.startsWith('/api/whatsapp')) return handleWhatsAppApi(req, res, pathname);
   if (pathname.startsWith('/api/sync-state')) return handleSyncStateApi(req, res);
 

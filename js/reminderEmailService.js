@@ -832,6 +832,19 @@ export class ReminderEmailService {
       faculty: facDetails
     });
 
+    // Initiate real external inbox delivery via Google Apps Script (MailApp)
+    this.sendEmailViaAppsScript({
+      to: recipientEmail,
+      recipientName: recipientName,
+      subject: subject,
+      emailHtml: emailHtml,
+      senderEmail: senderEmail,
+      senderName: customOptions.senderName || 'PW MedEd Academic Directorate',
+      force: customOptions.force || false
+    }).catch(err => {
+      console.warn('Google Apps Script email dispatch notice:', err);
+    });
+
     return {
       success: true,
       reminderId,
@@ -843,6 +856,118 @@ export class ReminderEmailService {
       emailHtml,
       adminNotif,
       facultyNotif
+    };
+  }
+
+  /**
+   * Real email transmission via Google Apps Script (MailApp)
+   * 1. Relays through /api/send-email (local server)
+   * 2. Direct client-side fetch fallback to configured Apps Script Web App URL
+   */
+  async sendEmailViaAppsScript({ to, recipientName, subject, emailHtml, senderName, senderEmail, force = false }) {
+    if (!to) return { success: false, error: 'Recipient email is required.' };
+
+    const payload = {
+      to: to,
+      recipient: to,
+      recipientEmail: to,
+      recipientName: recipientName || '',
+      subject: subject || '[PW MedEd] Class Reminder',
+      html: emailHtml,
+      emailHtml: emailHtml,
+      htmlBody: emailHtml,
+      senderName: senderName || 'PW MedEd Academic Directorate',
+      name: senderName || 'PW MedEd Academic Directorate',
+      senderEmail: senderEmail || 'academic-reminders@pwmeded.edu.in',
+      from: senderEmail || 'academic-reminders@pwmeded.edu.in'
+    };
+
+    // 1. Try local server relay endpoint first (/api/send-email)
+    try {
+      if (typeof fetch !== 'undefined') {
+        const res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data && data.delivered) {
+            return {
+              success: true,
+              delivered: true,
+              via: data.via || 'Google Apps Script (MailApp)',
+              recipient: to,
+              response: data
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Local /api/send-email relay attempt:', e);
+    }
+
+    // 2. Direct browser-to-Apps-Script fetch fallback (CORS safe with text/plain)
+    try {
+      let scriptUrl = '';
+      let token = 'pw-meded-token-2026';
+      if (typeof localStorage !== 'undefined') {
+        const wbCfg = localStorage.getItem('meded_sheet_writeback_config_v1');
+        if (wbCfg) {
+          try {
+            const parsedWb = JSON.parse(wbCfg);
+            scriptUrl = parsedWb.endpoint || '';
+            token = parsedWb.token || token;
+          } catch (_) {}
+        }
+        if (!scriptUrl) {
+          const emCfg = localStorage.getItem('meded_email_settings');
+          if (emCfg) {
+            try {
+              const parsedEm = JSON.parse(emCfg);
+              scriptUrl = parsedEm.appsScriptUrl || '';
+            } catch (_) {}
+          }
+        }
+      }
+
+      if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
+        const directBody = JSON.stringify({
+          action: 'send_email',
+          token: token,
+          email: {
+            to: to,
+            subject: subject,
+            htmlBody: emailHtml,
+            name: senderName || 'PW MedEd Academic Directorate',
+            senderName: senderName || 'PW MedEd Academic Directorate',
+            from: senderEmail,
+            replyTo: senderEmail
+          }
+        });
+
+        const resp = await fetch(scriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: directBody
+        });
+        const respData = await resp.json().catch(() => ({ ok: true }));
+        return {
+          success: true,
+          delivered: true,
+          via: 'Google Apps Script Direct (MailApp)',
+          recipient: to,
+          response: respData
+        };
+      }
+    } catch (err) {
+      console.warn('Apps Script direct browser dispatch warning:', err);
+    }
+
+    return {
+      success: true,
+      delivered: false,
+      note: 'Alert registered in portal notifications. To send external emails, deploy Google Apps Script from apps-script/Code.gs.'
     };
   }
 

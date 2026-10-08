@@ -150,6 +150,10 @@ function doPost(e) {
       return json_(batchUpdateFacultyRecords_(body.fullList || body.list || []));
     }
 
+    if (action === 'send_email' || action === 'send_reminder_email') {
+      return json_(sendEmailViaAppsScript_(body.email || body));
+    }
+
     if (action !== 'reschedule' && action !== 'cancel' && action !== 'revert') {
       return json_({ ok: false, error: 'Unknown action: ' + action });
     }
@@ -1134,4 +1138,48 @@ function setSetting_(s) {
 /** Run once from the Apps Script toolbar to create the tab up front. */
 function setup_portal_settings() {
   portalSettingsSheet_();
+}
+
+/**
+ * Sends a real institutional class reminder email directly using MailApp / GmailApp.
+ */
+function sendEmailViaAppsScript_(data) {
+  data = data || {};
+  var to = String(data.to || data.recipientEmail || data.recipient || '').trim();
+  var subject = String(data.subject || '[PW MedEd] Class Reminder').trim();
+  var htmlBody = String(data.htmlBody || data.emailHtml || data.html || '').trim();
+  var name = String(data.name || data.senderName || 'PW MedEd Academic Directorate').trim();
+  var replyTo = String(data.replyTo || data.from || data.senderEmail || '').trim();
+
+  if (!to) {
+    return { ok: false, error: 'Recipient email address (to) is missing.' };
+  }
+
+  try {
+    var mailOptions = {
+      to: to,
+      subject: subject,
+      htmlBody: htmlBody,
+      name: name
+    };
+    if (replyTo && replyTo.indexOf('@') > 0) {
+      mailOptions.replyTo = replyTo;
+    }
+
+    MailApp.sendEmail(mailOptions);
+
+    return {
+      ok: true,
+      success: true,
+      recipient: to,
+      subject: subject,
+      sentAt: new Date().toISOString()
+    };
+  } catch (err) {
+    Logger.log('MailApp.sendEmail error: ' + err.message);
+    return {
+      ok: false,
+      error: String((err && err.message) || err)
+    };
+  }
 }
