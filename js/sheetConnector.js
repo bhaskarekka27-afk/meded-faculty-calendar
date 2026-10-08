@@ -699,6 +699,100 @@ export async function postRegistryAction(action, payload, field = 'batch') {
   }
 }
 
+
+/* ------------------------------------------------------------------
+ * Removed-batch memory (tombstones) + retry queue (outbox)
+ *
+ * Removing a spreadsheet must stick. Three things used to bring it back:
+ *  - the shared registry is read through Google's cache, which can still say
+ *    "Active" for a minute after the removal was written;
+ *  - batches that were never in the registry (built-in defaults, older local
+ *    ones) were removed only on this device, so the next merge re-added them;
+ *  - the removal was fire-and-forget, so a failed/offline write was lost.
+ * ------------------------------------------------------------------ */
+const BATCH_TOMBSTONE_KEY = 'meded_batch_tombstones_v1';
+const BATCH_OUTBOX_KEY = 'meded_batch_outbox_v1';
+const BATCH_TOMBSTONE_GRACE_MS = 10 * 60 * 1000;   // trust a confirmed removal over a stale read this long
+const BATCH_OUTBOX_TTL_MS = 24 * 60 * 60 * 1000;
+
+function lsGetJSON(key, fallback) {
+  try {
+    if (typeof localStorage === 'undefined') return fallback;
+    const v = JSON.parse(localStorage.getItem(key) || 'null');
+    return v && typeof v === 'object' ? v : fallback;
+  } catch (_) { return fallback; }
+}
+function lsSetJSON(key, val) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(val)); } catch (_) {}
+}
+function batchKeys(b) {
+  const keys = [];
+  if (b && b.id) keys.push('id:' + b.id);
+  const d = b && b.sourceUrl ? extractSheetDetails(b.sourceUrl) : null;
+  if (d && d.sheetId) keys.push('sid:' + d.sheetId);
+  return keys;
+}
+function loadTombstones() { return lsGetJSON(BATCH_TOMBSTONE_KEY, {}); }
+function saveTombstones(t) { lsSetJSON(BATCH_TOMBSTONE_KEY, t); }
+function loadBatchOutbox() { const o = lsGetJSON(BATCH_OUTBOX_KEY, []); return Array.isArray(o) ? o : []; }
+function saveBatchOutbox(o) { lsSetJSON(BATCH_OUTBOX_KEY, o); }
+
+/** The tombstone entry that applies to this batch / registry row, if any. */
+function findTombstone(b, tombs = loadTombstones()) {
+  for (const k of batchKeys(b)) if (tombs[k]) return { key: k, entry: tombs[k] };
+  return null;
+}
+function isBatchRemoved(b, tombs = loadTombstones()) {
+  return !!findTombstone(b, tombs);
+}
+function clearTombstones(b) {
+  const tombs = loadTombstones();
+  let changed = false;
+  for (const k of batchKeys(b)) if (tombs[k]) { delete tombs[k]; changed = true; }
+  if (changed) saveTombstones(tombs);
+  const keys = new Set(batchKeys(b));
+  const ob = loadBatchOutbox();
+  const kept = ob.filter(op => !batchKeys(op).some(k => keys.has(k)));
+  if (kept.length !== ob.length) saveBatchOutbox(kept);
+}
+function recentlyPublished(b) {
+  return !!(b && b.publishedAt && Date.now() - b.publishedAt < BATCH_TOMBSTONE_GRACE_MS);
+}
+let batchFlushPromise = null;
+/** Send queued removals to the shared registry; "not found" counts as success. */
+export function flushBatchOutbox() {
+  if (batchFlushPromise) return batchFlushPromise;
+  batchFlushPromise = (async () => {
+    const ob = loadBatchOutbox().filter(op => Date.now() - (op.ts || 0) < BATCH_OUTBOX_TTL_MS);
+    const remaining = [];
+    for (const op of ob) {
+      const info = { id: op.id, name: op.name, sourceUrl: op.sourceUrl, tabName: op.tabName || 'Lecture Planner', platform: op.platform || '' };
+      let ok = true, err = '';
+      // Batches that were never in the registry (defaults / local-only) need a row before they can be switched off
+      if (op.needUpsert && info.sourceUrl) {
+        const up = await postRegistryAction('upsert_batch', info);
+        if (!up.ok) { ok = false; err = up.error; }
+      }
+      if (ok) {
+        const rm = await postRegistryAction('remove_batch', { id: op.id, sourceUrl: op.sourceUrl });
+        if (!rm.ok) { ok = false; err = rm.error; }
+      }
+      if (ok) {
+        const tombs = loadTombstones();
+        const now = Date.now();
+        for (const k of batchKeys(op)) if (tombs[k]) tombs[k] = { ...tombs[k], pending: false, confirmedAt: now };
+        saveTombstones(tombs);
+      } else {
+        console.warn('Registry removal not shared yet (will retry):', err);
+        remaining.push(op);
+      }
+    }
+    saveBatchOutbox(remaining);
+    return remaining.length === 0;
+  })().finally(() => { batchFlushPromise = null; });
+  return batchFlushPromise;
+}
+
 export const SYNC_SETTINGS_KEY = 'meded_sync_settings_v1';
 
 /**
@@ -915,7 +1009,9 @@ export class BatchManager {
             parsed = parsed.filter(b => b && b.name && !b.name.toLowerCase().includes('completion %') && Array.isArray(b.events) && b.events.length > 0);
             if (parsed.length > 0) {
               // Ensure newly introduced default batches (e.g. INI-CET & FMGE) are merged in
+              const tombsNow = loadTombstones();
               for (const defBatch of DEFAULT_BATCHES) {
+                if (isBatchRemoved(defBatch, tombsNow)) continue; // an admin removed it on purpose
                 const existingIdx = parsed.findIndex(b => b.id === defBatch.id);
                 if (existingIdx === -1) {
                   parsed.push(JSON.parse(JSON.stringify(defBatch)));
@@ -932,7 +1028,8 @@ export class BatchManager {
                   }
                 }
               }
-              this.batches = parsed;
+              const visible = parsed.filter(b => !isBatchRemoved(b, tombsNow));
+              this.batches = visible.length > 0 ? visible : parsed;
               this.saveToStorage(false);
               this.pullServerBatches().catch(() => {});
               return;
@@ -1012,6 +1109,7 @@ export class BatchManager {
     }
     const newId = `batch-${Date.now()}`;
     const csv = await fetchGoogleSheetCSV(url, tabName);
+    clearTombstones({ sourceUrl: url }); // deliberately (re)connected: stop treating it as removed
     const newBatch = processRawCSVToBatch(csv, newId, url, tabName, customName);
     newBatch.lastSynced = new Date().toISOString();
 
@@ -1023,6 +1121,7 @@ export class BatchManager {
 
     if (existingIdx >= 0) {
       newBatch.id = this.batches[existingIdx].id;
+      clearTombstones({ id: newBatch.id });
       this.batches[existingIdx] = newBatch;
     } else {
       this.batches.push(newBatch);
@@ -1059,6 +1158,7 @@ export class BatchManager {
     });
     if (result.ok) {
       batch.fromRegistry = true;
+      batch.publishedAt = Date.now();
       this.saveToStorage(true);
     }
     return result;
@@ -1075,8 +1175,39 @@ export class BatchManager {
     let changed = false;
     const activeIds = new Set();
 
+    // Retry removals that did not reach the sheet yet
+    await flushBatchOutbox().catch(() => {});
+    const tombs = loadTombstones();
+    let tombsChanged = false;
+    const nowTs = Date.now();
+
+    // Rows an admin switched off: remember them (so defaults are not re-merged) and drop them here
+    for (const r of rows) {
+      if (r.active) continue;
+      const row = { id: r.id, sourceUrl: r.sourceUrl };
+      if (this.batches.some(b => recentlyPublished(b) && batchKeys(b).some(k => batchKeys(row).includes(k)))) continue; // we just re-activated it; the cached row is stale
+      const hit = findTombstone(row, tombs);
+      if (!hit) {
+        for (const k of batchKeys(row)) tombs[k] = { ts: nowTs, pending: false, confirmedAt: nowTs, fromRegistry: true };
+        tombsChanged = true;
+      } else if (hit.entry.pending) {
+        for (const k of batchKeys(row)) tombs[k] = { ...(tombs[k] || hit.entry), pending: false, confirmedAt: nowTs };
+        tombsChanged = true;
+      }
+    }
+
     for (const r of rows) {
       if (!r.active) continue;
+      // A removal made here (or confirmed moments ago) beats a stale cached "Active" row
+      const hit = findTombstone({ id: r.id, sourceUrl: r.sourceUrl }, tombs);
+      if (hit) {
+        const e = hit.entry;
+        const fresh = e.pending || (nowTs - (e.confirmedAt || e.ts || 0) < BATCH_TOMBSTONE_GRACE_MS);
+        if (fresh && !e.fromRegistry) continue;
+        // Re-activated by an admin after the removal (or the write never took): honour the registry
+        for (const k of batchKeys({ id: r.id, sourceUrl: r.sourceUrl })) delete tombs[k];
+        tombsChanged = true;
+      }
       activeIds.add(r.id);
       const sid = (extractSheetDetails(r.sourceUrl) || {}).sheetId;
       const existing = this.batches.find(b => b.id === r.id ||
@@ -1110,16 +1241,33 @@ export class BatchManager {
       }
     }
 
+    if (tombsChanged) saveTombstones(tombs);
+
     // Removed by an admin elsewhere
     const before = this.batches.length;
-    this.batches = this.batches.filter(b => !(b.fromRegistry && !activeIds.has(b.id)) || this.batches.length <= 1);
+    const inactiveRows = rows.filter(r => !r.active);
+    const startCount = this.batches.length;
+    let kept = startCount;
+    this.batches = this.batches.filter(b => {
+      if (kept <= 1 || recentlyPublished(b)) return true;
+      let drop = false;
+      if (b.fromRegistry && !activeIds.has(b.id)) drop = true;
+      else {
+        // Any batch (also defaults / local-only ones) whose registry row was switched off
+        const sid = (extractSheetDetails(b.sourceUrl) || {}).sheetId;
+        const off = inactiveRows.some(r => r.id === b.id || (sid && (extractSheetDetails(r.sourceUrl) || {}).sheetId === sid));
+        drop = off && !activeIds.has(b.id);
+      }
+      if (drop) kept--;
+      return !drop;
+    });
     if (this.batches.length !== before) changed = true;
 
     // Admin browsers: share batches that predate the registry
     if (getRegistryWriter() && !isFacultyPage()) {
       const defaultIds = new Set(DEFAULT_BATCHES.map(b => b.id));
       for (const b of this.batches) {
-        if (b.sourceUrl && !b.fromRegistry && !defaultIds.has(b.id)) {
+        if (b.sourceUrl && !b.fromRegistry && !defaultIds.has(b.id) && !isBatchRemoved(b)) {
           const res = await this.publishBatchToRegistry(b);
           if (res.ok) changed = true;
         }
@@ -1212,13 +1360,27 @@ export class BatchManager {
     this.batches = this.batches.filter(b => b.id !== id);
     this.saveToStorage();
     this.broadcastBatchesUpdated(true);
-    if (removed && removed.fromRegistry) {
-      postRegistryAction('remove_batch', { id: removed.id, sourceUrl: removed.sourceUrl })
-        .then(r => { if (!r.ok) console.warn('Registry removal not shared:', r.error); });
+    if (removed) {
+      // Remember the removal (hides it from stale registry reads / default merges) and
+      // queue the shared-sheet write so it is retried until it is confirmed.
+      const now = Date.now();
+      const tombs = loadTombstones();
+      for (const k of batchKeys(removed)) tombs[k] = { ts: now, pending: true };
+      saveTombstones(tombs);
+      const ob = loadBatchOutbox().filter(op => op.id !== removed.id);
+      ob.push({
+        id: removed.id, name: removed.name, sourceUrl: removed.sourceUrl,
+        tabName: removed.sheetTabName || 'Lecture Planner', platform: removed.platform || '',
+        needUpsert: !removed.fromRegistry, ts: now
+      });
+      saveBatchOutbox(ob);
+      return flushBatchOutbox();
     }
+    return Promise.resolve(true);
   }
 
   resetToDefaults() {
+    DEFAULT_BATCHES.forEach(b => clearTombstones(b));
     this.batches = JSON.parse(JSON.stringify(DEFAULT_BATCHES));
     this.saveToStorage();
     this.broadcastBatchesUpdated(true);

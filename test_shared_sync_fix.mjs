@@ -270,6 +270,68 @@ assert.ok(rows && rows.some(r => r.id === 'batch-1'), 'falls back to the Apps Sc
 ok('registry still readable through Apps Script when the public sheet read fails');
 snapshotNow();
 
+console.log('\n== Removing a connected spreadsheet ==');
+{
+  const defaults = (await import('./js/defaultData.js')).DEFAULT_BATCHES;
+  const custom = id => ({ id, name: 'Custom ' + id, sourceUrl: 'https://docs.google.com/spreadsheets/d/' + id.toUpperCase() + '/edit', sheetTabName: 'Lecture Planner', events: [{ isoDate: '2026-10-01', title: 'x' }], fromRegistry: true });
+  for (const id of ['cust-a', 'cust-b']) {
+    await conn.postRegistryAction('upsert_batch', { id, name: 'Custom ' + id, sourceUrl: custom(id).sourceUrl, tabName: 'Lecture Planner', platform: '' });
+  }
+  snapshotNow();                                          // Google's cache: both custom sheets Active
+  use('A');
+  localStorage.setItem('meded_faculty_batches_v1', JSON.stringify([...JSON.parse(JSON.stringify(defaults)), custom('cust-a'), custom('cust-b')]));
+  const mgrA = new conn.BatchManager();
+  mgrA.syncAllBatches = async () => [];
+  assert.ok(mgrA.getBatches().some(b => b.id === 'cust-a'));
+
+  // 1. remove while the public read still says Active (stale cache)
+  await mgrA.removeBatch('cust-a');
+  await mgrA.pullRegistry();
+  assert.ok(!mgrA.getBatches().some(b => b.id === 'cust-a'), 'stale cache must not bring the removed spreadsheet back');
+  assert.strictEqual(sheet.batches.find(r => r.id === 'cust-a').active, false, 'removal reached the shared registry');
+  ok('removed spreadsheet stays removed while the cached registry still says Active');
+
+  // 2. remove a built-in default (never in the registry) and reload the page
+  const defId = defaults[0].id;
+  await mgrA.removeBatch(defId);
+  assert.strictEqual(sheet.batches.find(r => r.id === defId)?.active, false, 'defaults get a switched-off registry row');
+  const reloadedA = new conn.BatchManager();
+  assert.ok(!reloadedA.getBatches().some(b => b.id === defId), 'a reload must not re-merge a removed default');
+  assert.ok(!reloadedA.getBatches().some(b => b.id === 'cust-a'));
+  ok('removed default batch does not come back after a reload');
+
+  // 3. another admin picks the removals up from the registry
+  snapshotNow();
+  use('B');
+  localStorage.setItem('meded_faculty_batches_v1', JSON.stringify([...JSON.parse(JSON.stringify(defaults)), custom('cust-a'), custom('cust-b')]));
+  const mgrB = new conn.BatchManager();
+  await mgrB.pullRegistry();
+  assert.ok(!mgrB.getBatches().some(b => b.id === 'cust-a' || b.id === defId), 'other admins drop removed spreadsheets (defaults included)');
+  assert.ok(mgrB.getBatches().some(b => b.id === 'cust-b'));
+  ok('another admin sees the removals');
+
+  // 4. removal made offline is retried until the sheet confirms it
+  use('A');
+  appsScriptDown = true;
+  await mgrA.removeBatch('cust-b');
+  assert.strictEqual(sheet.batches.find(r => r.id === 'cust-b').active, true, 'offline: sheet not updated yet');
+  assert.ok(JSON.parse(localStorage.getItem('meded_batch_outbox_v1')).length === 1, 'queued for retry');
+  appsScriptDown = false;
+  snapshotNow();
+  await mgrA.pullRegistry();
+  assert.strictEqual(sheet.batches.find(r => r.id === 'cust-b').active, false, 'retried and confirmed');
+  assert.ok(!mgrA.getBatches().some(b => b.id === 'cust-b'));
+  ok('an offline removal is retried and then reaches the shared sheet');
+
+  // 5. re-connecting the same sheet on purpose works again
+  const stale = JSON.parse(localStorage.getItem('meded_batch_tombstones_v1'));
+  assert.ok(stale['sid:CUST-A']);
+  mgrA.batches.push(custom('cust-a'));
+  conn.BatchManager.prototype.resetToDefaults.call(mgrA);
+  assert.ok(mgrA.getBatches().some(b => b.id === defId), 'reset to defaults brings defaults back');
+  ok('reset to defaults restores removed defaults');
+}
+
 console.log('\n== Shared settings ==');
 use('A');
 shared.startSharedSettingsSync();
