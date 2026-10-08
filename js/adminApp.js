@@ -6834,9 +6834,10 @@ class AdminDashboardController {
       const waEnabled = waToggle?.checked !== false;
       const cadenceSec = parseInt(waCadenceNum?.value, 10) || 25;
       const jitterSec = parseInt(waJitterNum?.value, 10) || 10;
-      const waSender = (waSenderNameInput?.value || 'PW MedEd Academic Directorate').trim();
-      const waSenderNumber = (waSenderNumberInput?.value || '94234 07557').trim();
-      const countryCode = waCountryCodeSelect?.value || '+91';
+      const currentSettings = reminderEmailService.getSettings();
+      const waSender = (waSenderNameInput ? waSenderNameInput.value : currentSettings.whatsappSenderName || 'PW MedEd Academic Directorate').trim();
+      const waSenderNumber = (waSenderNumberInput ? waSenderNumberInput.value : currentSettings.whatsappSenderNumber || '94234 07557').trim();
+      const countryCode = waCountryCodeSelect ? waCountryCodeSelect.value : currentSettings.whatsappCountryCode || '+91';
 
       reminderEmailService.saveSettings({
         senderEmail,
@@ -6858,9 +6859,6 @@ class AdminDashboardController {
       clearTimeout(emailDebounceTimer);
       emailDebounceTimer = setTimeout(autoSaveSettings, 400);
     });
-    waSenderNumberInput?.addEventListener('input', autoSaveSettings);
-    waSenderNumberInput?.addEventListener('blur', autoSaveSettings);
-    waSenderNumberInput?.addEventListener('change', autoSaveSettings);
     senderEmailInput?.addEventListener('blur', autoSaveSettings);
     senderEmailInput?.addEventListener('change', autoSaveSettings);
 

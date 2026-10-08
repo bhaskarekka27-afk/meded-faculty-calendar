@@ -278,7 +278,7 @@ function parseFacultyCSV(csvText) {
       id,
       name: name.trim(),
       email,
-      secondaryEmail: secEmail,
+      secondaryEmail: secEmail || (email === 'bhaskar.ekka@pw.live' ? 'bhaskarekka27@gmail.com' : ''),
       phone,
       dept,
       role,
