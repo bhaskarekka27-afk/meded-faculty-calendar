@@ -64,6 +64,10 @@ function test_connection() {
     id: ss.getId(),
     sheets: ss.getSheets().map(function(s) { return s.getName(); })
   };
+  Logger.log('Connected: ' + JSON.stringify(info, null, 2));
+  return info;
+}
+
 /**
  * 1-Click Runnable Test: Authorizes Google MailApp permissions and sends a test email to the active account.
  */
