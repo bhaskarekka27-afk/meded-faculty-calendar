@@ -6319,9 +6319,6 @@ class AdminDashboardController {
       }
     });
   }
-  }
-
-
 
   // --- 12. Notification Drawer & Real-time Alerts ---
   setupNotificationDrawer() {

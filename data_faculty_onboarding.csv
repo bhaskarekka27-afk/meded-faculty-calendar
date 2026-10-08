@@ -1,21 +1,21 @@
 Faculty ID,Name,Primary Email,Secondary Email,Phone,Department,Role,Designation,Status,Can Reschedule Cancel,Assigned Cohorts,Last Updated
-fac-1,Dr. Rajesh Jambhulkar,harshraj01@gmail.com,harshraj01@gmail.com,94234 07557,Biochemistry,Teacher,Professor • Biochemistry,Verified,FALSE,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-2,Dr. Pradeep Pawar,pawarpradeep@gmail.com,pawarpradeep@gmail.com,99203 00794,Anatomy,Teacher,Professor • Anatomy,Verified,FALSE,Prarambh '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-3,Dr. Vivek Nalgirkar,viveknalgirkar@gmail.com,viveknalgirkar@gmail.com,97690 67069,Physiology,Teacher,Professor • Physiology,Verified,FALSE,Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-15,Dr. Ranjith AR,xpresspinnacle@gmail.com,xpresspinnacle@gmail.com,99414 81868,Pathology,Teacher,Professor • Pathology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-16,Dr. Manjunath A,drmanjunathforensic@gmail.com,drmanjunathforensic@gmail.com,96862 52725,Forensic Medicine,Teacher,Professor • Forensic Medicine,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-17,Dr. Vinish Srivastava,drvinish@yahoo.com,drvinish@yahoo.com,99115 09119,Anaesthesia,Teacher,Professor • Anaesthesia,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-18,Dr. Ashwani Ranjan,docashwani23@gmail.com,docashwani23@gmail.com,88607 96675,Community Medicine,Teacher,Assoc. Professor • Community Medicine,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-20,Dr. Sanchit Bajpai,drsanchitbajpaihns@gmail.com,drsanchitbajpaihns@gmail.com,70073 35207,ENT,Teacher,Professor • ENT,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-21,Dr. Santhosh Patil,santhoshmp@icloud.com,santhoshmp@icloud.com,83109 84841,General Medicine,Teacher,Professor • General Medicine,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-22,Dr. Era Dutta,dreradutta@gmail.com,dreradutta@gmail.com,98204 03635,Psychiatry,Teacher,Assoc. Professor • Psychiatry,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-23,Dr. Siraj Ahmad,sirajahmad9@gmail.com,sirajahmad9@gmail.com,95828 28153,Pharmacology,Teacher,Professor • Pharmacology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-24,Dr. Prassan Vij,drprassan@yahoo.com,drprassan@yahoo.com,98103 05975,Obstetrics & Gynaecology,Teacher,Professor • Obstetrics & Gynaecology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-25,Dr. Alekhya,alekhya.kumar89@gmail.com,alekhya.kumar89@gmail.com,90528 90055,Orthopedics,Teacher,Consultant • Orthopedics,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-26,Dr. Sandeep Seeramreddi,sandeepseeramreddi@gmail.com,sandeepseeramreddi@gmail.com,99663 35541,General Surgery,Teacher,Senior Consultant • General Surgery,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-27,Dr. Natisha Arora,Natishaarora@gmail.com,Natishaarora@gmail.com,90154 05216,Radiology,Teacher,Consultant • Radiology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-28,Dr. Jazeer Abdul Khader,admin@drjazeerdermatology.com,admin@drjazeerdermatology.com,98098 44313,Dermatology,Teacher,Consultant • Dermatology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-29,Dr. Anusha Rathi,rathi.anusha@gmail.com,rathi.anusha@gmail.com,95603 44064,Microbiology,Teacher,Assistant Professor • Microbiology,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-30,Dr. Divya Madan,divyamadan121295@gmail.com,divyamadan121295@gmail.com,89303 45037,Pediatrics,Teacher,Senior Consultant • Pediatrics,Verified,FALSE,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-admin-2,Bhaskar Ekka,bhaskar.ekka@pw.live,bhaskarekka27@gmail.com,98765 43210,Medical Sciences,Admin,Lead Academic Faculty,Verified,FALSE,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
-fac-admin-1,Kanchan Gupta,kanchan.gupta1@pw.live,kanchan.gupta1@pw.live,98765 43211,Academic Administration,Admin,Academic Operations Lead,Verified,FALSE,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-1,Dr. Rajesh Jambhulkar,harshraj01@gmail.com,harshraj01@gmail.com,94234 07557,Biochemistry,Teacher,Professor • Biochemistry,Verified,No,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-2,Dr. Pradeep Pawar,pawarpradeep@gmail.com,pawarpradeep@gmail.com,99203 00794,Anatomy,Teacher,Professor • Anatomy,Verified,No,Prarambh '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-3,Dr. Vivek Nalgirkar,viveknalgirkar@gmail.com,viveknalgirkar@gmail.com,97690 67069,Physiology,Teacher,Professor • Physiology,Verified,No,Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-15,Dr. Ranjith AR,xpresspinacle@gmail.com,xpresspinacle@gmail.com,99414 81668,Pathology,Teacher,Professor • Pathology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-16,Dr. Manjunath A,drmanjunathforensic@gmail.com,drmanjunathforensic@gmail.com,96862 52725,Forensic Medicine,Teacher,Professor • Forensic Medicine,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-17,Dr. Vinish Srivastava,drvinish@yahoo.com,drvinish@yahoo.com,99115 09119,Anaesthesia,Teacher,Professor • Anaesthesia,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-18,Dr. Ashwani Ranjan,docashwani23@gmail.com,docashwani23@gmail.com,88607 96675,Community Medicine,Teacher,Assoc. Professor • Community Medicine,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-20,Dr. Sanchit Bajpai,drsanchitbaipaihns@gmail.com,drsanchitbaipaihns@gmail.com,70073 35207,ENT,Teacher,Professor • ENT,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-21,Dr. Santhosh Patil,santhoshmp@icloud.com,santhoshmp@icloud.com,83109 84841,General Medicine,Teacher,Professor • General Medicine,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-22,Dr. Era Dutta,dreradutta@gmail.com,dreradutta@gmail.com,98204 03635,Psychiatry,Teacher,Assoc. Professor • Psychiatry,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-23,Dr. Siraj Ahmad,sirajahmad9@gmail.com,sirajahmad9@gmail.com,95826 26153,Pharmacology,Teacher,Professor • Pharmacology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-24,Dr. Prassan Vij,drprassan@yahoo.com,drprassan@yahoo.com,98103 05975,Obstetrics & Gynaecology,Teacher,Professor • Obstetrics & Gynaecology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-25,Dr. Alekhya,alekhya.kumar89@gmail.com,alekhya.kumar89@gmail.com,90526 90055,Orthopedics,Teacher,Consultant • Orthopedics,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-26,Dr. Sandeep Seeramreddi,sandeepseeramreddi@gmail.com,sandeepseeramreddi@gmail.com,99663 35541,General Surgery,Teacher,Senior Consultant • General Surgery,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-27,Dr. Natisha Arora,Natishaarora@gmail.com,Natishaarora@gmail.com,90164 06216,Radiology,Teacher,Consultant • Radiology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-28,Dr. Jazeer Abdul Khader,admin@drjazeerdermatology.com,admin@drjazeerdermatology.com,98098 44313,Dermatology,Teacher,Consultant • Dermatology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-29,Dr. Anusha Rathi,rathi.anusha@gmail.com,rathi.anusha@gmail.com,95603 44064,Microbiology,Teacher,Assistant Professor • Microbiology,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-30,Dr. Divya Madan,divyamadan121295@gmail.com,divyamadan121295@gmail.com,89303 45037,Pediatrics,Teacher,Senior Consultant • Pediatrics,Verified,No,INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-admin-2,Bhaskar Ekka,bhaskar.ekka@pw.live,bhaskarekka27@gmail.com,98765 43210,Medical Sciences,Admin,Lead Academic Faculty,Verified,No,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
+fac-admin-1,Kanchan Gupta,kanchan.gupta1@pw.live,kanchan.gupta1@pw.live,98765 43211,Academic Administration,Admin,Academic Operations Lead,Verified,No,Prarambh '26; Sushruta '26; INI-CET '26; FMGE '26,2026-09-24T12:00:00.000Z
