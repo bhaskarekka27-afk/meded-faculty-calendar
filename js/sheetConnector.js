@@ -4,6 +4,7 @@
  */
 
 import { DEFAULT_BATCHES } from './defaultData.js';
+import { resolveAppsScriptWriter, appsScriptGet, isFacultyPage } from './appsScriptConfig.js';
 
 const STORAGE_KEY = 'meded_faculty_batches_v1';
 
@@ -609,28 +610,47 @@ export function getRegistrySheetId() {
   return REGISTRY_DEFAULT_SHEET_ID;
 }
 
-/** Apps Script endpoint + token if THIS browser is set up to write (admins). */
+/**
+ * Apps Script endpoint + token used to publish to the shared sheet.
+ * Resolves from every place the URL may have been saved (write-back config,
+ * email settings, legacy keys) and finally the built-in default deployment, so
+ * a browser that never opened the write-back dialog still shares its changes.
+ */
 export function getRegistryWriter() {
-  let endpoint = '';
-  let token = '';
-  try {
-    const cfg = JSON.parse(registryLS('meded_sheet_writeback_config_v1') || 'null') || {};
-    endpoint = cfg.endpoint || '';
-    token = cfg.token || '';
-  } catch (_) { /* ignore */ }
-  const saved = registryLS('pw_faculty_spreadsheet_url');
-  endpoint = endpoint || registryLS('meded_sheet_writer_url') || registryLS('pw_faculty_script_url') || (saved.includes('/exec') ? saved : '');
-  token = token || registryLS('meded_sheet_writer_token') || 'pw-meded-token-2026';
-  endpoint = endpoint.trim();
-  if (!endpoint.includes('script.google.com/macros/s/')) return null;
-  return { endpoint, token: token.trim() };
+  const w = resolveAppsScriptWriter();
+  return w && w.endpoint ? { endpoint: w.endpoint, token: w.token } : null;
 }
 
 /**
  * Read the shared registry. Resolves to an array of rows, or null when the
  * registry cannot be read (so callers never mistake "offline" for "empty").
+ *
+ * The public sheet read path is tried first (no Apps Script quota); when it is
+ * unavailable (sheet not link-shared, tab missing, Google cache hiccup) the
+ * Apps Script web app answers instead - and creates the tab if it is missing.
  */
 export async function fetchBatchRegistry() {
+  const fromSheet = await fetchBatchRegistryFromSheet();
+  if (fromSheet) return fromSheet;
+  try {
+    const data = await appsScriptGet('get_batches');
+    if (data && data.ok && Array.isArray(data.batches)) {
+      return data.batches
+        .filter(b => b && String(b.sourceUrl || '').trim())
+        .map(b => ({
+          id: String(b.id || '').trim(),
+          name: String(b.name || '').trim(),
+          sourceUrl: String(b.sourceUrl || '').trim(),
+          tabName: String(b.tabName || '').trim() || 'Lecture Planner',
+          platform: String(b.platform || '').trim(),
+          active: b.active !== false
+        }));
+    }
+  } catch (_) { /* fall through */ }
+  return null;
+}
+
+async function fetchBatchRegistryFromSheet() {
   let csv = '';
   try {
     csv = await fetchGoogleSheetJSONP(getRegistrySheetId(), REGISTRY_TAB);
@@ -664,7 +684,7 @@ export async function fetchBatchRegistry() {
 export async function postRegistryAction(action, payload, field = 'batch') {
   const writer = getRegistryWriter();
   if (!writer) {
-    return { ok: false, error: 'Sheet write-back URL is not set on this device, so the batch was saved here only.' };
+    return { ok: false, error: 'No Apps Script URL is available, so the change was saved on this device only.' };
   }
   try {
     const res = await fetch(writer.endpoint, {
@@ -724,14 +744,9 @@ export class BatchManager {
       console.error('Failed to save sync settings:', e);
     }
 
-    // Persist sync settings to server code level
-    if (typeof fetch !== 'undefined') {
-      fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: SYNC_SETTINGS_KEY, value: JSON.stringify(this.syncSettings) })
-      }).catch(() => {});
-    }
+    // Sharing with other logins is handled by sharedSettings.js, which publishes only the
+    // meaningful fields (auto-sync on/off, interval). Posting the whole object here also sent
+    // this browser's lastSyncedAt / syncStatus every 30s and overwrote other admins' choices.
 
     this.broadcastSyncStatus();
     if (this.syncSettings.autoSyncEnabled) {
@@ -1101,7 +1116,7 @@ export class BatchManager {
     if (this.batches.length !== before) changed = true;
 
     // Admin browsers: share batches that predate the registry
-    if (getRegistryWriter()) {
+    if (getRegistryWriter() && !isFacultyPage()) {
       const defaultIds = new Set(DEFAULT_BATCHES.map(b => b.id));
       for (const b of this.batches) {
         if (b.sourceUrl && !b.fromRegistry && !defaultIds.has(b.id)) {

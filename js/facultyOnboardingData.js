@@ -5,6 +5,8 @@
  * dynamic batch/sheet discovery, and real-time state broadcasts.
  */
 
+import { appsScriptGet, appsScriptPost } from './appsScriptConfig.js';
+
 export const DEFAULT_FACULTY_ONBOARDING = [
   {
     "id": "fac-1",
@@ -373,6 +375,171 @@ if (typeof window !== 'undefined' && typeof fetch !== 'undefined' && HAS_LOCAL_A
     .catch(() => {});
 }
 
+// ---------------------------------------------------------------------------
+// Shared-sheet write queue ("outbox") and delete markers ("tombstones")
+//
+// The Google Sheet is the one copy every admin shares. A change made here is
+//   1. applied locally right away,
+//   2. queued in the outbox and delivered to the Apps Script web app (retried
+//      until the script confirms it - offline, cold start, quota hiccup...),
+//   3. layered on top of whatever the sheet currently returns, so the 15-second
+//      background read can never bring a deleted person back (or undo an edit)
+//      before the sheet has caught up.
+// Once the sheet agrees, the marker is dropped and the sheet is the truth again.
+// ---------------------------------------------------------------------------
+const OUTBOX_KEY = 'meded_faculty_outbox_v1';
+const TOMBSTONE_KEY = 'meded_faculty_tombstones_v1';
+const TOMBSTONE_TTL_MS = 10 * 60 * 1000;   // a confirmed delete the sheet still lists (read cache) is hidden this long
+const PENDING_TTL_MS = 24 * 60 * 60 * 1000; // give up on an undeliverable change after a day
+const HAS_BROWSER = typeof window !== 'undefined' && !!window.location;
+
+function readStore(key) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch (_) { return []; }
+}
+
+function writeStore(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* storage unavailable */ }
+}
+
+function sameFaculty(a, b) {
+  if (!a || !b) return false;
+  if (a.id && b.id && String(a.id) === String(b.id)) return true;
+  const ae = String(a.email || '').trim().toLowerCase();
+  const be = String(b.email || '').trim().toLowerCase();
+  return !!ae && ae === be;
+}
+
+/** Faculty changes that have not been confirmed by the shared sheet yet. */
+export function getPendingFacultyOps() {
+  return readStore(OUTBOX_KEY);
+}
+
+function emitFacultySyncStatus(extra = {}) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('meded:faculty_sync_status', {
+    detail: { pending: getPendingFacultyOps().length, ...extra }
+  }));
+}
+
+/**
+ * Record a faculty change for delivery to the shared sheet.
+ * @param {'upsert'|'delete'} action
+ */
+export function queueFacultyOp(action, faculty) {
+  if (!faculty || (!faculty.id && !faculty.email)) return;
+  const kind = action === 'delete' ? 'delete' : 'upsert';
+
+  // A newer change to the same person replaces the older queued one.
+  const outbox = readStore(OUTBOX_KEY).filter(o => !sameFaculty(o.faculty, faculty));
+  outbox.push({
+    opId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    action: kind,
+    faculty: JSON.parse(JSON.stringify(faculty)),
+    ts: Date.now(),
+    attempts: 0
+  });
+  writeStore(OUTBOX_KEY, outbox);
+
+  const tombs = readStore(TOMBSTONE_KEY).filter(t => !sameFaculty(t, faculty));
+  if (kind === 'delete') {
+    tombs.push({ id: faculty.id || '', email: String(faculty.email || '').trim().toLowerCase(), deletedAt: Date.now() });
+  }
+  writeStore(TOMBSTONE_KEY, tombs);
+
+  scheduleOutboxFlush();
+}
+
+let flushTimer = null;
+let flushing = false;
+
+function scheduleOutboxFlush(delay = 150) {
+  if (!HAS_BROWSER) return;
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(() => { flushFacultyOutbox().catch(() => {}); }, delay);
+}
+
+/**
+ * Deliver queued changes to the Apps Script web app and wait for its answer.
+ * @returns {Promise<{sent: number, remaining: number, error?: string}>}
+ */
+export async function flushFacultyOutbox() {
+  const snapshot = readStore(OUTBOX_KEY);
+  if (!HAS_BROWSER || flushing || snapshot.length === 0) return { sent: 0, remaining: snapshot.length };
+
+  flushing = true;
+  let sent = 0;
+  let lastError = '';
+  try {
+    const failed = [];
+    for (const op of snapshot) {
+      if (Date.now() - op.ts > PENDING_TTL_MS) continue;
+      const res = await appsScriptPost(op.action === 'delete' ? 'delete_faculty' : 'update_faculty', { faculty: op.faculty });
+      // Deleting someone the sheet no longer has is exactly the outcome we wanted.
+      const alreadyGone = op.action === 'delete' && /not found/i.test(res.error || '');
+      if (res.ok || alreadyGone) {
+        sent += 1;
+      } else {
+        lastError = res.error || 'Unknown error';
+        failed.push({ ...op, attempts: (op.attempts || 0) + 1, lastError });
+      }
+    }
+
+    // Changes made while we were sending stay queued; a failed op that has since
+    // been superseded by a newer change to the same person is dropped.
+    const snapshotIds = new Set(snapshot.map(o => o.opId));
+    const arrivedMeanwhile = readStore(OUTBOX_KEY).filter(o => !snapshotIds.has(o.opId));
+    const keptFailed = failed.filter(f => !arrivedMeanwhile.some(n => sameFaculty(n.faculty, f.faculty)));
+    writeStore(OUTBOX_KEY, [...keptFailed, ...arrivedMeanwhile]);
+  } finally {
+    flushing = false;
+  }
+
+  const remaining = getPendingFacultyOps().length;
+  emitFacultySyncStatus(lastError ? { error: lastError } : {});
+  return lastError ? { sent, remaining, error: lastError } : { sent, remaining };
+}
+
+/**
+ * Layer this browser's not-yet-confirmed changes on top of the list read from the sheet.
+ * @param {boolean} [prune=true] drop delete markers the source no longer lists. Pass false
+ *   for sources that are not the sheet (they do not prove the sheet has caught up).
+ */
+function applyPendingToRemote(remoteList, prune = true) {
+  const now = Date.now();
+  const outbox = readStore(OUTBOX_KEY);
+  let list = Array.isArray(remoteList) ? remoteList.slice() : [];
+
+  const keep = [];
+  for (const t of readStore(TOMBSTONE_KEY)) {
+    const pending = outbox.some(o => o.action === 'delete' && sameFaculty(o.faculty, t));
+    if (pending) {
+      if (now - t.deletedAt < PENDING_TTL_MS) keep.push(t);
+      continue;
+    }
+    const stillListed = list.find(f => sameFaculty(f, t));
+    if (!stillListed) {
+      if (!prune) keep.push(t);   // the sheet has not confirmed yet - keep hiding
+      continue;                    // sheet confirms it is gone: marker no longer needed
+    }
+    const reAddedLater = Date.parse(stillListed.lastUpdated || '') > t.deletedAt;
+    if (reAddedLater || now - t.deletedAt > TOMBSTONE_TTL_MS) continue;
+    keep.push(t);
+  }
+  writeStore(TOMBSTONE_KEY, keep);
+  list = list.filter(f => !keep.some(t => sameFaculty(f, t)));
+
+  for (const op of outbox) {
+    if (op.action !== 'upsert') continue;
+    const idx = list.findIndex(f => sameFaculty(f, op.faculty));
+    if (idx >= 0) list[idx] = { ...list[idx], ...op.faculty };
+    else list.push({ ...op.faculty });
+  }
+  return list;
+}
+
 /**
  * Returns the current faculty onboarding data (from localStorage if available, merged with code defaults).
  */
@@ -450,6 +617,7 @@ export function upsertFacultyMember(facultyData) {
       lastUpdated: now
     };
     saveFacultyOnboardingData(list);
+    queueFacultyOp('upsert', list[existingIndex]);
     return list[existingIndex];
   } else {
     const newEntry = {
@@ -468,6 +636,7 @@ export function upsertFacultyMember(facultyData) {
     };
     list.push(newEntry);
     saveFacultyOnboardingData(list);
+    queueFacultyOp('upsert', newEntry);
     return newEntry;
   }
 }
@@ -480,7 +649,9 @@ export function deleteFacultyMember(idOrEmail) {
   const list = getFacultyOnboardingData();
   const filtered = list.filter(f => f.id !== idOrEmail && f.email?.toLowerCase() !== idOrEmail.toLowerCase());
   if (filtered.length !== list.length) {
+    const removed = list.filter(f => f.id === idOrEmail || f.email?.toLowerCase() === idOrEmail.toLowerCase());
     saveFacultyOnboardingData(filtered);
+    removed.forEach(f => queueFacultyOp('delete', f));
     return true;
   }
   return false;
@@ -744,220 +915,234 @@ export function parseFacultyCSV(csvText) {
   return list;
 }
 
+/** True when a fetched sheet export really is the faculty directory (not Batch Registry, Portal Settings, an HTML error page...). */
+function looksLikeFacultyCSV(text) {
+  if (!text || text.trim().length < 15) return false;
+  if (/^\s*<(!doctype|html)/i.test(text)) return false;
+  const head = text.split(/\r?\n/, 3).join('\n').toLowerCase();
+  return head.includes('email') && head.includes('name') && !head.includes('batch id') && !head.includes('"key"');
+}
+
+/** Faculty list straight from the Apps Script web app (always fresh - no Google read cache). */
+async function fetchFacultyViaAppsScript(execUrl) {
+  let data = null;
+  if (execUrl) {
+    try {
+      const u = execUrl + (execUrl.includes('?') ? '&' : '?') + 'action=get_faculty&_t=' + Date.now();
+      const r = await fetch(u, { cache: 'no-store' });
+      data = JSON.parse(await r.text());
+    } catch (_) { /* fall through */ }
+  } else {
+    data = await appsScriptGet('get_faculty');
+  }
+  const list = data && (Array.isArray(data.list) ? data.list : (Array.isArray(data) ? data : null));
+  return list && list.length > 0 ? list : null;
+}
+
+function persistFacultySheetUrl(url, opts) {
+  if (opts && opts.persistUrl === false) return;
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(FACULTY_SHEET_URL_KEY) !== url) {
+      localStorage.setItem(FACULTY_SHEET_URL_KEY, url);
+    }
+  } catch (_) { /* ignore */ }
+}
+
+/** Order- and timestamp-insensitive fingerprint, so a read that changes nothing is not treated as a change. */
+function facultySignature(list) {
+  return JSON.stringify((list || []).map(f => ({ ...f, lastUpdated: undefined })));
+}
+
 /**
  * Robust Client-Side and Proxy Google Sheet Synchronizer.
  * Works 100% reliably in static production (Render) without crashing on JSON parsing.
+ *
+ * The sheet is the source of truth: the returned list is what the sheet holds, with this
+ * browser's not-yet-confirmed changes (see the outbox above) layered on top. People who
+ * were deleted elsewhere disappear here too; people deleted here stay gone.
  */
-export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) {
+export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false, opts = {}) {
   if (!sheetUrl || typeof sheetUrl !== 'string') {
     throw new Error('Please provide a valid Google Spreadsheet URL or Apps Script URL.');
   }
 
   const cleanUrl = sheetUrl.trim();
-  
-  // Strategy 0: If it's a Google Apps Script Web App URL (/exec), call it directly
+
+  // Deliver anything still waiting, so the read below reflects our own edits.
+  await flushFacultyOutbox().catch(() => {});
+
+  let parsedList = null;
+  let fetchedVia = '';
+  let csvText = '';
+
+  // Strategy 0: a Google Apps Script Web App URL (/exec) - call it directly
   if (cleanUrl.includes('script.google.com/macros/s/') && cleanUrl.includes('/exec')) {
-    try {
-      const getUrl = cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + 'action=get_faculty';
-      const r = await fetch(getUrl);
-      const text = await r.text();
-      try {
-        const data = JSON.parse(text);
-        if (data && (Array.isArray(data.list) || Array.isArray(data))) {
-          const list = Array.isArray(data.list) ? data.list : data;
-          if (list.length > 0) {
-            saveFacultyOnboardingData(list);
-            if (typeof localStorage !== 'undefined') {
-              localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
-            }
-            return { success: true, count: list.length, list };
-          }
-        }
-      } catch (_) {}
-    } catch (e) {
-      console.warn('Apps Script direct fetch error:', e);
-    }
+    const list = await fetchFacultyViaAppsScript(cleanUrl);
+    if (list) { parsedList = list; fetchedVia = 'apps_script'; }
   }
 
   // Extract Sheet ID and GID
   const match = cleanUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) {
+  if (!parsedList && !match) {
     throw new Error('Invalid Google Spreadsheet link. URL must contain "/spreadsheets/d/{SHEET_ID}".');
   }
-  const sheetId = match[1];
-  const gidMatch = cleanUrl.match(/gid=([0-9]+)/);
-  const gid = gidMatch ? gidMatch[1] : '0';
 
-  let csvText = '';
-  let fetchedVia = '';
+  if (!parsedList) {
+    const sheetId = match[1];
+    const gidMatch = cleanUrl.match(/gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
 
-  // Strategy 1: Attempt local server proxy if running (with 2.5s timeout, safely handling non-JSON/404)
-  try {
-    if (!HAS_LOCAL_API) throw new Error('no local proxy');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
-    const proxyRes = await fetch('/api/faculty-onboarding/sync-sheet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sheetUrl: cleanUrl }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    const contentType = proxyRes.headers.get('content-type') || '';
-    if (proxyRes.ok && contentType.includes('application/json')) {
-      const jsonRes = await proxyRes.json();
-      if (jsonRes && jsonRes.success && Array.isArray(jsonRes.list) && jsonRes.list.length > 0) {
-        saveFacultyOnboardingData(jsonRes.list);
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
-        }
-        return { success: true, count: jsonRes.list.length, list: jsonRes.list, method: 'local_proxy' };
-      }
-    }
-  } catch (err) {
-    // Expected on static production (Render, Vercel static, GitHub Pages) - silently proceed to client-side strategies
-  }
-
-  // Strategy 2: Direct Google Visualization API (GViz) CSV export (Works in browser if sheet is public)
-  const gvizUrls = [];
-  if (gid) {
-    gvizUrls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
-  }
-  gvizUrls.push(
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty%20Directory`,
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty`,
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`
-  );
-
-  for (const targetUrl of gvizUrls) {
+    // Strategy 1: local server proxy (dev only)
     try {
-      const res = await fetch(targetUrl, { mode: 'cors' });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim().length > 15 && !text.startsWith('<!DOCTYPE') && !text.startsWith('<html')) {
-          csvText = text;
-          fetchedVia = 'gviz_direct';
-          break;
+      if (!HAS_LOCAL_API) throw new Error('no local proxy');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const proxyRes = await fetch('/api/faculty-onboarding/sync-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetUrl: cleanUrl }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const contentType = proxyRes.headers.get('content-type') || '';
+      if (proxyRes.ok && contentType.includes('application/json')) {
+        const jsonRes = await proxyRes.json();
+        if (jsonRes && jsonRes.success && Array.isArray(jsonRes.list) && jsonRes.list.length > 0) {
+          parsedList = jsonRes.list;
+          fetchedVia = 'local_proxy';
         }
       }
-    } catch (_) {
-      // Continue to next candidate
+    } catch (err) {
+      // Expected on static production (Render) - proceed to client-side strategies
     }
-  }
 
-  // Strategy 3: Client-side JSONP (Bypasses all CORS limitations on production)
-  if (!csvText && typeof window !== 'undefined' && typeof document !== 'undefined') {
-    const candidateTabs = gid ? [null, 'Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1'] : ['Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1', null];
-    for (const tab of candidateTabs) {
-      try {
-        const jsonpCsv = await new Promise((resolve, reject) => {
-          const cbName = `gviz_faculty_cb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-          let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cbName}`;
-          if (tab) url += `&sheet=${encodeURIComponent(tab)}`;
-          else if (gid) url += `&gid=${gid}`;
+    // Strategy 2: Google Visualization API (GViz) CSV export (works in the browser if the sheet is link-shared).
+    // Every candidate is checked to really be the faculty tab, so a wrong/renamed gid
+    // (e.g. gid=0 pointing at another tab) falls through to the named tabs instead of
+    // importing the wrong rows.
+    if (!parsedList) {
+      const gvizUrls = [];
+      if (gid) {
+        gvizUrls.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
+      }
+      gvizUrls.push(
+        `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty%20Directory`,
+        `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Faculty`,
+        `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
+        `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`
+      );
 
-          const timer = setTimeout(() => {
-            cleanup();
-            reject(new Error('JSONP timeout'));
-          }, 8000);
-
-          function cleanup() {
-            clearTimeout(timer);
-            delete window[cbName];
-            const el = document.getElementById(cbName);
-            if (el && el.parentNode) el.parentNode.removeChild(el);
-          }
-
-          window[cbName] = function(data) {
-            cleanup();
-            if (data && data.table && data.table.rows) {
-              const cols = (data.table.cols || []).map(c => c.label || '');
-              const rows = [cols.map(c => `"${c.replace(/"/g, '""')}"`).join(',')];
-              for (const r of data.table.rows) {
-                if (!r || !r.c) continue;
-                const rowVals = r.c.map(cell => {
-                  const val = cell ? (cell.f !== undefined ? cell.f : (cell.v !== undefined ? cell.v : '')) : '';
-                  return `"${String(val).replace(/"/g, '""')}"`;
-                });
-                rows.push(rowVals.join(','));
-              }
-              resolve(rows.join('\r\n'));
-            } else {
-              reject(new Error('Invalid table'));
+      for (const targetUrl of gvizUrls) {
+        try {
+          const res = await fetch(targetUrl + '&_t=' + Date.now(), { mode: 'cors', cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            if (looksLikeFacultyCSV(text)) {
+              csvText = text;
+              fetchedVia = 'gviz_direct';
+              break;
             }
-          };
-
-          const script = document.createElement('script');
-          script.id = cbName;
-          script.src = url;
-          script.onerror = () => { cleanup(); reject(new Error('Script error')); };
-          document.body.appendChild(script);
-        });
-
-        if (jsonpCsv && jsonpCsv.trim().length > 30) {
-          csvText = jsonpCsv;
-          fetchedVia = 'jsonp_gviz';
-          break;
+          }
+        } catch (_) {
+          // Continue to next candidate
         }
-      } catch (_) {}
+      }
     }
-  }
 
-  if (!csvText) {
-    throw new Error(
-      'Could not read the Google Sheet. Please make sure the sheet is shared as "Anyone with the link can view".'
-    );
+    // Strategy 3: Client-side JSONP (bypasses CORS limitations on production)
+    if (!parsedList && !csvText && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const candidateTabs = gid ? [null, 'Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1'] : ['Faculty Directory', 'Faculty', 'Onboarding', 'Sheet1', null];
+      for (const tab of candidateTabs) {
+        try {
+          const jsonpCsv = await new Promise((resolve, reject) => {
+            const cbName = `gviz_faculty_cb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cbName}`;
+            if (tab) url += `&sheet=${encodeURIComponent(tab)}`;
+            else if (gid) url += `&gid=${gid}`;
+
+            const timer = setTimeout(() => {
+              cleanup();
+              reject(new Error('JSONP timeout'));
+            }, 8000);
+
+            function cleanup() {
+              clearTimeout(timer);
+              delete window[cbName];
+              const el = document.getElementById(cbName);
+              if (el && el.parentNode) el.parentNode.removeChild(el);
+            }
+
+            window[cbName] = function(data) {
+              cleanup();
+              if (data && data.table && data.table.rows) {
+                const cols = (data.table.cols || []).map(c => c.label || '');
+                const rows = [cols.map(c => `"${c.replace(/"/g, '""')}"`).join(',')];
+                for (const r of data.table.rows) {
+                  if (!r || !r.c) continue;
+                  const rowVals = r.c.map(cell => {
+                    const val = cell ? (cell.f !== undefined ? cell.f : (cell.v !== undefined ? cell.v : '')) : '';
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                  });
+                  rows.push(rowVals.join(','));
+                }
+                resolve(rows.join('\r\n'));
+              } else {
+                reject(new Error('Invalid table'));
+              }
+            };
+
+            const script = document.createElement('script');
+            script.id = cbName;
+            script.src = url;
+            script.onerror = () => { cleanup(); reject(new Error('Script error')); };
+            document.body.appendChild(script);
+          });
+
+          if (looksLikeFacultyCSV(jsonpCsv)) {
+            csvText = jsonpCsv;
+            fetchedVia = 'jsonp_gviz';
+            break;
+          }
+        } catch (_) {}
+      }
+    }
+
+    // Strategy 4: ask the Apps Script web app (works even if the sheet is not link-shared)
+    if (!parsedList && !csvText) {
+      const list = await fetchFacultyViaAppsScript(null);
+      if (list) { parsedList = list; fetchedVia = 'apps_script'; }
+    }
+
+    if (!parsedList && !csvText) {
+      throw new Error(
+        'Could not read the Google Sheet. Please make sure the sheet is shared as "Anyone with the link can view".'
+      );
+    }
   }
 
   // Parse extracted CSV
-  const parsedList = parseFacultyCSV(csvText);
-
-  // Check if sheet was found but empty or without valid records
-  if (parsedList.length === 0) {
-    return {
-      success: false,
-      empty: true,
-      error: 'Google Sheet connected, but no faculty rows found. Headers might be missing.',
-      rawCsv: csvText,
-      headers: FACULTY_SHEET_HEADERS
-    };
+  if (!parsedList) {
+    parsedList = parseFacultyCSV(csvText);
+    // Check if sheet was found but empty or without valid records
+    if (parsedList.length === 0) {
+      return {
+        success: false,
+        empty: true,
+        error: 'Google Sheet connected, but no faculty rows found. Headers might be missing.',
+        rawCsv: csvText,
+        headers: FACULTY_SHEET_HEADERS
+      };
+    }
   }
 
-  // Preserve any local state that has been modified more recently than the remote sheet snapshot
-  const localList = getFacultyOnboardingData();
-  let mergedList = [];
+  // The sheet wins - except for this browser's changes it has not confirmed yet.
+  const mergedList = applyPendingToRemote(parsedList);
 
-  if (forceRemote || !localList || localList.length === 0) {
-    mergedList = parsedList;
-  } else {
-    mergedList = parsedList.map(remoteF => {
-      const localMatch = localList.find(l => (l.id && l.id === remoteF.id) || (l.email && l.email.toLowerCase() === (remoteF.email || '').toLowerCase()));
-      if (localMatch) {
-        const localTime = localMatch.lastUpdated ? new Date(localMatch.lastUpdated).getTime() : 0;
-        const remoteTime = remoteF.lastUpdated ? new Date(remoteF.lastUpdated).getTime() : 0;
-        // If local edit has occurred and is newer, keep local state
-        if (localTime > remoteTime) {
-          return { ...remoteF, ...localMatch };
-        }
-      }
-      return remoteF;
-    });
-
-    // Also include any newly added local faculty that haven't been synchronized to remote sheet yet
-    localList.forEach(localF => {
-      const existsInRemote = mergedList.some(r => (r.id && r.id === localF.id) || (r.email && r.email.toLowerCase() === (localF.email || '').toLowerCase()));
-      if (!existsInRemote) {
-        mergedList.push(localF);
-      }
-    });
-  }
-
-  // Check if anything actually changed compared to current localStorage
   const currentSaved = typeof localStorage !== 'undefined' ? localStorage.getItem(ONBOARDING_STORAGE_KEY) : null;
-  const newJson = JSON.stringify(mergedList);
-  const hasChanged = currentSaved !== newJson;
+  let currentList = [];
+  try { currentList = JSON.parse(currentSaved || '[]') || []; } catch (_) {}
+  const hasChanged = currentSaved === null || facultySignature(currentList) !== facultySignature(mergedList);
 
   // Persist synced data locally and broadcast to all tabs if changed
   if (hasChanged) {
@@ -975,9 +1160,7 @@ export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) 
       }).catch(() => {});
     } catch (_) {}
   }
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(FACULTY_SHEET_URL_KEY, cleanUrl);
-  }
+  persistFacultySheetUrl(cleanUrl, opts);
 
   return {
     success: true,
@@ -988,38 +1171,48 @@ export async function syncFacultyFromGoogleSheet(sheetUrl, forceRemote = false) 
   };
 }
 
+let connectedSyncInFlight = false;
+
 /**
- * Automatically syncs from the embedded Google Sheet URL without clobbering recent local edits.
+ * Automatically syncs from the connected Google Sheet. The sheet is authoritative, so edits and
+ * deletes made by other admins show up here, while this browser's pending changes are preserved.
  */
 export async function syncFacultyFromConnectedSheet(forceRemote = false) {
+  if (connectedSyncInFlight) return null;
+  connectedSyncInFlight = true;
   try {
     const connectedUrl = getConnectedFacultySheetUrl();
     if (!connectedUrl) return null;
-    return await syncFacultyFromGoogleSheet(connectedUrl, forceRemote);
+    // Background reads never write the URL back into settings (that used to stamp a
+    // "new" shared setting from every browser on every tick).
+    return await syncFacultyFromGoogleSheet(connectedUrl, forceRemote, { persistUrl: false });
   } catch (err) {
     console.warn('Background faculty sheet sync notice:', err.message);
     return null;
+  } finally {
+    connectedSyncInFlight = false;
   }
 }
 
+/** Local dev server copy of the list. Only exists on localhost - skipped on the static Render site. */
 export async function pullServerFacultyList() {
-  if (typeof fetch === 'undefined') return null;
+  if (typeof fetch === 'undefined' || !HAS_LOCAL_API) return null;
   try {
     const res = await fetch('/api/faculty-onboarding', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       if (data && data.success && Array.isArray(data.list) && data.list.length > 0) {
-        const curList = getFacultyOnboardingData();
-        const curJson = JSON.stringify(curList);
-        const newJson = JSON.stringify(data.list);
+        const nextList = applyPendingToRemote(data.list, false);
+        const curJson = JSON.stringify(getFacultyOnboardingData());
+        const newJson = JSON.stringify(nextList);
         if (curJson !== newJson) {
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem(ONBOARDING_STORAGE_KEY, newJson);
           }
           if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: data.list }));
+            window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: nextList }));
           }
-          return data.list;
+          return nextList;
         }
       }
     }
@@ -1028,37 +1221,37 @@ export async function pullServerFacultyList() {
 }
 
 let facultyAutoSyncTimer = null;
+let facultyAutoSyncBound = false;
 
 /**
- * Starts continuous background real-time synchronization with the database spreadsheet (vice-versa sync)
- * and server persistence API.
+ * Starts continuous background real-time synchronization with the shared spreadsheet
+ * (pending writes are delivered first, then the sheet is read back).
  */
 export function startFacultyAutoSync(intervalSeconds = 10) {
   stopFacultyAutoSync();
   const intervalMs = Math.max(5, intervalSeconds) * 1000;
 
+  const tick = () => {
+    pullServerFacultyList().catch(() => {});
+    syncFacultyFromConnectedSheet().catch(() => {});
+  };
+
   // Initial sync immediately
-  pullServerFacultyList().catch(() => {});
-  syncFacultyFromConnectedSheet().catch(() => {});
+  tick();
 
   facultyAutoSyncTimer = setInterval(() => {
-    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-      pullServerFacultyList().catch(() => {});
-      syncFacultyFromConnectedSheet().catch(() => {});
-    }
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') tick();
   }, intervalMs);
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('focus', () => {
-      pullServerFacultyList().catch(() => {});
-      syncFacultyFromConnectedSheet().catch(() => {});
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        pullServerFacultyList().catch(() => {});
-        syncFacultyFromConnectedSheet().catch(() => {});
-      }
-    });
+  if (typeof window !== 'undefined' && !facultyAutoSyncBound) {
+    facultyAutoSyncBound = true;
+    window.addEventListener('focus', tick);
+    window.addEventListener('online', tick);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') tick();
+      });
+    }
   }
 }
 
@@ -1070,9 +1263,12 @@ export function stopFacultyAutoSync() {
 }
 
 /**
- * Automatically handles Add, Edit, Update, and Delete operations on the faculty directory.
- * Writes to local storage, updates memory, broadcasts DOM event, and synchronizes
- * with Google Sheets / Apps Script backend automatically.
+ * Handles Add, Edit, Update, and Delete operations on the faculty directory.
+ * Writes to local storage, broadcasts the DOM event, and queues the change for the shared
+ * Google Sheet - then waits for the Apps Script to CONFIRM it (the previous fire-and-forget
+ * request could not tell a failed write from a successful one).
+ *
+ * @returns {Promise<{ok: boolean, count: number, list: object[], synced: boolean, pending: number, error?: string}>}
  */
 export async function autoSyncFacultyMutation(action, targetFaculty, entireList) {
   let list = entireList;
@@ -1085,13 +1281,8 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
     targetFaculty.lastUpdated = new Date().toISOString();
   }
 
-  // 1. Persist locally immediately
+  // 1. Persist locally immediately (also broadcasts to other tabs/components)
   saveFacultyOnboardingData(list);
-
-  // 2. Broadcast event across tabs and components
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('meded:faculty_onboarding_updated', { detail: list }));
-  }
 
   // Notify admins of onboarding setting update
   try {
@@ -1107,52 +1298,17 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
     }).catch(() => {});
   } catch (_) {}
 
-  // 3. Automated Sheet / Apps Script Writeback
-  let scriptUrl = null;
-  let token = 'pw-meded-token-2026';
-
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const cfg = JSON.parse(localStorage.getItem('meded_sheet_writeback_config_v1') || 'null');
-      if (cfg && cfg.endpoint) {
-        scriptUrl = cfg.endpoint;
-        if (cfg.token) token = cfg.token;
-      }
-    } catch (_) {}
-
-    if (!scriptUrl) {
-      const savedSpreadsheetUrl = localStorage.getItem('pw_faculty_spreadsheet_url') || '';
-      scriptUrl = localStorage.getItem('meded_sheet_writer_url') || 
-                  localStorage.getItem('pw_faculty_script_url') || 
-                  (savedSpreadsheetUrl.includes('/exec') ? savedSpreadsheetUrl : null);
-      token = localStorage.getItem('meded_sheet_writer_token') || token;
-    }
+  // 2. Queue for the shared sheet
+  if (action === 'batch') {
+    list.forEach(f => queueFacultyOp('upsert', f));
+  } else if (targetFaculty) {
+    queueFacultyOp(action === 'delete' ? 'delete' : 'upsert', targetFaculty);
   }
 
-  if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
-    try {
-      const mutationAction = action === 'delete' ? 'delete_faculty' : 
-                             (action === 'add' ? 'add_faculty' : 
-                             (action === 'batch' ? 'batch_update_faculty' : 'update_faculty'));
-      const payload = JSON.stringify({
-        action: mutationAction,
-        token,
-        faculty: targetFaculty,
-        fullList: list
-      });
-
-      // Use text/plain and no-cors for robust Apps Script execution without CORS preflight failures
-      await fetch(scriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: payload
-      });
-      console.log(`✓ Synchronized faculty mutation (${mutationAction}) to connected Google Spreadsheet Apps Script.`);
-    } catch (e) {
-      console.warn('Background sheet mutation writeback notice:', e);
-    }
-  }
+  // 3. Deliver now and wait for confirmation
+  clearTimeout(flushTimer);
+  const result = await flushFacultyOutbox().catch(e => ({ sent: 0, remaining: getPendingFacultyOps().length, error: e && e.message }));
+  const pending = getPendingFacultyOps().length;
 
   // 4. Also notify local development server if running
   if (typeof fetch !== 'undefined' && HAS_LOCAL_API) {
@@ -1165,12 +1321,10 @@ export async function autoSyncFacultyMutation(action, targetFaculty, entireList)
     } catch (_) {}
   }
 
-  return { ok: true, count: list.length, list };
+  return { ok: true, count: list.length, list, synced: pending === 0, pending, ...(result && result.error ? { error: result.error } : {}) };
 }
 
 // Background sync from connected Google Sheet on startup (Production-Ready)
 if (typeof window !== 'undefined') {
   startFacultyAutoSync(15);
 }
-
-

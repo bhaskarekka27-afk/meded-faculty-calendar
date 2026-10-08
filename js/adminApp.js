@@ -6160,7 +6160,7 @@ class AdminDashboardController {
           fac.canRescheduleCancel = newVal;
           fac.lastUpdated = new Date().toISOString();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
+          this.trackFacultySync(autoSyncFacultyMutation('update', fac, this.facultyOnboardingList));
           this.renderOnboardingList();
           if (newVal) {
             this.showToast(`Reschedule & cancellation enabled for ${fac.name}`);
@@ -6180,7 +6180,7 @@ class AdminDashboardController {
           this.facultyOnboardingList = this.facultyOnboardingList.filter(f => f.id !== id);
           if (this.editingFacultyId === id) resetFormState();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-          autoSyncFacultyMutation('delete', fac, this.facultyOnboardingList);
+          this.trackFacultySync(autoSyncFacultyMutation('delete', fac, this.facultyOnboardingList));
           this.renderOnboardingList();
           this.showToast(`Removed ${fac.name} from faculty directory & synced.`);
         }
@@ -6261,7 +6261,7 @@ class AdminDashboardController {
         if (fac) {
           fac.status = 'Verified';
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
+          this.trackFacultySync(autoSyncFacultyMutation('update', fac, this.facultyOnboardingList));
           this.renderOnboardingList();
           this.showToast(`Credentials verified & mapping completed for ${fac.name}!`);
         }
@@ -6332,7 +6332,7 @@ class AdminDashboardController {
           fac.canRescheduleCancel = canReschedVal;
           fac.lastUpdated = new Date().toISOString();
           reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-          autoSyncFacultyMutation('update', fac, this.facultyOnboardingList);
+          this.trackFacultySync(autoSyncFacultyMutation('update', fac, this.facultyOnboardingList));
           this.showToast(`Updated credentials & permissions for ${cleanName}!`);
         }
         resetFormState();
@@ -6356,12 +6356,24 @@ class AdminDashboardController {
         this.facultyOnboardingList.unshift(newFaculty);
         this.onboardingPage = 1;
         reminderEmailService.saveFacultyOnboardingList(this.facultyOnboardingList);
-        autoSyncFacultyMutation('add', newFaculty, this.facultyOnboardingList);
+        this.trackFacultySync(autoSyncFacultyMutation('add', newFaculty, this.facultyOnboardingList));
         resetFormState();
         this.renderOnboardingList();
         this.showToast(`${selectedRole} ${cleanName} onboarded & mapped successfully!`);
       }
     });
+  }
+
+  /**
+   * autoSyncFacultyMutation resolves once the shared sheet confirmed the change (or gave up for now).
+   * The change is already applied here and stays queued, so a failure is a warning, not data loss.
+   */
+  trackFacultySync(promise) {
+    Promise.resolve(promise).then((res) => {
+      if (res && res.synced === false) {
+        this.showToast(`Saved on this device, but the Google Sheet has not confirmed it yet (${res.pending} pending). It will keep retrying.`);
+      }
+    }).catch(() => {});
   }
 
   // --- 12. Notification Drawer & Real-time Alerts ---

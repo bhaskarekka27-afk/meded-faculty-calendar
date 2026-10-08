@@ -396,6 +396,13 @@ function handleFacultyOnboardingApi(req, res, pathname) {
 const BATCHES_JSON_FILE = path.join(ROOT, 'data_batches.json');
 const REQUESTS_JSON_FILE = path.join(ROOT, 'data_requests.json');
 const SETTINGS_JSON_FILE = path.join(ROOT, 'data_settings.json');
+// When each setting last changed (ISO). The client needs this to tell "newer than mine" from
+// "older than mine"; without it every poll looked brand new and overwrote the admin's edit.
+const SETTINGS_META_FILE = path.join(ROOT, 'data_settings_meta.json');
+
+function readSettingsMeta() {
+  try { return JSON.parse(fs.readFileSync(SETTINGS_META_FILE, 'utf-8')) || {}; } catch (_) { return {}; }
+}
 
 function handleBatchesApi(req, res, pathname) {
   if (req.method === 'OPTIONS') {
@@ -531,10 +538,10 @@ function handleSettingsApi(req, res, pathname) {
       if (fs.existsSync(SETTINGS_JSON_FILE)) {
         const content = fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8');
         const parsed = JSON.parse(content);
-        return json(res, 200, { success: true, settings: parsed });
+        return json(res, 200, { success: true, settings: parsed, meta: readSettingsMeta() });
       }
     } catch (e) {}
-    return json(res, 200, { success: true, settings: {} });
+    return json(res, 200, { success: true, settings: {}, meta: {} });
   }
 
   if (req.method === 'POST') {
@@ -548,13 +555,22 @@ function handleSettingsApi(req, res, pathname) {
           try { settings = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8')); } catch (_) {}
         }
 
+        const meta = readSettingsMeta();
+        const stamp = data.updatedAt || new Date().toISOString();
         if (data.key) {
+          // Ignore a write that is older than what the server already holds for this key.
+          if (meta[data.key] && meta[data.key] > stamp) {
+            return json(res, 200, { success: true, stale: true, settings, meta });
+          }
           settings[data.key] = data.value;
+          meta[data.key] = stamp;
         } else if (data.settings && typeof data.settings === 'object') {
           settings = { ...settings, ...data.settings };
+          Object.keys(data.settings).forEach(k => { meta[k] = stamp; });
         }
         fs.writeFileSync(SETTINGS_JSON_FILE, JSON.stringify(settings, null, 2), 'utf-8');
-        return json(res, 200, { success: true, settings });
+        fs.writeFileSync(SETTINGS_META_FILE, JSON.stringify(meta, null, 2), 'utf-8');
+        return json(res, 200, { success: true, settings, meta });
       } catch (err) {
         return json(res, 400, { error: err.message });
       }

@@ -214,14 +214,9 @@ export class ReminderEmailService {
         }));
       }
 
-      // Persist directly to server code level API
-      if (typeof fetch !== 'undefined') {
-        fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: this.SETTINGS_KEY, value: JSON.stringify(updated) })
-        }).catch(() => {});
-      }
+      // Sharing with other logins (and the local dev server) is handled by sharedSettings.js.
+      // A direct POST here stamped every save - even an unchanged blur/toggle - as "newer"
+      // and could overwrite a change another admin had just made.
 
       this.broadcastEvent('meded:email_settings_updated', updated);
 

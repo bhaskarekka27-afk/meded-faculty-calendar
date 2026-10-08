@@ -982,7 +982,8 @@ function deleteFacultyRecord_(f) {
     }
   }
 
-  return { ok: false, error: 'Faculty not found to delete' };
+  // Already gone (deleted from the sheet by hand or by another admin): that is the outcome asked for.
+  return { ok: true, removed: false, message: 'Faculty not found - nothing to delete' };
 }
 
 function batchUpdateFacultyRecords_(fullList) {
