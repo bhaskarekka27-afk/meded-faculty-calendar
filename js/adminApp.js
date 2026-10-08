@@ -6054,6 +6054,34 @@ class AdminDashboardController {
       });
     }
 
+    // Role conditional field visibility handler
+    const updateRoleConditionalFields = (selectedRole) => {
+      const subjectsSection = document.getElementById('onboard-subjects-section');
+      const rescheduleSection = document.getElementById('onboard-reschedule-section');
+      const isAdmin = (selectedRole || '').toLowerCase() === 'admin';
+
+      if (subjectsSection) {
+        if (isAdmin) {
+          subjectsSection.classList.add('hidden');
+        } else {
+          subjectsSection.classList.remove('hidden');
+        }
+      }
+
+      if (rescheduleSection) {
+        if (isAdmin) {
+          rescheduleSection.classList.add('hidden');
+        } else {
+          rescheduleSection.classList.remove('hidden');
+        }
+      }
+    };
+
+    const roleTeacherRadioEl = document.getElementById('onboard-role-teacher');
+    const roleAdminRadioEl = document.getElementById('onboard-role-admin');
+    roleTeacherRadioEl?.addEventListener('change', () => updateRoleConditionalFields('Teacher'));
+    roleAdminRadioEl?.addEventListener('change', () => updateRoleConditionalFields('Admin'));
+
     // 7. Reset form function
     const resetFormState = () => {
       this.editingFacultyId = null;
@@ -6061,6 +6089,8 @@ class AdminDashboardController {
 
       const teacherRadio = document.getElementById('onboard-role-teacher');
       if (teacherRadio) teacherRadio.checked = true;
+
+      updateRoleConditionalFields('Teacher');
 
       const desigInput = document.getElementById('onboard-designation-input');
       if (desigInput) desigInput.value = '';
@@ -6177,8 +6207,10 @@ class AdminDashboardController {
         const isAdm = (fac.role || '').toLowerCase() === 'admin';
         if (isAdm && roleAdminRadio) {
           roleAdminRadio.checked = true;
+          updateRoleConditionalFields('Admin');
         } else if (roleTeacherRadio) {
           roleTeacherRadio.checked = true;
+          updateRoleConditionalFields('Teacher');
         }
 
         // Deactivate all chips first
@@ -6258,18 +6290,25 @@ class AdminDashboardController {
       const secEmailVal = (secEmailInput?.value || '').trim();
       const selectedRole = roleRadio ? roleRadio.value : 'Teacher';
       const phoneVal = (phoneInput?.value || '').trim();
-      const canReschedVal = reschedToggle ? reschedToggle.checked : true;
+      const canReschedVal = selectedRole === 'Admin' ? false : (reschedToggle ? reschedToggle.checked : true);
 
       if (!nameVal || !emailVal) {
         alert('Please provide faculty name and registered institutional email.');
         return;
       }
 
-      // Collect active subjects safely
+      // Collect active subjects safely (only for teacher)
       const activeChips = Array.from(subjectChips?.querySelectorAll('.subject-chip.active, .subject-chip[data-selected="true"]') || []);
       const selectedSubjects = activeChips.map(c => c.getAttribute('data-subject')).filter(Boolean);
-      const primarySubject = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : (selectedRole === 'Admin' ? 'Medical Sciences' : 'General Medicine');
-      const desigVal = (desigInput?.value || '').trim() || (selectedRole === 'Admin' ? 'Lead Academic Directorate' : `Professor • ${primarySubject}`);
+      const primarySubject = selectedRole === 'Admin' 
+        ? 'Academic Administration' 
+        : (selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'Medical Sciences');
+      
+      // Designation is completely optional for teacher onboarding
+      const userEnteredDesig = (desigInput?.value || '').trim();
+      const desigVal = userEnteredDesig 
+        ? userEnteredDesig 
+        : (selectedRole === 'Admin' ? 'Lead Academic Directorate' : `Professor • ${primarySubject}`);
 
       const cleanName = nameVal.startsWith('Dr.') || nameVal.startsWith('Prof.') ? nameVal : (selectedRole === 'Admin' ? nameVal : `Dr. ${nameVal}`);
       const defaultCohorts = ["Prarambh '26", "Sushruta '26", "INI-CET '26", "FMGE '26"];

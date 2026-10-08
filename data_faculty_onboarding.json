@@ -265,7 +265,7 @@
     "secondaryEmail": "admin@drjazeerdermatology.com",
     "phone": "98098 44313",
     "dept": "Dermatology",
-    "role": "Teacher",
+    "role": "Admin",
     "designation": "Consultant • Dermatology",
     "status": "Verified",
     "canRescheduleCancel": false,
@@ -318,25 +318,6 @@
     "dept": "Medical Sciences",
     "role": "Admin",
     "designation": "Lead Academic Faculty",
-    "status": "Verified",
-    "canRescheduleCancel": false,
-    "cohorts": [
-      "Prarambh '26",
-      "Sushruta '26",
-      "INI-CET '26",
-      "FMGE '26"
-    ],
-    "lastUpdated": "2026-09-24T12:00:00.000Z"
-  },
-  {
-    "id": "fac-admin-1",
-    "name": "Kanchan Gupta",
-    "email": "kanchan.gupta1@pw.live",
-    "secondaryEmail": "kanchan.gupta1@pw.live",
-    "phone": "98765 43211",
-    "dept": "Academic Administration",
-    "role": "Admin",
-    "designation": "Academic Operations Lead",
     "status": "Verified",
     "canRescheduleCancel": false,
     "cohorts": [
