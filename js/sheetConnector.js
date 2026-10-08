@@ -186,7 +186,8 @@ export function detectBannerLayout(rows) {
         if (map[k] === undefined && HEADER_KEYS[k].test(c)) { map[k] = idx; break; }
       }
     });
-    if (map.date === undefined || map.faculty === undefined || map.topic === undefined) continue;
+    if (map.date === undefined || map.faculty === undefined) continue;
+    if (map.topic === undefined && map.subject === undefined && map.chapter === undefined) continue;
     const dateCell = cells[map.date];
     const looksNew = i >= 1 || (map.day !== undefined && (dateCell === 'date' || dateCell.length > 25));
     if (looksNew) return { headerIdx: i, cols: map };
@@ -336,6 +337,10 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
   const bannerLayout = detectBannerLayout(rows);
   if (bannerLayout) return processBannerSheet(rows, bannerLayout, id, sourceUrl, tabName, overrideName);
 
+  // The faculty always comes from the column headed "Faculty Name" (wherever it sits); column B is only the fallback
+  const facultyCol = header.findIndex(h => /(^|\s)faculty(\s*name)?$/i.test(String(h || '').replace(/\s+/g, ' ').trim()));
+  const facCol = facultyCol >= 0 ? facultyCol : 1;
+
   const isFourColLayout = header.length <= 6 || (header[1] && header[1].toLowerCase().includes('faculty') && header[3] && header[3].toLowerCase().includes('time'));
   const isYoutube = rawBatchHeader.toLowerCase().includes('yt channel') || 
                     rawBatchHeader.toLowerCase().includes('youtube') || 
@@ -395,7 +400,7 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
 
     if (isFourColLayout) {
       dateStr = (r[0] || '').trim();
-      facultyStr = (r[1] || '').trim();
+      facultyStr = (r[facCol] || '').trim();
       const subjectOrTopic = (r[2] || '').trim();
       timingsStr = (r[3] || '').trim();
 
@@ -414,7 +419,7 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       }
     } else {
       dateStr = (r[0] || '').trim();
-      facultyStr = (r[1] || '').trim();
+      facultyStr = (r[facCol] || '').trim();
       subjectStr = (r[2] || '').trim();
       chapterStr = (r[3] || '').trim();
       topicStr = (r[4] || '').trim();

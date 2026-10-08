@@ -33,3 +33,7 @@ for (const [name, rows] of Object.entries(variants)) {
 // legacy layout untouched
 const legacy = 'Prarambh 2026 Lecture Planner,Faculty,Subject,Time\nThursday, October 15, 2026,Dr X,Anatomy,7:00pm to 9:00pm\n';
 const lb = c.processRawCSVToBatch(legacy,'l','u'); assert.strictEqual(lb.platform,'app'); assert.strictEqual(lb.events.length,1); console.log('legacy ok');
+// Faculty is read from the "Faculty Name" column wherever it is
+const moved = 'Prarambh 2026,Subject,Faculty Name,Timings\n"Thursday, October 15, 2026",Anatomy,Dr. Meera Rao,7:00pm to 9:00pm\n';
+const mb = c.processRawCSVToBatch(moved,'m','u'); assert.strictEqual(mb.events[0].faculty,'Dr. Meera Rao'); console.log('faculty-name column ok');
+process.exit(0);
