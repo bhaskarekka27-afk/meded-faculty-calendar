@@ -1,36 +1,8 @@
 services:
-  - type: static
+  - type: web
     name: meded-faculty-calendar
+    env: node
+    plan: free
     buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /admin
-        destination: /admin.html
-      - type: rewrite
-        source: /faculty
-        destination: /faculty.html
-      - type: rewrite
-        source: /week
-        destination: /week.html
-      - type: rewrite
-        source: /timeline
-        destination: /timeline.html
-      - type: rewrite
-        source: /requests
-        destination: /requests.html
-      - type: rewrite
-        source: /admin-login
-        destination: /admin-login.html
-      - type: rewrite
-        source: /admin/login
-        destination: /admin-login.html
-      - type: rewrite
-        source: /faculty-login
-        destination: /faculty-login.html
-      - type: rewrite
-        source: /faculty/login
-        destination: /faculty-login.html
-      - type: rewrite
-        source: /login
-        destination: /login.html
+    startCommand: node server.cjs
+

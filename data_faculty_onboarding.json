@@ -265,7 +265,7 @@
     "secondaryEmail": "admin@drjazeerdermatology.com",
     "phone": "98098 44313",
     "dept": "Dermatology",
-    "role": "Admin",
+    "role": "Teacher",
     "designation": "Consultant • Dermatology",
     "status": "Verified",
     "canRescheduleCancel": false,
@@ -314,8 +314,8 @@
     "name": "Bhaskar Ekka",
     "email": "bhaskar.ekka@pw.live",
     "secondaryEmail": "bhaskarekka27@gmail.com",
-    "phone": "98765 43210",
-    "dept": "Medical Sciences",
+    "phone": "8587860991",
+    "dept": "Academic Administration",
     "role": "Admin",
     "designation": "Lead Academic Faculty",
     "status": "Verified",
@@ -326,6 +326,82 @@
       "INI-CET '26",
       "FMGE '26"
     ],
-    "lastUpdated": "2026-09-24T12:00:00.000Z"
+    "lastUpdated": "2026-10-08T11:20:29.737Z"
+  },
+  {
+    "id": "fac-admin-1791461914186",
+    "name": "Kanchan Gupta",
+    "email": "Kanchan.gupta1@pw.live",
+    "secondaryEmail": "",
+    "phone": "7819851883",
+    "dept": "Academic Administration",
+    "role": "Admin",
+    "designation": "Lead Academic Directorate",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-10-08T12:18:35.216Z"
+  },
+  {
+    "id": "fac-1791462241071",
+    "name": "Dr. Ichita Joshi",
+    "email": "ichita.joshi@pw.live",
+    "secondaryEmail": "",
+    "phone": "7888443406",
+    "dept": "DADH, Dental Material",
+    "role": "Teacher",
+    "designation": "Professor • DADH, Dental Material",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-10-08T12:24:04.098Z"
+  },
+  {
+    "id": "fac-1791462304146",
+    "name": "Dr. Jyoti Chaturvedi",
+    "email": "jyoti.kumari3@pw.live",
+    "secondaryEmail": "",
+    "phone": "7982699663",
+    "dept": "Anatomy, Physiology",
+    "role": "Teacher",
+    "designation": "Professor • Anatomy, Physiology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-10-08T12:25:39.448Z"
+  },
+  {
+    "id": "fac-1791462393756",
+    "name": "Dr. Akash Sinha",
+    "email": "aakash.sinha1@pw.live",
+    "secondaryEmail": "",
+    "phone": "7667510894",
+    "dept": "Anatomy, Pharmacology",
+    "role": "Teacher",
+    "designation": "Professor • Anatomy, Pharmacology",
+    "status": "Verified",
+    "canRescheduleCancel": false,
+    "cohorts": [
+      "Prarambh '26",
+      "Sushruta '26",
+      "INI-CET '26",
+      "FMGE '26"
+    ],
+    "lastUpdated": "2026-10-08T12:26:36.356Z"
   }
 ]

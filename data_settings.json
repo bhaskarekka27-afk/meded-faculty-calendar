@@ -1,6 +1,6 @@
 {
   "meded_email_settings": "{\"senderEmail\":\"dean.academic@pwmeded.edu.in\",\"senderName\":\"PW MedEd Academic Directorate\",\"replyTo\":\"dean.office@pwmeded.edu.in\",\"leadDurationMinutes\":45,\"leadDurationUnit\":\"minutes\",\"leadDurationValue\":45,\"isEnabled\":true,\"autoTriggerIntervalSeconds\":30,\"whatsappEnabled\":false,\"whatsappSenderName\":\"PW MedEd\",\"whatsappSenderNumber\":\"94234 07557\",\"whatsappCountryCode\":\"+91\",\"whatsappCadenceSeconds\":45,\"whatsappJitterSeconds\":15,\"whatsappAutoDispatch\":true,\"lastConfiguredAt\":\"2026-10-08T09:43:41.697Z\",\"appsScriptUrl\":\"https://script.google.com/macros/s/AKfycbzngJRD2AiQknJcxH4rzwX9Txuo6vcrQ_fBb6wMwVHhTeewkdaaSm_4qGmjdUkuU_sAJg/exec\"}",
   "pw_meded_email_settings": "{\"senderEmail\":\"dean.academic@pwmeded.edu.in\",\"leadDuration\":\"45 minutes\",\"enabled\":true,\"updatedAt\":\"2026-10-08T09:43:41.697Z\"}",
-  "meded_sync_settings_v1": "{\"autoSyncEnabled\":true,\"intervalSeconds\":30,\"lastSyncedAt\":\"2026-10-08T09:46:31.790Z\",\"syncStatus\":\"success\"}",
+  "meded_sync_settings_v1": "{\"autoSyncEnabled\":true,\"intervalSeconds\":30,\"lastSyncedAt\":\"2026-10-08T12:17:07.513Z\",\"syncStatus\":\"success\"}",
   "pw_faculty_spreadsheet_url": "https://docs.google.com/spreadsheets/d/1ny3xsppBVxJb1FNPBU97mpm0b4eyAkUAG9CanjXf5FE/edit?gid=0#gid=0"
 }

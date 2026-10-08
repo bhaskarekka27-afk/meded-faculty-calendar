@@ -20,8 +20,8 @@ assert(bhaskar, 'Bhaskar must exist in sheet data');
 assert.strictEqual(bhaskar.role, 'Admin', 'Bhaskar role must be Admin');
 assert(bhaskar.designation, 'Bhaskar must have designation');
 
-const secondAdmin = jsonData.find(f => f.email === 'admin@drjazeerdermatology.com' || f.email === 'kanchan.gupta1@pw.live');
-assert(secondAdmin, 'Second admin must exist in sheet data');
+const secondAdmin = jsonData.find(f => (f.email || '').toLowerCase() === 'kanchan.gupta1@pw.live');
+assert(secondAdmin, 'Second admin (Kanchan Gupta) must exist in sheet data');
 assert.strictEqual(secondAdmin.role, 'Admin', 'Second admin role must be Admin');
 assert(secondAdmin.designation, 'Second admin must have designation');
 
@@ -76,7 +76,7 @@ function mockIsAuthorizedTeacher(email, list) {
 // 5a. Authorized Admins
 assert.strictEqual(mockIsAuthorizedAdmin('bhaskar.ekka@pw.live', jsonData), true, 'bhaskar.ekka@pw.live must be authorized admin');
 assert.strictEqual(mockIsAuthorizedAdmin('bhaskarekka27@gmail.com', jsonData), true, 'bhaskarekka27@gmail.com must be authorized admin');
-assert.strictEqual(mockIsAuthorizedAdmin('admin@drjazeerdermatology.com', jsonData), true, 'admin@drjazeerdermatology.com must be authorized admin');
+assert.strictEqual(mockIsAuthorizedAdmin('kanchan.gupta1@pw.live', jsonData), true, 'kanchan.gupta1@pw.live must be authorized admin');
 
 // 5b. Teachers trying admin access -> should NOT be authorized as Admin
 assert.strictEqual(mockIsAuthorizedAdmin('harshraj01@gmail.com', jsonData), false, 'Teacher must not be authorized as admin');

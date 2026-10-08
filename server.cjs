@@ -802,14 +802,14 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n  PW MedEd local test server\n`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n  PW MedEd server running on port ${PORT}\n`);
   console.log(`  Admin     http://localhost:${PORT}/admin`);
   console.log(`  Faculty   http://localhost:${PORT}/faculty`);
   console.log(`  Week      http://localhost:${PORT}/week`);
   console.log(`  Timeline  http://localhost:${PORT}/timeline`);
   console.log(`  Requests  http://localhost:${PORT}/requests`);
   console.log(`  Login     http://localhost:${PORT}/login`);
-  console.log(`\n  Sheets proxy: /api/detect-tabs, /api/fetch-sheet`);
+  console.log(`\n  WhatsApp Gateway & Sheets proxy active on /api/*`);
   console.log(`  Ctrl+C to stop\n`);
 });
