@@ -1160,7 +1160,7 @@
     </div>
   </div>
 
-  <!-- 7. EMAIL PREVIEW MODAL (Full HTML Template Viewer) -->
+  <!-- 7. EMAIL PREVIEW MODAL (Full HTML Template Viewer with Live Editable Preview) -->
   <div id="emailPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
     <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
       
@@ -1172,7 +1172,10 @@
           <span class="w-3 h-3 rounded-full bg-[#98c379] inline-block"></span>
           <span class="text-xs font-bold text-[#2c332d] ml-2 flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">mark_email_read</span>
-            <span>PW MedEd Automated Email Preview</span>
+            <span>PW MedEd Email Preview &amp; Dispatch</span>
+          </span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] hidden sm:inline-flex items-center gap-1">
+            <span class="material-symbols-outlined text-[12px]">edit_note</span> Editable Generic Text
           </span>
         </div>
         <button id="closeEmailPreviewBtn" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#ded5c6] cursor-pointer border-none bg-transparent" type="button">
@@ -1180,64 +1183,79 @@
         </button>
       </div>
 
-      <!-- Email Envelope Headers -->
-      <div class="px-5 py-3 bg-white border-b border-[#e5dfd5] text-xs space-y-1.5">
-        <div class="flex items-baseline">
-          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">From:</span>
-          <span id="previewHeaderFrom" class="font-semibold text-[#2c332d]">academic-reminders@pwmeded.edu.in</span>
-          <span class="ml-2 text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3]">Configured Sender</span>
+      <!-- Email Envelope Headers (Editable Fields) -->
+      <div class="px-5 py-3 bg-white border-b border-[#e5dfd5] text-xs space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="w-16 font-bold uppercase text-[10px] text-[#68736a] shrink-0">From:</span>
+          <input type="text" id="previewHeaderFromInput" class="flex-1 font-semibold text-[#2c332d] bg-[#f7f4ed] focus:bg-white border border-[#ded5c6] focus:border-[#4a7c59] rounded-lg px-2.5 py-1 outline-none text-xs" placeholder="academic-reminders@pwmeded.edu.in">
+          <span class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3] shrink-0">Sender</span>
         </div>
-        <div class="flex items-baseline">
-          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">To:</span>
-          <span id="previewHeaderTo" class="font-semibold text-[#2c332d]">Dr. Rajesh Jambhulkar &lt;rajesh.j@pwmeded.edu.in&gt;</span>
-          <span class="ml-2 text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-1.5 py-0.2 rounded border border-[#eed9cc]">Onboarding Registered</span>
+        <div class="flex items-center gap-2">
+          <span class="w-16 font-bold uppercase text-[10px] text-[#68736a] shrink-0">To:</span>
+          <input type="text" id="previewHeaderToInput" class="flex-1 font-semibold text-[#2c332d] bg-[#f7f4ed] focus:bg-white border border-[#ded5c6] focus:border-[#4a7c59] rounded-lg px-2.5 py-1 outline-none text-xs" placeholder="Dr. Rajesh Jambhulkar <rajesh.j@pwmeded.edu.in>">
+          <span class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded border border-[#eed9cc] shrink-0">Recipient</span>
         </div>
-        <div class="flex items-baseline">
-          <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">Subject:</span>
-          <span id="previewHeaderSubject" class="font-bold text-[#2c332d]">[PW MedEd] Class Reminder: Enzymes &amp; Catalysis</span>
+        <div class="flex items-center gap-2">
+          <span class="w-16 font-bold uppercase text-[10px] text-[#68736a] shrink-0">Subject:</span>
+          <input type="text" id="previewHeaderSubjectInput" class="flex-1 font-bold text-[#2c332d] bg-[#f7f4ed] focus:bg-white border border-[#ded5c6] focus:border-[#4a7c59] rounded-lg px-2.5 py-1 outline-none text-xs" placeholder="[PW MedEd] Class Reminder: Enzymes &amp; Catalysis">
         </div>
       </div>
 
-      <!-- Email Rendered Body Area -->
+      <!-- Email Rendered Body Area (Generic sections contenteditable, class parameters locked) -->
       <div class="flex-1 overflow-y-auto p-4 bg-[#fbf9f5]" id="emailPreviewContainer">
         <!-- Rendered HTML Email injected here -->
       </div>
 
       <!-- Footer Action -->
-      <div class="px-5 py-3 bg-white border-t border-[#e5dfd5] flex items-center justify-between">
+      <div class="px-5 py-3 bg-white border-t border-[#e5dfd5] flex items-center justify-between flex-wrap gap-2">
         <span class="text-[11px] text-[#68736a] flex items-center gap-1">
-          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">palette</span>
-          <span>Theme matching PW MedEd main portal aesthetics &amp; typography</span>
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">lock</span>
+          <span>Class parameters are auto-locked; generic text &amp; recipients are editable.</span>
         </span>
-        <button id="closeEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
-          Close Preview
-        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnDispatchEmailFromPreview" class="btn-3d-primary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 text-white bg-[#4a7c59] hover:bg-[#3d6b4b]">
+            <span class="material-symbols-outlined text-[15px]">send</span>
+            <span>Test Dispatch Now</span>
+          </button>
+          <button id="closeEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+            Close Preview
+          </button>
+        </div>
       </div>
 
     </div>
   </div>
 
-  <!-- 8. WHATSAPP MESSAGE PREVIEW MODAL (Realistic WhatsApp Chat Simulation) -->
+  <!-- 8. WHATSAPP MESSAGE PREVIEW MODAL (Realistic WhatsApp Chat Simulation with Live Editable Fields) -->
   <div id="whatsAppPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
     <div class="bg-[#efeae2] rounded-2xl border border-[#ded5c6] modal-3d max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden shadow-2xl">
       
       <!-- WhatsApp Chat Header -->
-      <div class="px-4 py-3 bg-[#075e54] text-white flex items-center justify-between shadow-xs">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm text-white">
+      <div class="px-4 py-2.5 bg-[#075e54] text-white flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+          <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm text-white shrink-0">
             🩺
           </div>
-          <div>
+          <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
-              <h4 class="font-bold text-sm text-white leading-none">PW MedEd Directorate</h4>
-              <span class="material-symbols-outlined text-[14px] text-[#25D366] bg-white rounded-full">check_circle</span>
+              <input type="text" id="waPreviewSenderNameInput" value="PW MedEd Academic Directorate" class="bg-white/10 hover:bg-white/20 focus:bg-white/30 text-white font-bold text-xs rounded px-1.5 py-0.5 border border-white/20 focus:border-white outline-none w-full max-w-[200px]" title="Click to edit Sender Name">
+              <span class="material-symbols-outlined text-[13px] text-[#25D366] bg-white rounded-full shrink-0">check_circle</span>
             </div>
-            <p class="text-[10px] text-white/80 mt-0.5">Automated WhatsApp Academic Gateway</p>
+            <p class="text-[9.5px] text-white/80 mt-0.5">Automated WhatsApp Gateway • No Web Tab Needed</p>
           </div>
         </div>
         <button id="closeWhatsAppPreviewBtn" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer border-none bg-transparent" type="button">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
+      </div>
+
+      <!-- Recipient Phone Number Header -->
+      <div class="px-4 py-2 bg-white border-b border-[#ded5c6] flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-[#576058] uppercase text-[10px]">Target Recipient:</span>
+          <input type="text" id="waPreviewRecipientPhoneInput" value="+91 94234 07557" class="font-bold text-[#2c332d] bg-[#f7f4ed] border border-[#ded5c6] focus:border-[#25D366] rounded-lg px-2 py-0.5 text-xs outline-none w-36">
+        </div>
+        <span class="text-[10px] font-bold text-[#2d4d37] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3]">Direct Mobile</span>
       </div>
 
       <!-- WhatsApp Chat Bubble Feed -->
@@ -1249,14 +1267,36 @@
         </div>
 
         <!-- Chat Bubble -->
-        <div class="max-w-[92%] bg-white rounded-2xl rounded-tl-none p-3.5 shadow-xs border border-[#e2dcce] space-y-2 text-xs text-[#2c332d]">
+        <div class="max-w-[96%] bg-white rounded-2xl rounded-tl-none p-3.5 shadow-xs border border-[#e2dcce] space-y-2 text-xs text-[#2c332d]">
           <div class="text-[11px] font-bold text-[#075e54] border-b border-[#eef4f0] pb-1 flex items-center justify-between">
-            <span>🩺 PW MedEd Academic Directorate</span>
+            <span id="waPreviewBubbleSenderLabel">🩺 PW MedEd Academic Directorate</span>
             <span class="text-[9px] text-[#2d4d37] bg-[#eef4f0] px-1.5 py-0.2 rounded font-mono font-bold">Class Reminder</span>
           </div>
 
-          <div id="waPreviewBubbleBody" class="font-sans whitespace-pre-line text-[12px] leading-relaxed text-[#111b21]">
-            <!-- Dynamic WhatsApp Message Injected Here -->
+          <!-- Structured Editable Message Body -->
+          <div class="space-y-1.5 text-[12px] leading-relaxed text-[#111b21] font-sans">
+            <!-- 1. Editable Heading & Subheading (Generic Text) -->
+            <div id="waPreviewHeaderTitle" contenteditable="true" class="font-bold text-[#111b21] hover:bg-[#eef4f0] focus:bg-[#f7f4ed] p-1 rounded transition-colors border border-dashed border-transparent hover:border-[#25D366] outline-none" title="Click to edit heading">🩺 PW MedEd Class Reminder</div>
+            <div id="waPreviewSubHeading" contenteditable="true" class="font-bold text-[#075e54] hover:bg-[#eef4f0] focus:bg-[#f7f4ed] p-1 rounded transition-colors border border-dashed border-transparent hover:border-[#25D366] outline-none" title="Click to edit subheading">🔔 *UPCOMING CLASS REMINDER* (30 Minutes Prior)</div>
+            
+            <!-- 2. Editable Greeting (Generic Text) -->
+            <div id="waPreviewGreeting" contenteditable="true" class="font-medium hover:bg-[#eef4f0] focus:bg-[#f7f4ed] p-1 rounded transition-colors border border-dashed border-transparent hover:border-[#25D366] outline-none pt-1" title="Click to edit greeting">Dear *Dr. Natisha Arora*,</div>
+            
+            <!-- 3. Dynamic Class Details (Fixed & Locked) -->
+            <div class="p-2.5 bg-[#faf7f2] rounded-xl border border-[#ded5c6] space-y-1 my-1.5 select-none" title="Class &amp; faculty details are automatically pulled from the academic timetable">
+              <div class="text-[9.5px] font-bold text-[#788279] uppercase flex items-center gap-1 border-b border-[#ebdcca] pb-0.5 mb-1">
+                <span class="material-symbols-outlined text-[12px] text-[#4a7c59]">lock</span>
+                <span>Dynamic Academic Schedule (Locked Parameters)</span>
+              </div>
+              <div class="font-mono text-[11px] text-[#2c332d]">📖 *Subject:* <span id="waDynSubject" class="font-bold text-[#2d4d37]">Radiology</span></div>
+              <div class="font-mono text-[11px] text-[#2c332d]">🎯 *Topic:* <span id="waDynTopic" class="font-bold text-[#2d4d37]">Radiology • High Yield 50 Questions Discussion</span></div>
+              <div class="font-mono text-[11px] text-[#2c332d]">🎓 *Batch:* <span id="waDynBatch" class="font-bold text-[#2d4d37]">INI-CET Essentials Series</span></div>
+              <div class="font-mono text-[11px] text-[#2c332d]">📅 *Date:* <span id="waDynDate" class="font-bold text-[#2d4d37]">Wednesday, October 7, 2026</span></div>
+              <div class="font-mono text-[11px] text-[#2c332d]">⏰ *Time:* <span id="waDynTime" class="font-bold text-[#2d4d37]">5 pm Onwards (2 Hours)</span></div>
+            </div>
+
+            <!-- 4. Editable Footer / Note (Generic Text) -->
+            <div id="waPreviewFooterText" contenteditable="true" class="text-[11px] text-[#576058] hover:bg-[#eef4f0] focus:bg-[#f7f4ed] p-1 rounded transition-colors border border-dashed border-transparent hover:border-[#25D366] outline-none" title="Click to edit footer / note">📌 Please ensure your lecture slides are prepared. Direct Portal Link: https://pwmeded.edu.in/faculty.html</div>
           </div>
 
           <div class="flex items-center justify-end gap-1 text-[10px] text-[#68736a] pt-1">
@@ -1267,13 +1307,17 @@
       </div>
 
       <!-- WhatsApp Modal Footer -->
-      <div class="px-4 py-3 bg-white border-t border-[#ded5c6] flex items-center justify-between">
-        <span class="text-[11px] text-[#68736a]">
-          Anti-Bot Safe Jitter (15s–45s) Active
+      <div class="px-4 py-3 bg-white border-t border-[#ded5c6] flex items-center justify-between flex-wrap gap-2">
+        <span class="text-[10.5px] text-[#68736a]">
+          Anti-Bot Safe Cadence Active
         </span>
         <div class="flex items-center gap-2">
-          <a id="waDirectTestLink" href="#" target="_blank" class="btn-3d-primary bg-[#25D366] hover:bg-[#1ebc57] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 text-decoration-none">
-            <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+          <button type="button" id="btnDispatchWAFromPreview" class="btn-3d-primary bg-[#25D366] hover:bg-[#1ebc57] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+            <span class="material-symbols-outlined text-[15px]">send</span>
+            <span>Test Dispatch Now</span>
+          </button>
+          <a id="waDirectTestLink" href="#" target="_blank" class="btn-3d-secondary px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 text-decoration-none">
+            <span class="material-symbols-outlined text-[15px]">open_in_new</span>
             <span>Open in WhatsApp</span>
           </a>
           <button id="closeWhatsAppPreviewBottomBtn" class="btn-3d-secondary px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer border-none" type="button">

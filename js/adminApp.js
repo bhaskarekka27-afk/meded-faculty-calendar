@@ -7043,7 +7043,8 @@ class AdminDashboardController {
         from: senderEmail,
         to: `${fac.name} <${fac.email}>`,
         subject: `[PW MedEd] Class Reminder: ${sampleEvent.topic || sampleEvent.chapter}`,
-        html: html
+        html: html,
+        event: sampleEvent
       });
     });
 
@@ -7083,7 +7084,9 @@ class AdminDashboardController {
         phone: phoneObj.formatted,
         messageText: text,
         waUrl: waUrl,
-        time: sampleEvent.timings
+        time: sampleEvent.timings,
+        event: sampleEvent,
+        senderName: (waSenderNameInput?.value || settings.whatsappSenderName || 'PW MedEd Academic Directorate').trim()
       });
     });
 
@@ -7111,7 +7114,8 @@ class AdminDashboardController {
           from: res.senderEmail,
           to: `${res.facultyName} <${res.recipient}>`,
           subject: `[PW MedEd] Class Reminder: ${targetEvent.topic || targetEvent.chapter}`,
-          html: res.emailHtml
+          html: res.emailHtml,
+          event: targetEvent
         });
       } else {
         alert(`Dispatch failed: ${res.reason}`);
@@ -7143,7 +7147,8 @@ class AdminDashboardController {
           phone: res.phone?.formatted,
           messageText: res.messageText,
           waUrl: res.waUrl,
-          time: targetEvent.timings
+          time: targetEvent.timings,
+          event: targetEvent
         });
       } else {
         alert(`WhatsApp dispatch failed: ${res.reason}`);
@@ -7878,11 +7883,29 @@ class AdminDashboardController {
     }
   }
 
-  // --- 12c. Full Fidelity Email Preview Modal ---
+  // Helper to fetch an active sample event for preview & dispatch
+  getSampleReminderEvent() {
+    const batch = this.getActiveBatch();
+    return (batch?.events || []).find(e => e.eventType === 'class' && e.faculty && !e.faculty.toLowerCase().includes('cool off')) || {
+      id: `test_class_${Date.now()}`,
+      chapter: 'Enzymes & Catalysis',
+      topic: 'Enzyme Kinetics, Lineweaver-Burk Plots & Clinical Inhibitors',
+      subject: 'Biochemistry',
+      faculty: 'Dr. Rajesh Jambhulkar',
+      dateRaw: 'Thursday, Oct 15, 2026',
+      isoDate: '2026-10-15',
+      timings: '7:00 PM - 9:00 PM',
+      duration: '2 Hours',
+      batchName: batch?.name || "Prarambh 2026 Batch • MBBS 1st Year"
+    };
+  }
+
+  // --- 12c. Full Fidelity Email Preview Modal (Editable Generic Fields & Live Dispatch) ---
   setupEmailPreviewModal() {
     const modal = document.getElementById('emailPreviewModal');
     const closeBtn = document.getElementById('closeEmailPreviewBtn');
     const closeBottomBtn = document.getElementById('closeEmailPreviewBottomBtn');
+    const dispatchBtn = document.getElementById('btnDispatchEmailFromPreview');
 
     const closeModal = () => modal?.classList.add('hidden');
     closeBtn?.addEventListener('click', closeModal);
@@ -7896,31 +7919,103 @@ class AdminDashboardController {
         closeModal();
       }
     });
+
+    // Test Dispatch Now button directly from inside Email Preview Modal
+    dispatchBtn?.addEventListener('click', () => {
+      const fromInput = document.getElementById('previewHeaderFromInput');
+      const toInput = document.getElementById('previewHeaderToInput');
+      const subjectInput = document.getElementById('previewHeaderSubjectInput');
+      const container = document.getElementById('emailPreviewContainer');
+
+      const fromVal = (fromInput?.value || document.getElementById('previewHeaderFrom')?.textContent || '').trim() || 'academic-reminders@pwmeded.edu.in';
+      const toVal = (toInput?.value || document.getElementById('previewHeaderTo')?.textContent || '').trim() || 'Dr. Rajesh Jambhulkar <rajesh.j@pwmeded.edu.in>';
+      const subjectVal = (subjectInput?.value || document.getElementById('previewHeaderSubject')?.textContent || '').trim() || '[PW MedEd] Class Reminder';
+      const emailHtml = container?.innerHTML || '';
+
+      // Parse recipient name and email
+      let recipientName = 'Faculty Member';
+      let recipientEmail = 'academic-reminders@pwmeded.edu.in';
+      const toMatch = toVal.match(/(.*?)\s*<([^>]+)>/);
+      if (toMatch) {
+        recipientName = toMatch[1].trim() || 'Faculty Member';
+        recipientEmail = toMatch[2].trim();
+      } else if (toVal.includes('@')) {
+        recipientEmail = toVal.trim();
+        recipientName = toVal.split('@')[0];
+      } else if (toVal) {
+        recipientName = toVal.trim();
+        const facObj = reminderEmailService.resolveFacultyDetails(recipientName);
+        recipientEmail = facObj.email;
+      }
+
+      const targetEvent = this.currentEmailPreviewEvent || this.getSampleReminderEvent();
+
+      const res = reminderEmailService.dispatchReminder(targetEvent, {
+        force: true,
+        from: fromVal,
+        senderEmail: fromVal,
+        toEmail: recipientEmail,
+        toName: recipientName,
+        recipientEmail: recipientEmail,
+        facultyName: recipientName,
+        subject: subjectVal,
+        emailHtml: emailHtml
+      });
+
+      if (res && res.success) {
+        this.renderAdminNotifications();
+        this.showToast(`✉️ Live Email dispatched to ${recipientName} (${recipientEmail})!`);
+        closeModal();
+      } else {
+        alert(`Dispatch failed: ${res?.reason || res?.error || 'Unknown error'}`);
+      }
+    });
   }
 
-  openEmailPreview({ from, to, subject, html }) {
+  openEmailPreview({ from, to, subject, html, event } = {}) {
     const modal = document.getElementById('emailPreviewModal');
+    const fromInput = document.getElementById('previewHeaderFromInput');
     const fromEl = document.getElementById('previewHeaderFrom');
+    const toInput = document.getElementById('previewHeaderToInput');
     const toEl = document.getElementById('previewHeaderTo');
+    const subjectInput = document.getElementById('previewHeaderSubjectInput');
     const subjectEl = document.getElementById('previewHeaderSubject');
     const container = document.getElementById('emailPreviewContainer');
 
     if (!modal || !container) return;
 
+    this.currentEmailPreviewEvent = event || this.currentEmailPreviewEvent || this.getSampleReminderEvent();
+
     const currentSender = from || reminderEmailService.getSettings().senderEmail || 'academic-reminders@pwmeded.edu.in';
+    const currentTo = to || (this.currentEmailPreviewEvent.faculty ? `${this.currentEmailPreviewEvent.faculty} <${reminderEmailService.resolveFacultyDetails(this.currentEmailPreviewEvent.faculty).email}>` : 'Dr. Rajesh Jambhulkar <rajesh.j@pwmeded.edu.in>');
+    const currentSubject = subject || `[PW MedEd] Class Reminder: ${this.currentEmailPreviewEvent.topic || this.currentEmailPreviewEvent.chapter || 'Lecture'}`;
+
+    if (fromInput) fromInput.value = currentSender;
     if (fromEl) fromEl.textContent = currentSender;
-    if (toEl) toEl.textContent = to || 'Faculty Member';
-    if (subjectEl) subjectEl.textContent = subject || '[PW MedEd] Class Reminder';
+
+    if (toInput) toInput.value = currentTo;
+    if (toEl) toEl.textContent = currentTo;
+
+    if (subjectInput) subjectInput.value = currentSubject;
+    if (subjectEl) subjectEl.textContent = currentSubject;
 
     container.innerHTML = html || '<p class="text-xs text-[#68736a] text-center p-8">No email content generated.</p>';
     modal.classList.remove('hidden');
   }
 
-  // --- 12c-2. WhatsApp Simulation Preview Modal ---
+  // --- 12c-2. WhatsApp Simulation Preview Modal (Editable Generic Fields & Live Dispatch) ---
   setupWhatsAppPreviewModal() {
     const modal = document.getElementById('whatsAppPreviewModal');
     const closeBtn = document.getElementById('closeWhatsAppPreviewBtn');
     const closeBottomBtn = document.getElementById('closeWhatsAppPreviewBottomBtn');
+    const dispatchBtn = document.getElementById('btnDispatchWAFromPreview');
+
+    const senderNameInput = document.getElementById('waPreviewSenderNameInput');
+    const recipientPhoneInput = document.getElementById('waPreviewRecipientPhoneInput');
+    const headerTitle = document.getElementById('waPreviewHeaderTitle');
+    const subHeading = document.getElementById('waPreviewSubHeading');
+    const greeting = document.getElementById('waPreviewGreeting');
+    const footerText = document.getElementById('waPreviewFooterText');
 
     const closeModal = () => modal?.classList.add('hidden');
     closeBtn?.addEventListener('click', closeModal);
@@ -7934,27 +8029,137 @@ class AdminDashboardController {
         closeModal();
       }
     });
+
+    // Real-time synchronization when sender name changes
+    senderNameInput?.addEventListener('input', () => {
+      const bubbleSender = document.getElementById('waPreviewBubbleSenderLabel');
+      if (bubbleSender) {
+        bubbleSender.textContent = `🩺 ${senderNameInput.value.trim() || 'PW MedEd Academic Directorate'}`;
+      }
+      this.refreshWhatsAppDirectLink();
+    });
+
+    // Real-time updates when editable generic fields change
+    recipientPhoneInput?.addEventListener('input', () => this.refreshWhatsAppDirectLink());
+    headerTitle?.addEventListener('input', () => this.refreshWhatsAppDirectLink());
+    subHeading?.addEventListener('input', () => this.refreshWhatsAppDirectLink());
+    greeting?.addEventListener('input', () => this.refreshWhatsAppDirectLink());
+    footerText?.addEventListener('input', () => this.refreshWhatsAppDirectLink());
+
+    // Test Dispatch Now button directly from inside WhatsApp Preview Modal
+    dispatchBtn?.addEventListener('click', () => {
+      const senderName = senderNameInput?.value.trim() || 'PW MedEd Academic Directorate';
+      const recipientPhone = recipientPhoneInput?.value.trim() || '94234 07557';
+      const messageText = this.compileWhatsAppMessageFromPreview();
+
+      const targetEvent = this.currentWhatsAppPreviewEvent || this.getSampleReminderEvent();
+
+      const res = reminderEmailService.dispatchWhatsAppReminder(targetEvent, {
+        force: true,
+        senderName: senderName,
+        phone: recipientPhone,
+        recipientPhone: recipientPhone,
+        messageText: messageText
+      });
+
+      if (res && res.success) {
+        this.renderAdminNotifications();
+        this.showToast(`💬 Live WhatsApp reminder dispatched to ${res.facultyName} (${res.phone?.formatted || recipientPhone})!`);
+        closeModal();
+      } else {
+        alert(`WhatsApp dispatch failed: ${res?.reason || res?.error || 'Unknown error'}`);
+      }
+    });
   }
 
-  openWhatsAppPreview({ facultyName, phone, messageText, waUrl, time }) {
-    const modal = document.getElementById('whatsAppPreviewModal');
-    const bodyEl = document.getElementById('waPreviewBubbleBody');
-    const timeEl = document.getElementById('waPreviewTime');
+  compileWhatsAppMessageFromPreview() {
+    const title = document.getElementById('waPreviewHeaderTitle')?.innerText?.trim() || '🩺 PW MedEd Class Reminder';
+    const sub = document.getElementById('waPreviewSubHeading')?.innerText?.trim() || '🔔 *UPCOMING CLASS REMINDER* (30 Minutes Prior)';
+    const greeting = document.getElementById('waPreviewGreeting')?.innerText?.trim() || 'Dear *Faculty*,';
+    const subject = document.getElementById('waDynSubject')?.innerText?.trim() || 'Radiology';
+    const topic = document.getElementById('waDynTopic')?.innerText?.trim() || 'High Yield Discussion';
+    const batch = document.getElementById('waDynBatch')?.innerText?.trim() || 'INI-CET Essentials Series';
+    const date = document.getElementById('waDynDate')?.innerText?.trim() || 'Wednesday, October 7, 2026';
+    const time = document.getElementById('waDynTime')?.innerText?.trim() || '5 pm Onwards (2 Hours)';
+    const footer = document.getElementById('waPreviewFooterText')?.innerText?.trim() || '';
+
+    let text = `${title}\n${sub}\n\n${greeting}\n\n📖 *Subject:* ${subject}\n🎯 *Topic:* ${topic}\n🎓 *Batch:* ${batch}\n📅 *Date:* ${date}\n⏰ *Time:* ${time}`;
+    if (footer) {
+      text += `\n\n${footer}`;
+    }
+    return text;
+  }
+
+  refreshWhatsAppDirectLink() {
     const directLink = document.getElementById('waDirectTestLink');
+    if (!directLink) return;
+
+    const phone = document.getElementById('waPreviewRecipientPhoneInput')?.value || '94234 07557';
+    const msg = this.compileWhatsAppMessageFromPreview();
+    const waUrl = reminderEmailService.generateWhatsAppUrl(phone, msg);
+
+    directLink.href = waUrl || '#';
+    directLink.style.display = waUrl ? 'inline-flex' : 'none';
+  }
+
+  openWhatsAppPreview({ facultyName, phone, messageText, waUrl, time, event, senderName } = {}) {
+    const modal = document.getElementById('whatsAppPreviewModal');
+    const senderNameInput = document.getElementById('waPreviewSenderNameInput');
+    const bubbleSenderLabel = document.getElementById('waPreviewBubbleSenderLabel');
+    const recipientPhoneInput = document.getElementById('waPreviewRecipientPhoneInput');
+    const timeEl = document.getElementById('waPreviewTime');
+    const bodyEl = document.getElementById('waPreviewBubbleBody');
+
+    // Structured fields
+    const dynSubject = document.getElementById('waDynSubject');
+    const dynTopic = document.getElementById('waDynTopic');
+    const dynBatch = document.getElementById('waDynBatch');
+    const dynDate = document.getElementById('waDynDate');
+    const dynTime = document.getElementById('waDynTime');
+    const greetingEl = document.getElementById('waPreviewGreeting');
 
     if (!modal) return;
 
-    if (bodyEl) {
-      bodyEl.textContent = messageText || 'No WhatsApp message generated.';
+    this.currentWhatsAppPreviewEvent = event || this.currentWhatsAppPreviewEvent || this.getSampleReminderEvent();
+    const targetEvent = this.currentWhatsAppPreviewEvent;
+    const settings = reminderEmailService.getSettings();
+
+    const activeSenderName = senderName || settings.whatsappSenderName || 'PW MedEd Academic Directorate';
+    if (senderNameInput) senderNameInput.value = activeSenderName;
+    if (bubbleSenderLabel) bubbleSenderLabel.textContent = `🩺 ${activeSenderName}`;
+
+    if (recipientPhoneInput) {
+      recipientPhoneInput.value = phone || '94234 07557';
     }
+
+    // Populate dynamic locked academic fields
+    if (dynSubject) dynSubject.textContent = targetEvent.subject || 'Radiology';
+    if (dynTopic) dynTopic.textContent = targetEvent.topic || targetEvent.chapter || 'Radiology • High Yield 50 Questions Discussion';
+    if (dynBatch) dynBatch.textContent = targetEvent.batchName || targetEvent.batch || 'INI-CET Essentials Series';
+    if (dynDate) dynDate.textContent = targetEvent.dateRaw || targetEvent.isoDate || 'Wednesday, October 7, 2026';
+    
+    let durationText = targetEvent.duration || '2 Hours';
+    let timingsText = targetEvent.timings || '5 pm Onwards';
+    if (durationText && !timingsText.toLowerCase().includes(durationText.toLowerCase())) {
+      timingsText = `${timingsText} (${durationText})`;
+    }
+    if (dynTime) dynTime.textContent = timingsText;
+
+    if (greetingEl) {
+      const fName = facultyName || targetEvent.faculty || 'Dr. Natisha Arora';
+      greetingEl.innerHTML = `Dear *${fName}*,`;
+    }
+
+    // Fallback if legacy body exists
+    if (bodyEl) {
+      bodyEl.textContent = messageText || this.compileWhatsAppMessageFromPreview();
+    }
+
     if (timeEl) {
       timeEl.textContent = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    if (directLink) {
-      directLink.href = waUrl || '#';
-      directLink.style.display = waUrl ? 'inline-flex' : 'none';
-    }
 
+    this.refreshWhatsAppDirectLink();
     modal.classList.remove('hidden');
   }
 
