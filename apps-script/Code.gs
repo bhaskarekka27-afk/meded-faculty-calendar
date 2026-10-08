@@ -64,8 +64,22 @@ function test_connection() {
     id: ss.getId(),
     sheets: ss.getSheets().map(function(s) { return s.getName(); })
   };
-  Logger.log('Connected: ' + JSON.stringify(info, null, 2));
-  return info;
+/**
+ * 1-Click Runnable Test: Authorizes Google MailApp permissions and sends a test email to the active account.
+ */
+function test_email_permissions() {
+  var activeUser = (Session.getActiveUser && Session.getActiveUser().getEmail()) ||
+                   (Session.getEffectiveUser && Session.getEffectiveUser().getEmail()) ||
+                   'bhaskar.ekka@pw.live';
+  var res = sendEmailViaAppsScript_({
+    to: activeUser,
+    subject: '[PW MedEd] Apps Script Email Authorization Verified',
+    htmlBody: '<h3>PW MedEd Apps Script Email Service Active</h3><p>MailApp.sendEmail is authorized and ready for live class reminder dispatches.</p>',
+    name: 'PW MedEd Academic Directorate',
+    from: activeUser
+  });
+  Logger.log('Email Test Result: ' + JSON.stringify(res, null, 2));
+  return res;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +105,16 @@ function doGet(e) {
   if (action === 'setup_faculty_sheet') {
     if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
     return json_(setupFacultySheet_({}));
+  }
+
+  if (action === 'test_email' || action === 'send_email') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    var to = (e && e.parameter && e.parameter.to) || (Session.getActiveUser && Session.getActiveUser().getEmail()) || 'bhaskar.ekka@pw.live';
+    return json_(sendEmailViaAppsScript_({
+      to: to,
+      subject: (e && e.parameter && e.parameter.subject) || '[PW MedEd] Apps Script Email Test',
+      htmlBody: '<h3>PW MedEd Apps Script Email Service Active</h3><p>MailApp.sendEmail is functioning properly.</p>'
+    }));
   }
 
   // Health check so the portal can verify the URL before saving it.

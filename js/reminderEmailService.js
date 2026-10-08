@@ -867,6 +867,29 @@ export class ReminderEmailService {
   async sendEmailViaAppsScript({ to, recipientName, subject, emailHtml, senderName, senderEmail, force = false }) {
     if (!to) return { success: false, error: 'Recipient email is required.' };
 
+    // Resolve Apps Script Web App URL and token
+    let scriptUrl = '';
+    let token = 'pw-meded-token-2026';
+    if (typeof localStorage !== 'undefined') {
+      const emCfg = localStorage.getItem('meded_email_settings');
+      if (emCfg) {
+        try {
+          const parsedEm = JSON.parse(emCfg);
+          scriptUrl = parsedEm.appsScriptUrl || '';
+        } catch (_) {}
+      }
+      if (!scriptUrl) {
+        const wbCfg = localStorage.getItem('meded_sheet_writeback_config_v1');
+        if (wbCfg) {
+          try {
+            const parsedWb = JSON.parse(wbCfg);
+            scriptUrl = parsedWb.endpoint || '';
+            token = parsedWb.token || token;
+          } catch (_) {}
+        }
+      }
+    }
+
     const payload = {
       to: to,
       recipient: to,
@@ -879,7 +902,9 @@ export class ReminderEmailService {
       senderName: senderName || 'PW MedEd Academic Directorate',
       name: senderName || 'PW MedEd Academic Directorate',
       senderEmail: senderEmail || 'academic-reminders@pwmeded.edu.in',
-      from: senderEmail || 'academic-reminders@pwmeded.edu.in'
+      from: senderEmail || 'academic-reminders@pwmeded.edu.in',
+      scriptUrl: scriptUrl,
+      token: token
     };
 
     // 1. Try local server relay endpoint first (/api/send-email)
@@ -909,28 +934,6 @@ export class ReminderEmailService {
 
     // 2. Direct browser-to-Apps-Script fetch fallback (CORS safe with text/plain)
     try {
-      let scriptUrl = '';
-      let token = 'pw-meded-token-2026';
-      if (typeof localStorage !== 'undefined') {
-        const wbCfg = localStorage.getItem('meded_sheet_writeback_config_v1');
-        if (wbCfg) {
-          try {
-            const parsedWb = JSON.parse(wbCfg);
-            scriptUrl = parsedWb.endpoint || '';
-            token = parsedWb.token || token;
-          } catch (_) {}
-        }
-        if (!scriptUrl) {
-          const emCfg = localStorage.getItem('meded_email_settings');
-          if (emCfg) {
-            try {
-              const parsedEm = JSON.parse(emCfg);
-              scriptUrl = parsedEm.appsScriptUrl || '';
-            } catch (_) {}
-          }
-        }
-      }
-
       if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
         const directBody = JSON.stringify({
           action: 'send_email',

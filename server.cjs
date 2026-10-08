@@ -669,10 +669,18 @@ async function handleEmailApi(req, res) {
           try {
             if (fs.existsSync(SETTINGS_JSON_FILE)) {
               const cfg = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
-              scriptUrl = cfg.appsScriptUrl || cfg.pw_faculty_script_url || cfg.meded_sheet_writer_url || '';
+              if (cfg.meded_email_settings) {
+                try {
+                  const emObj = typeof cfg.meded_email_settings === 'string' ? JSON.parse(cfg.meded_email_settings) : cfg.meded_email_settings;
+                  scriptUrl = emObj.appsScriptUrl || '';
+                } catch (_) {}
+              }
+              if (!scriptUrl) {
+                scriptUrl = cfg.appsScriptUrl || cfg.pw_faculty_script_url || cfg.meded_sheet_writer_url || '';
+              }
               if (!scriptUrl && cfg.meded_sheet_writeback_config_v1) {
                 try {
-                  const parsedWb = JSON.parse(cfg.meded_sheet_writeback_config_v1);
+                  const parsedWb = typeof cfg.meded_sheet_writeback_config_v1 === 'string' ? JSON.parse(cfg.meded_sheet_writeback_config_v1) : cfg.meded_sheet_writeback_config_v1;
                   scriptUrl = parsedWb.endpoint || '';
                 } catch (_) {}
               }
