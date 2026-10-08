@@ -55,26 +55,14 @@ export function renderPlatformBadges(ev, options = { compact: false }) {
   const appLogoSvg = `<span class="material-symbols-outlined text-[12px] text-[#2d4d37] shrink-0 leading-none">smartphone</span>`;
 
   if (isYt && isApp) {
-    if (options.compact) {
-      return `
-        <span class="inline-flex items-center gap-1 shrink-0" title="Delivered Live on YouTube Channel & PW MedEd Mobile App">
-          <span class="inline-flex items-center gap-0.5 text-[8.5px] font-extrabold px-1.5 py-0.2 rounded bg-[#feeeed] text-[#e02828] border border-[#fca5a5] badge-yt">
-            ${ytLogoSvg} YT
-          </span>
-          <span class="inline-flex items-center gap-0.5 text-[8.5px] font-extrabold px-1.5 py-0.2 rounded bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] badge-app">
-            ${appLogoSvg} App
-          </span>
-        </span>
-      `;
-    }
+    // Both platforms: icons only (no text) so the badge stays small on tight cards
+    const size = options.compact ? 'w-[18px] h-[18px]' : 'w-6 h-6';
+    const ytBig = ytLogoSvg.replace('w-2.5 h-2.5', options.compact ? 'w-3 h-3' : 'w-3.5 h-3.5');
+    const appBig = appLogoSvg.replace('text-[12px]', options.compact ? 'text-[13px]' : 'text-[16px]');
     return `
-      <span class="inline-flex items-center gap-1.5 shrink-0" title="Delivered Live on YouTube Channel & PW MedEd Mobile App">
-        <span class="inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-[#feeeed] text-[#e02828] border border-[#fca5a5] badge-yt">
-          ${ytLogoSvg} YouTube
-        </span>
-        <span class="inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] badge-app">
-          ${appLogoSvg} App (Mobile)
-        </span>
+      <span class="inline-flex items-center gap-1 shrink-0" title="Delivered Live on YouTube Channel &amp; PW MedEd Mobile App">
+        <span class="inline-flex items-center justify-center ${size} rounded-md bg-[#feeeed] text-[#e02828] border border-[#fca5a5] badge-yt" aria-label="YouTube">${ytBig}</span>
+        <span class="inline-flex items-center justify-center ${size} rounded-md bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] badge-app" aria-label="PW MedEd App">${appBig}</span>
       </span>
     `;
   }

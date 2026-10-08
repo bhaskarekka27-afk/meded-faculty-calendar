@@ -2545,7 +2545,7 @@ class AdminDashboardController {
       html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[145px]">`;
 
       row.forEach((cell) => {
-        const isSunday = cell.dayOfWeek === 0;
+        const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class'); // a Sunday with a scheduled class is a normal class day
 
         if (!cell.isCurrentMonth) {
           html += `
@@ -2764,7 +2764,7 @@ class AdminDashboardController {
         events: dayEvents,
         classes: dayClasses,
         isToday,
-        isSunday: i === 0
+        isSunday: i === 0 && dayClasses.length === 0
       });
     }
 
@@ -2862,10 +2862,10 @@ class AdminDashboardController {
             </div>
           </div>
           <div class="flex items-baseline gap-1.5 mt-2">
-            <span class="font-headline text-2xl font-bold text-[#2c332d]">1</span>
+            <span class="font-headline text-2xl font-bold text-[#2c332d]">${weekDays.filter(w => w.isSunday).length}</span>
             <span class="text-xs font-semibold text-[#68736a]">Cool-Off Day</span>
           </div>
-          <p class="text-[10px] text-[#788279] mt-1 font-medium">Sunday reserved for self study &amp; revision</p>
+          <p class="text-[10px] text-[#788279] mt-1 font-medium">${weekDays.some(w => w.isSunday) ? 'Sunday reserved for self study &amp; revision' : 'Sunday has a live session this week'}</p>
         </div>
       </div>
 

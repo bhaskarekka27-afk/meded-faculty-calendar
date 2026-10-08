@@ -977,7 +977,7 @@ export class FacultyDashboardController {
       html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[145px]">`;
 
       row.forEach(cell => {
-        const isSunday = cell.dayOfWeek === 0;
+        const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class');
 
         if (!cell.isCurrentMonth) {
           html += `
@@ -1189,7 +1189,7 @@ export class FacultyDashboardController {
 
       html += `<div class="p-2.5 flex flex-col gap-2 ${w.isToday ? 'bg-[#faf8f4]' : ''}">`;
 
-      if (w.isSunday) {
+      if (w.isSunday && dayClasses.length === 0) {
         html += `
           <div class="rounded-xl border border-dashed border-[#e1ba9f] p-3 text-center my-auto bg-[#faf6f0]">
             <span class="material-symbols-outlined text-[#c26d3e] text-[22px]">self_improvement</span>
@@ -2205,7 +2205,7 @@ export class FacultyDashboardController {
       const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayEvents = eventMap.get(iso) || [];
       const hasClass = dayEvents.some(e => e.eventType === 'class');
-      const isSunday = dayOfWeek === 0;
+      const isSunday = dayOfWeek === 0 && !hasClass;
       const isHoliday = dayEvents.some(e => e.eventType === 'holiday') || (month === 9 && day === 2); // Gandhi Jayanti
       const isToday = iso === this.todayIso;
       const isSelected = iso === this.mobileSelectedDateIso;
@@ -2280,7 +2280,7 @@ export class FacultyDashboardController {
 
     const allEvents = this.getFacultyEvents();
     const dayClasses = allEvents.filter(ev => ev.isoDate === selectedIso && ev.eventType === 'class');
-    const isSunday = dateObj.getDay() === 0;
+    const isSunday = dateObj.getDay() === 0 && dayClasses.length === 0;
     const isHoliday = allEvents.some(ev => ev.isoDate === selectedIso && ev.eventType === 'holiday') || (dateObj.getMonth() === 9 && dateObj.getDate() === 2);
 
     if (this.mobileSelectedDateBadge) {
@@ -2504,7 +2504,7 @@ export class FacultyDashboardController {
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const dayStr = dayNames[dateObj.getDay()] || 'Day';
 
-      if (ev.eventType === 'cool_off' || dateObj.getDay() === 0) {
+      if (ev.eventType === 'cool_off' || (dateObj.getDay() === 0 && ev.eventType !== 'class')) {
         // Cool Off item
         const item = document.createElement('div');
         item.className = 'bg-terra-amberBg/50 border border-dashed border-terra-amberBorder rounded-xl p-3 flex items-center justify-between cursor-pointer';
@@ -2668,7 +2668,7 @@ export class FacultyDashboardController {
       const dayClasses = allEvents.filter(ev => ev.isoDate === dayInfo.isoDate && ev.eventType === 'class');
       const isSelected = dayInfo.isoDate === this.mobileSelectedDateIso;
       const isToday = dayInfo.isToday;
-      const isSunday = dayInfo.isSunday;
+      const isSunday = dayInfo.isSunday && dayClasses.length === 0;
       const hasClasses = dayClasses.length > 0;
 
       const btn = document.createElement('button');
