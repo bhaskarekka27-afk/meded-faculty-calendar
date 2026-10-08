@@ -960,7 +960,7 @@ class AdminDashboardController {
       const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
 
       const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
-      const appBatches = batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
+      const appBatches = batches.filter(b => b.platform === 'app' || b.platform === 'youtube_app' || (!b.isYoutube && b.platform !== 'youtube'));
       const ytBatches = batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
 
       const renderBatchItem = (b) => {

@@ -151,6 +151,172 @@ export function extractSheetDetails(url) {
   return null;
 }
 
+
+/* ------------------------------------------------------------------
+ * "Banner" layout: title rows above the real header, merged cells, e.g.
+ *
+ *   BDS Survival Guide 2026 Batch
+ *   Live on PW Meded APP and PW MedEd BDS YT
+ *   Time - 6:00 PM to 7:00 PM
+ *   Date | Day | Faculty Name | Topic | Time
+ *
+ * Columns are found by their header names, merged cells (blank date / faculty /
+ * time under a filled one) inherit from the row above, and the platform is read
+ * from the banner (App + YT => delivered on both).
+ * ------------------------------------------------------------------ */
+const HEADER_KEYS = {
+  date: /(^|\s)date$/,
+  day: /(^|\s)day$/,
+  faculty: /(^|\s)(faculty|faculty name|teacher|speaker)$/,
+  topic: /(^|\s)(topic|topics)$/,
+  subject: /(^|\s)subject$/,
+  chapter: /(^|\s)chapter$/,
+  time: /(^|\s)(time|timing|timings)$/,
+  duration: /(^|\s)duration$/
+};
+
+export function detectBannerLayout(rows) {
+  const limit = Math.min(rows.length, 15);
+  for (let i = 0; i < limit; i++) {
+    const cells = (rows[i] || []).map(c => String(c || '').replace(/\s+/g, ' ').trim().toLowerCase());
+    const map = {};
+    cells.forEach((c, idx) => {
+      if (!c) return;
+      for (const k of Object.keys(HEADER_KEYS)) {
+        if (map[k] === undefined && HEADER_KEYS[k].test(c)) { map[k] = idx; break; }
+      }
+    });
+    if (map.date === undefined || map.faculty === undefined || map.topic === undefined) continue;
+    const dateCell = cells[map.date];
+    const looksNew = i >= 1 || (map.day !== undefined && (dateCell === 'date' || dateCell.length > 25));
+    if (looksNew) return { headerIdx: i, cols: map };
+  }
+  return null;
+}
+
+export function detectDeliveryPlatform(text) {
+  const t = String(text || '').toLowerCase();
+  const yt = /\byt\b|youtube/.test(t);
+  const app = /\bapp\b|mobile/.test(t);
+  if (yt && app) return 'youtube_app';
+  if (yt) return 'youtube';
+  return 'app';
+}
+
+function processBannerSheet(rows, layout, id, sourceUrl, tabName, overrideName) {
+  const { headerIdx, cols } = layout;
+  const clean = v => String(v == null ? '' : v).replace(/\r/g, '').trim();
+
+  // Banner = everything above the header row (+ long merged header label, if Google fused them)
+  const bannerCells = [];
+  for (let i = 0; i < headerIdx; i++) (rows[i] || []).forEach(c => { if (clean(c)) bannerCells.push(clean(c)); });
+  const headerLabel = clean((rows[headerIdx] || [])[cols.date]);
+  if (headerLabel.length > 25) bannerCells.push(headerLabel);
+  const bannerText = bannerCells.join(' \n ');
+  let platform = detectDeliveryPlatform(bannerText);
+  if (platform === 'app' && sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE'))) platform = 'youtube';
+  const isYoutube = platform === 'youtube' || platform === 'youtube_app';
+  const isApp = platform === 'app' || platform === 'youtube_app';
+
+  let detectedName = overrideName || '';
+  if (!detectedName) {
+    const first = (bannerCells[0] || '').split('\n')[0];
+    detectedName = first.split(/Live [Oo]n PW/i)[0].replace(/Lecture\s*Planner/i, '').trim();
+    if (!detectedName) detectedName = `Batch ${new Date().toLocaleDateString()}`;
+  }
+  const subtitle = platform === 'youtube_app' ? 'Live on PW MedEd App & YouTube'
+    : platform === 'youtube' ? 'Live On YT Channel & MedEd App' : 'Live on PW MedEd APP';
+
+  const get = (r, k) => (cols[k] === undefined ? '' : clean(r[cols[k]]));
+  const events = [];
+  let carry = null;   // merged cells: blank date/day/faculty/time continue the row above
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => !clean(c))) { carry = null; continue; }
+
+    let dateStr = get(r, 'date');
+    let dayLabel = get(r, 'day');
+    let facultyStr = get(r, 'faculty');
+    let timingsStr = get(r, 'time');
+    let durationStr = get(r, 'duration');
+    const topicRaw = get(r, 'topic');
+    const subjectRaw = get(r, 'subject');
+    const chapterRaw = get(r, 'chapter');
+
+    if (dateStr) {
+      carry = { dateStr, dayLabel, facultyStr, timingsStr, durationStr };
+    } else if (carry) {
+      dateStr = carry.dateStr;
+      dayLabel = dayLabel || carry.dayLabel;
+      facultyStr = facultyStr || carry.facultyStr;
+      timingsStr = timingsStr || carry.timingsStr;
+      durationStr = durationStr || carry.durationStr;
+    } else {
+      continue;
+    }
+    if (!topicRaw && !subjectRaw && !chapterRaw && !/cool\s*off|holiday|jayanti/i.test(facultyStr)) continue;
+
+    const parsedDate = parseDateString(dateStr);
+    if (!parsedDate.isoDate) continue;
+    // A cell with two lines is one session with a title and a sub-line
+    const oneLine = v => v.split(/\n+/).map(x => x.trim()).filter(Boolean).join(' • ');
+    const topicStr = oneLine(topicRaw);
+    const chapterStr = oneLine(chapterRaw) || topicStr;
+    const subjectStr = oneLine(subjectRaw) || 'General Session';
+    const parsedTiming = parseTimingsString(timingsStr);
+
+    const isCoolOff = /cool\s*off/i.test(facultyStr + ' ' + dateStr);
+    const isHoliday = !isCoolOff && /holiday|jayanti/i.test(facultyStr);
+    const durText = durationStr || (parsedTiming.durationMinutes
+      ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? (Math.round(parsedTiming.durationMinutes / 60) === 1 ? 'Hour' : 'Hours') : 'Mins'}`
+      : '1 Hour');
+
+    events.push({
+      id: `${id}_ev_${i}`,
+      batchId: id,
+      sheetStatus: '', isCancelled: false, isRescheduled: false,
+      rescheduledDate: '', rescheduledTime: '', rescheduledDuration: '', statusUpdatedAt: '',
+      batchName: detectedName,
+      rowIndex: i + 1,
+      dateRaw: dateStr,
+      isoDate: parsedDate.isoDate,
+      dayName: parsedDate.dayName,
+      dayLabel,
+      monthName: parsedDate.monthName,
+      dayNumber: parsedDate.dayNumber,
+      year: parsedDate.year,
+      faculty: isHoliday ? '' : facultyStr,
+      subject: (isCoolOff || isHoliday) ? '' : subjectStr,
+      chapter: (isCoolOff || isHoliday) ? '' : chapterStr,
+      topic: (isCoolOff || isHoliday) ? '' : topicStr,
+      noLectures: '1',
+      duration: durText,
+      durationMinutes: parsedTiming.durationMinutes,
+      timings: timingsStr || (parsedTiming.start ? `${parsedTiming.start} to ${parsedTiming.end}` : '5:00 PM Onwards'),
+      startTime: parsedTiming.start,
+      endTime: parsedTiming.end,
+      startHour: parsedTiming.startHour,
+      eventType: isCoolOff ? 'cool_off' : isHoliday ? 'holiday' : 'class',
+      displayTitle: isCoolOff ? 'COOL OFF' : isHoliday ? (facultyStr || 'Official Holiday') : (topicStr || chapterStr),
+      platform,
+      isYoutube,
+      isApp
+    });
+  }
+
+  if (events.length === 0) {
+    throw new Error(`No valid lecture schedule rows found in tab "${tabName}". Please make sure the selected tab contains lecture data with dates, faculty, and topics.`);
+  }
+  return {
+    id, name: detectedName, subtitle, sourceUrl, sheetTabName: tabName,
+    platform, isYoutube, isApp,
+    lastSynced: new Date().toISOString(),
+    eventCount: events.length,
+    events
+  };
+}
+
 /**
  * Process Raw CSV into structured Batch Object
  */
@@ -166,6 +332,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
   if (rawBatchHeader.toLowerCase().includes('completion %')) {
     throw new Error(`The sheet tab "${tabName}" returned a progress/summary sheet ("Completion %") rather than lecture rows. Please ensure the tab name is set to "Lecture Planner".`);
   }
+
+  const bannerLayout = detectBannerLayout(rows);
+  if (bannerLayout) return processBannerSheet(rows, bannerLayout, id, sourceUrl, tabName, overrideName);
 
   const isFourColLayout = header.length <= 6 || (header[1] && header[1].toLowerCase().includes('faculty') && header[3] && header[3].toLowerCase().includes('time'));
   const isYoutube = rawBatchHeader.toLowerCase().includes('yt channel') || 

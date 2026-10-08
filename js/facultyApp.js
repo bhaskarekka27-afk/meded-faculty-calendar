@@ -312,7 +312,7 @@ export class FacultyDashboardController {
     const totalAllClasses = this.batches.reduce((n, b) => n + this.countMyClasses(b), 0);
     const isAllSelected = this.activeBatchId === 'all';
 
-    const appBatches = this.batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
+    const appBatches = this.batches.filter(b => b.platform === 'app' || b.platform === 'youtube_app' || (!b.isYoutube && b.platform !== 'youtube'));
     const ytBatches = this.batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
 
     const renderBatchButton = (batch) => {
@@ -2027,7 +2027,7 @@ export class FacultyDashboardController {
       item.className = `w-full text-left px-3 py-2 flex items-center justify-between hover:bg-terra-sand/80 transition-colors cursor-pointer ${
         isSelected ? 'bg-terra-forestLight font-bold text-terra-forest' : 'text-terra-charcoal'
       }`;
-      const badgeText = (b.platform === 'youtube' || b.isYoutube) ? 'YT Live' : 'App Live';
+      const badgeText = b.platform === 'youtube_app' ? 'YT + App Live' : ((b.platform === 'youtube' || b.isYoutube) ? 'YT Live' : 'App Live');
       const badgeClass = (b.platform === 'youtube' || b.isYoutube) ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
 
       item.innerHTML = `
@@ -2382,7 +2382,7 @@ export class FacultyDashboardController {
 
       const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026', platform: 'app' };
       const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
-      const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+      const badgeLiveText = batchObj.platform === 'youtube_app' ? 'YouTube + App Live' : (isYoutube ? 'YouTube Live' : 'App Live');
       const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
       const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
 
@@ -2541,7 +2541,7 @@ export class FacultyDashboardController {
         
         const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026', platform: 'app' };
         const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
-        const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+        const badgeLiveText = batchObj.platform === 'youtube_app' ? 'YouTube + App Live' : (isYoutube ? 'YouTube Live' : 'App Live');
         const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
         const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
 
@@ -2763,7 +2763,7 @@ export class FacultyDashboardController {
 
       const batchObj = this.batches.find(b => b.id === c.batchId) || { name: 'Prarambh 2026', platform: 'app' };
       const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
-      const badgeLiveText = isYoutube ? 'YouTube Live' : 'App Live';
+      const badgeLiveText = batchObj.platform === 'youtube_app' ? 'YouTube + App Live' : (isYoutube ? 'YouTube Live' : 'App Live');
       const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
       const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
 
