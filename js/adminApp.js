@@ -7147,8 +7147,110 @@ class AdminDashboardController {
       }
     });
 
+    // Free Headless WhatsApp Multi-Device Pairing Controls
+    this.setupWhatsAppPairingControls();
+
     // Real-Time Google Sheet Hub in Settings Modal
     this.renderConnectedSheetsSettings();
+  }
+
+  setupWhatsAppPairingControls() {
+    const startPairingBtn = document.getElementById('btnStartWAPairing');
+    const unlinkBtn = document.getElementById('btnUnlinkWADevice');
+    const checkStatusBtn = document.getElementById('btnCheckWAStatus');
+    const closePairingBtn = document.getElementById('btnCloseWAPairing');
+    const pairingContainer = document.getElementById('waPairingContainer');
+    const qrLoader = document.getElementById('waQrLoader');
+    const qrImage = document.getElementById('waQrImage');
+    const liveStatusPill = document.getElementById('waLiveStatusPill');
+    const liveStatusText = document.getElementById('waLiveStatusText');
+
+    let pollInterval = null;
+
+    const updateStatusUI = (statusData) => {
+      if (!liveStatusPill || !liveStatusText) return;
+
+      if (statusData && statusData.connected) {
+        liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#eefbf3] text-[#1b7a3e] border border-[#c2ecd0] flex items-center gap-1.5 badge-3d';
+        liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#25D366] animate-pulse"></span>' +
+          `<span>Connected: +${statusData.connectedNumber || 'Multi-Device'}</span>`;
+        if (startPairingBtn) startPairingBtn.classList.add('hidden');
+        if (unlinkBtn) unlinkBtn.classList.remove('hidden');
+        if (pairingContainer) pairingContainer.classList.add('hidden');
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      } else if (statusData && statusData.hasQr && statusData.qrDataUrl) {
+        liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#fef9e7] text-[#8f6b00] border border-[#f5e6a4] flex items-center gap-1.5 badge-3d';
+        liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#e6a800]"></span><span>Waiting for Scan...</span>';
+        if (startPairingBtn) startPairingBtn.classList.remove('hidden');
+        if (unlinkBtn) unlinkBtn.classList.add('hidden');
+        if (pairingContainer) pairingContainer.classList.remove('hidden');
+        if (qrLoader) qrLoader.classList.add('hidden');
+        if (qrImage) {
+          qrImage.src = statusData.qrDataUrl;
+          qrImage.classList.remove('hidden');
+        }
+      } else if (statusData && statusData.status === 'CONNECTING') {
+        liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#f4efe6] text-[#576058] border border-[#ded5c6] flex items-center gap-1.5 badge-3d';
+        liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#576058] animate-ping"></span><span>Connecting...</span>';
+      } else {
+        liveStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#fae8e8] text-[#9b2c2c] border border-[#f5c6c6] flex items-center gap-1.5 badge-3d';
+        liveStatusPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#e53e3e]"></span><span>Not Paired</span>';
+        if (startPairingBtn) startPairingBtn.classList.remove('hidden');
+        if (unlinkBtn) unlinkBtn.classList.add('hidden');
+        if (pairingContainer) pairingContainer.classList.add('hidden');
+      }
+    };
+
+    const checkStatus = async () => {
+      const statusData = await reminderEmailService.getWhatsAppBackendStatus();
+      updateStatusUI(statusData);
+      return statusData;
+    };
+
+    startPairingBtn?.addEventListener('click', async () => {
+      if (pairingContainer) pairingContainer.classList.remove('hidden');
+      if (qrLoader) qrLoader.classList.remove('hidden');
+      if (qrImage) qrImage.classList.add('hidden');
+
+      const initRes = await reminderEmailService.initWhatsAppBackendPairing(false);
+      updateStatusUI(initRes);
+
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        const s = await checkStatus();
+        if (s && s.connected) {
+          this.showToast(`🎉 WhatsApp linked successfully! Node: +${s.connectedNumber}`);
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      }, 2000);
+    });
+
+    closePairingBtn?.addEventListener('click', () => {
+      if (pairingContainer) pairingContainer.classList.add('hidden');
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    });
+
+    unlinkBtn?.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to unlink this WhatsApp device from the server?')) return;
+      const res = await reminderEmailService.unlinkWhatsAppBackendDevice();
+      updateStatusUI(res);
+      this.showToast('WhatsApp device unlinked from server.');
+    });
+
+    checkStatusBtn?.addEventListener('click', async () => {
+      const s = await checkStatus();
+      this.showToast(`WhatsApp Status: ${s?.status || 'UNKNOWN'}`);
+    });
+
+    // Check status initially
+    checkStatus();
   }
 
   populateEmailSettingsFields(force = false) {

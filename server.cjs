@@ -563,6 +563,75 @@ function handleSettingsApi(req, res, pathname) {
   }
 }
 
+const whatsappService = require('./whatsappService.cjs');
+
+async function handleWhatsAppApi(req, res, pathname) {
+  if (req.method === 'GET' && pathname === '/api/whatsapp/status') {
+    return json(res, 200, whatsappService.getStatus());
+  }
+
+  if (req.method === 'POST' && pathname === '/api/whatsapp/connect') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = body ? JSON.parse(body) : {};
+        const status = await whatsappService.initialize(!!data.forceNew);
+        return json(res, 200, status);
+      } catch (err) {
+        return json(res, 500, { error: err.message });
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/whatsapp/disconnect') {
+    try {
+      await whatsappService.clearAuth();
+      return json(res, 200, whatsappService.getStatus());
+    } catch (err) {
+      return json(res, 500, { error: err.message });
+    }
+  }
+
+  if (req.method === 'POST' && pathname === '/api/whatsapp/pair-code') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const resObj = await whatsappService.requestPairingCode(data.phone);
+        return json(res, 200, resObj);
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/whatsapp/send') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const phone = data.phone || data.recipientPhone;
+        const message = data.message || data.text;
+        if (!phone) return json(res, 400, { error: 'Recipient phone number is required' });
+        if (!message) return json(res, 400, { error: 'Message content is required' });
+
+        const sendResult = await whatsappService.sendMessage(phone, message);
+        return json(res, 200, sendResult);
+      } catch (err) {
+        return json(res, 500, { error: err.message });
+      }
+    });
+    return;
+  }
+
+  return json(res, 404, { error: 'Unknown WhatsApp endpoint' });
+}
+
 function handleSyncStateApi(req, res) {
   const getMtime = (f) => {
     try { return fs.statSync(f).mtimeMs; } catch (_) { return 0; }
@@ -588,6 +657,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/api/batches')) return handleBatchesApi(req, res, pathname);
   if (pathname.startsWith('/api/requests')) return handleRequestsApi(req, res, pathname);
   if (pathname.startsWith('/api/settings')) return handleSettingsApi(req, res, pathname);
+  if (pathname.startsWith('/api/whatsapp')) return handleWhatsAppApi(req, res, pathname);
   if (pathname.startsWith('/api/sync-state')) return handleSyncStateApi(req, res);
 
   if (ROUTES[pathname]) pathname = ROUTES[pathname];

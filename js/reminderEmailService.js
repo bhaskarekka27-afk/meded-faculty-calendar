@@ -996,6 +996,53 @@ export class ReminderEmailService {
     return { formatted, digits, e164 };
   }
 
+  // --- 6. WhatsApp Helpers, Anti-Bot Queued Dispatch Engine & Headless Backend Bridge ---
+  async getWhatsAppBackendStatus() {
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { status: 'DISCONNECTED', connected: false };
+  }
+
+  async initWhatsAppBackendPairing(forceNew = false) {
+    try {
+      const res = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceNew })
+      });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { status: 'DISCONNECTED', error: 'Failed to reach local server' };
+  }
+
+  async unlinkWhatsAppBackendDevice() {
+    try {
+      const res = await fetch('/api/whatsapp/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { status: 'DISCONNECTED' };
+  }
+
+  async sendWhatsAppBackendMessage(phone, message, meta = {}) {
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message, ...meta })
+      });
+      if (res.ok) return await res.json();
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, error: errData.error || 'Server dispatch error' };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
   generateWhatsAppMessageText({ facultyName, facultyPhone, event = {}, leadDurationText = '30 Minutes' }) {
     const topic = event.topic || event.chapter || event.displayTitle || 'Medical Clinical Lecture';
     const subject = event.subject || 'Biochemistry';
@@ -1101,6 +1148,21 @@ export class ReminderEmailService {
     };
 
     this.addNotifications([adminNotif, facultyNotif]);
+
+    // Headless automated background dispatch via server socket
+    this.sendWhatsAppBackendMessage(phoneObj.digits, messageText, {
+      facultyName: facDetails.name,
+      senderPhone: senderPhoneObj.formatted,
+      eventTopic: event.topic || event.chapter
+    }).then(res => {
+      if (res && res.success) {
+        console.log(`[WhatsApp] ✓ Live background message delivered to ${phoneObj.formatted} (Msg ID: ${res.messageId})`);
+      } else if (res && res.error) {
+        console.warn(`[WhatsApp] Notice: ${res.error}`);
+      }
+    }).catch(err => {
+      console.warn('[WhatsApp] Headless send notice:', err.message);
+    });
 
     const sentMap = this.getSentReminders();
     const eventKey = `${event.id || `${event.isoDate}_${event.faculty}`}_whatsapp`;
