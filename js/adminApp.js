@@ -6432,7 +6432,8 @@ class AdminDashboardController {
     window.addEventListener('meded:admin_alert', (e) => {
       this.renderAdminNotifications();
       const notif = e.detail;
-      if (notif && notif.title) {
+      // Only display a banner toast if explicitly requested (prevents background setting saves from spamming the UI)
+      if (notif && notif.showToast && notif.title) {
         this.showToast(`${notif.title}: ${notif.body || ''}`);
       }
     });
@@ -6994,7 +6995,7 @@ class AdminDashboardController {
     saveEmailBtn?.addEventListener('click', () => {
       autoSaveSettings();
       modal?.classList.add('hidden');
-      this.showToast(`Automated email settings saved! Sender: ${(senderEmailInput?.value || '').trim()}`);
+      this.showToast('✓ Email reminder settings saved successfully!');
       this.renderAdminNotifications();
     });
 
@@ -7002,9 +7003,7 @@ class AdminDashboardController {
     saveWABtn?.addEventListener('click', () => {
       autoSaveSettings();
       modal?.classList.add('hidden');
-      const sec = waCadenceNum?.value || 25;
-      const jit = waJitterNum?.value || 10;
-      this.showToast(`Automated WhatsApp settings saved! Anti-Bot Cadence: ${sec}s ± ${jit}s jitter.`);
+      this.showToast('✓ WhatsApp reminder settings saved successfully!');
       this.renderAdminNotifications();
     });
 

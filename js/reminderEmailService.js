@@ -183,7 +183,7 @@ export class ReminderEmailService {
     }
   }
 
-  saveSettings(newSettings = {}) {
+  saveSettings(newSettings = {}, options = {}) {
     try {
       const current = this.getSettings();
       const updated = {
@@ -225,12 +225,14 @@ export class ReminderEmailService {
 
       this.broadcastEvent('meded:email_settings_updated', updated);
 
-      this.notifyAdmins({
-        type: 'setting_updated',
-        title: '⚙️ Email Reminder Settings Updated',
-        body: `Automated class reminder configuration updated (Lead: ${updated.leadDurationValue || 30} ${updated.leadDurationUnit || 'minutes'}, Sender: ${updated.senderEmail || 'Institutional Default'}).`,
-        author: updated.configuredBy || 'Administrator'
-      });
+      if (options && options.notify === true) {
+        this.notifyAdmins({
+          type: 'setting_updated',
+          title: '⚙️ Email Reminder Settings Updated',
+          body: `Automated class reminder configuration updated (Lead: ${updated.leadDurationValue || 30} ${updated.leadDurationUnit || 'minutes'}, Sender: ${updated.senderEmail || 'Institutional Default'}).`,
+          author: updated.configuredBy || 'Administrator'
+        });
+      }
 
       return { success: true, settings: updated };
     } catch (e) {
