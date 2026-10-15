@@ -100,6 +100,34 @@ function test_whatsapp_permissions() {
   return res;
 }
 
+/**
+ * 1-Click Runnable Setup: Installs a 10-minute Google Cloud Clock Trigger
+ * that checks and dispatches class reminders 24/7 on schedule without needing any browser open.
+ */
+function setup_automated_reminder_trigger() {
+  var res = setupAutomatedReminderTrigger_();
+  Logger.log('Reminder Trigger Setup: ' + JSON.stringify(res, null, 2));
+  return res;
+}
+
+/**
+ * 1-Click Runnable: Removes automated reminder triggers.
+ */
+function remove_automated_reminder_trigger() {
+  var res = removeAutomatedReminderTrigger_();
+  Logger.log('Reminder Trigger Removal: ' + JSON.stringify(res, null, 2));
+  return res;
+}
+
+/**
+ * 1-Click Runnable: Checks all upcoming classes and immediately dispatches reminders for any due lectures.
+ */
+function check_and_send_scheduled_reminders() {
+  var res = checkAndSendScheduledReminders_();
+  Logger.log('Scheduled Reminders Check: ' + JSON.stringify(res, null, 2));
+  return res;
+}
+
 // ---------------------------------------------------------------------------
 // Entry points
 // ---------------------------------------------------------------------------
@@ -146,6 +174,21 @@ function doGet(e) {
       instanceId: (e && e.parameter && e.parameter.instanceId) || '',
       apiToken: (e && e.parameter && e.parameter.apiToken) || ''
     }));
+  }
+
+  if (action === 'check_reminders' || action === 'trigger_reminders') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    return json_(checkAndSendScheduledReminders_());
+  }
+
+  if (action === 'setup_reminder_trigger') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    return json_(setupAutomatedReminderTrigger_());
+  }
+
+  if (action === 'remove_reminder_trigger') {
+    if (!tokenOk_(token)) return json_({ ok: false, error: 'Invalid token' });
+    return json_(removeAutomatedReminderTrigger_());
   }
 
   // Health check so the portal can verify the URL before saving it.
@@ -211,6 +254,14 @@ function doPost(e) {
 
     if (action === 'send_whatsapp' || action === 'send_whatsapp_reminder') {
       return json_(sendWhatsAppViaAppsScript_(body.whatsapp || body));
+    }
+
+    if (action === 'check_reminders' || action === 'trigger_reminders') {
+      return json_(checkAndSendScheduledReminders_());
+    }
+
+    if (action === 'setup_reminder_trigger') {
+      return json_(setupAutomatedReminderTrigger_());
     }
 
     if (action !== 'reschedule' && action !== 'cancel' && action !== 'revert') {
@@ -1415,4 +1466,230 @@ function sendWhatsAppViaAppsScript_(data) {
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Automated 24/7 Cloud Reminder Scheduler Engine
+// ---------------------------------------------------------------------------
+
+function setupAutomatedReminderTrigger_() {
+  removeAutomatedReminderTrigger_();
+  var trigger = ScriptApp.newTrigger('check_and_send_scheduled_reminders')
+    .timeBased()
+    .everyMinutes(10)
+    .create();
+  return {
+    ok: true,
+    message: '10-minute automated reminder clock trigger installed successfully in Google Apps Script.',
+    triggerId: trigger.getUniqueId(),
+    functionName: 'check_and_send_scheduled_reminders'
+  };
+}
+
+function removeAutomatedReminderTrigger_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'check_and_send_scheduled_reminders') {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  return { ok: true, removedCount: removed };
+}
+
+function checkAndSendScheduledReminders_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1. Resolve configured email reminder settings from 'Portal Settings'
+  var settingsRes = getSettings_();
+  var settingsMap = {};
+  if (settingsRes && settingsRes.ok && Array.isArray(settingsRes.settings)) {
+    for (var i = 0; i < settingsRes.settings.length; i++) {
+      var s = settingsRes.settings[i];
+      if (s.key === 'meded_email_settings' || s.key === 'pw_meded_email_settings') {
+        try {
+          settingsMap = typeof s.value === 'string' ? JSON.parse(s.value) : s.value;
+          break;
+        } catch (_) {}
+      }
+    }
+  }
+
+  var isEnabled = settingsMap.isEnabled !== false && settingsMap.enabled !== false;
+  if (!isEnabled) {
+    Logger.log('checkAndSendScheduledReminders_: Automated reminders are disabled in Portal Settings.');
+    return { ok: true, skipped: 'Automated reminders currently disabled in Portal Settings.' };
+  }
+
+  var leadMinutes = Number(settingsMap.leadDurationMinutes || 1440);
+  if (settingsMap.leadDurationValue && settingsMap.leadDurationUnit) {
+    var val = parseInt(settingsMap.leadDurationValue, 10) || 24;
+    leadMinutes = settingsMap.leadDurationUnit === 'hours' ? val * 60 : val;
+  }
+
+  var senderEmail = String(settingsMap.senderEmail || 'academic-reminders@pwmeded.edu.in').trim();
+  var senderName = String(settingsMap.senderName || 'PW MedEd Academic Directorate').trim();
+
+  // Tolerance window: prevent triggering at random times
+  var toleranceMinutes = leadMinutes >= 720 ? 60 : (leadMinutes >= 120 ? 30 : 15);
+  var minDiffMinutes = Math.max(0, leadMinutes - toleranceMinutes);
+  var maxDiffMinutes = leadMinutes + 10;
+
+  var now = new Date();
+  var nowTime = now.getTime();
+
+  // Load deduplication sent map from ScriptProperties
+  var props = PropertiesService.getScriptProperties();
+  var sentLogStr = props.getProperty('PW_MEDED_SENT_REMINDERS') || '{}';
+  var sentLog = {};
+  try { sentLog = JSON.parse(sentLogStr); } catch (_) { sentLog = {}; }
+
+  // Faculty Directory cache
+  var facRes = getFacultyRecords_();
+  var facultyEmailMap = {};
+  if (facRes && facRes.ok && Array.isArray(facRes.faculty)) {
+    for (var f = 0; f < facRes.faculty.length; f++) {
+      var fac = facRes.faculty[f];
+      var fn = (fac.name || '').trim().toLowerCase();
+      if (fn && fac.email) facultyEmailMap[fn] = fac.email.trim();
+    }
+  }
+
+  var dispatched = [];
+  var sheets = ss.getSheets();
+
+  for (var sIdx = 0; sIdx < sheets.length; sIdx++) {
+    var sheet = sheets[sIdx];
+    var sName = sheet.getName();
+    if (/settings|directory|reschedule|log|faculty/i.test(sName)) continue;
+
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow < 2 || lastCol < 3) continue;
+
+    var data = sheet.getRange(1, 1, Math.min(lastRow, 300), lastCol).getValues();
+    var headers = data[0].map(function(h) { return String(h || '').trim().toLowerCase(); });
+
+    var dateCol = -1, facCol = -1, timeCol = -1, topicCol = -1, statusCol = -1;
+    for (var c = 0; c < headers.length; c++) {
+      var h = headers[c];
+      if (h.indexOf('date') >= 0 && dateCol < 0) dateCol = c;
+      if ((h.indexOf('faculty') >= 0 || h.indexOf('educator') >= 0 || h.indexOf('teacher') >= 0) && facCol < 0) facCol = c;
+      if ((h.indexOf('timing') >= 0 || h.indexOf('time') >= 0) && timeCol < 0) timeCol = c;
+      if ((h.indexOf('topic') >= 0 || h.indexOf('chapter') >= 0) && topicCol < 0) topicCol = c;
+      if (h.indexOf('status') >= 0 && statusCol < 0) statusCol = c;
+    }
+
+    if (dateCol < 0 || facCol < 0) continue;
+
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      var rawDate = row[dateCol];
+      var rawFac = String(row[facCol] || '').trim();
+      var rawTime = timeCol >= 0 ? String(row[timeCol] || '').trim() : '';
+      var rawTopic = topicCol >= 0 ? String(row[topicCol] || '').trim() : '';
+      var rawStatus = statusCol >= 0 ? String(row[statusCol] || '').trim().toLowerCase() : '';
+
+      if (!rawDate || !rawFac || /cool\s*off|holiday/i.test(rawFac) || rawStatus === 'cancelled') continue;
+
+      var classDate = null;
+      if (rawDate instanceof Date) {
+        classDate = new Date(rawDate.getTime());
+      } else {
+        var ds = String(rawDate).trim();
+        var dp = Date.parse(ds);
+        if (!isNaN(dp)) classDate = new Date(dp);
+      }
+      if (!classDate || isNaN(classDate.getTime())) continue;
+
+      var startH = 19, startM = 0;
+      var tm = rawTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      if (tm) {
+        var h = parseInt(tm[1], 10);
+        var m = parseInt(tm[2] || '0', 10);
+        var ampm = (tm[3] || '').toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        startH = h;
+        startM = m;
+      }
+
+      classDate.setHours(startH, startM, 0, 0);
+
+      var diffMs = classDate.getTime() - nowTime;
+      var diffMins = Math.round(diffMs / 60000);
+
+      if (diffMins >= minDiffMinutes && diffMins <= maxDiffMinutes) {
+        var isoDate = Utilities.formatDate(classDate, Session.getScriptTimeZone() || 'Asia/Kolkata', 'yyyy-MM-dd');
+        var remKey = 'rem_' + isoDate + '_' + rawFac.replace(/[^a-zA-Z0-9]/g, '_') + '_' + leadMinutes;
+
+        if (sentLog[remKey]) continue;
+
+        var toEmail = facultyEmailMap[rawFac.toLowerCase()] || '';
+        if (!toEmail) {
+          for (var k in facultyEmailMap) {
+            if (rawFac.toLowerCase().indexOf(k) >= 0 || k.indexOf(rawFac.toLowerCase()) >= 0) {
+              toEmail = facultyEmailMap[k];
+              break;
+            }
+          }
+        }
+
+        if (toEmail) {
+          var leadText = leadMinutes >= 1440 ? Math.round(leadMinutes / 1440) + ' Day(s)' : Math.round(leadMinutes / 60) + ' Hour(s)';
+          var subject = '[PW MedEd] Class Reminder: ' + (rawTopic || 'Upcoming Lecture') + ' (' + leadText + ' Prior)';
+          var htmlBody = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;">' +
+            '<div style="background:#2D4D37;color:#fff;padding:20px;text-align:center;">' +
+              '<h2 style="margin:0;">🩺 PW MedEd Academic Directorate</h2>' +
+              '<p style="margin:6px 0 0;font-size:13px;opacity:0.9;">Class Reminder &bull; ' + leadText + ' Prior</p>' +
+            '</div>' +
+            '<div style="padding:24px;background:#ffffff;color:#2c332d;">' +
+              '<p>Dear <strong>' + rawFac + '</strong>,</p>' +
+              '<p>This is an automated reminder that your scheduled lecture is commencing in <strong>' + leadText + '</strong>.</p>' +
+              '<table style="width:100%;border-collapse:collapse;margin:18px 0;background:#faf7f2;border-radius:8px;padding:12px;">' +
+                '<tr><td style="padding:8px 12px;font-weight:bold;color:#7a6d59;">Topic:</td><td style="padding:8px 12px;font-weight:bold;">' + (rawTopic || 'Lecture') + '</td></tr>' +
+                '<tr><td style="padding:8px 12px;font-weight:bold;color:#7a6d59;">Date:</td><td style="padding:8px 12px;">' + isoDate + '</td></tr>' +
+                '<tr><td style="padding:8px 12px;font-weight:bold;color:#7a6d59;">Timings:</td><td style="padding:8px 12px;color:#2D4D37;font-weight:bold;">' + (rawTime || '7:00 PM') + '</td></tr>' +
+                '<tr><td style="padding:8px 12px;font-weight:bold;color:#7a6d59;">Sheet / Batch:</td><td style="padding:8px 12px;">' + sName + '</td></tr>' +
+              '</table>' +
+              '<p style="font-size:12px;color:#7a6d59;margin-top:20px;">Delivered directly to your verified faculty inbox via institutional Google Apps Script relay.</p>' +
+            '</div>' +
+          '</div>';
+
+          var sendRes = sendEmailViaAppsScript_({
+            to: toEmail,
+            subject: subject,
+            htmlBody: htmlBody,
+            name: senderName,
+            senderName: senderName,
+            from: senderEmail
+          });
+
+          if (sendRes && sendRes.ok) {
+            sentLog[remKey] = {
+              sentAt: new Date().toISOString(),
+              recipient: toEmail,
+              faculty: rawFac,
+              topic: rawTopic,
+              leadMinutes: leadMinutes
+            };
+            dispatched.push({ faculty: rawFac, to: toEmail, topic: rawTopic, diffMins: diffMins });
+            Logger.log('✓ Dispatched ' + leadText + ' reminder to ' + rawFac + ' (' + toEmail + ') for ' + rawTopic);
+          }
+        }
+      }
+    }
+  }
+
+  var keys = Object.keys(sentLog);
+  if (keys.length > 500) {
+    var trimmed = {};
+    keys.slice(keys.length - 400).forEach(function(k) { trimmed[k] = sentLog[k]; });
+    sentLog = trimmed;
+  }
+  props.setProperty('PW_MEDED_SENT_REMINDERS', JSON.stringify(sentLog));
+
+  return { ok: true, dispatchedCount: dispatched.length, dispatched: dispatched };
+}
+
 

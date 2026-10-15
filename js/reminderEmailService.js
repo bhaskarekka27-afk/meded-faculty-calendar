@@ -686,11 +686,16 @@ export class ReminderEmailService {
     this.addNotifications([adminNotif, facultyNotif]);
 
     const sentMap = this.getSentReminders();
-    sentMap[event.id || `${event.isoDate}_${event.faculty}`] = {
+    const baseKey = event.id || `${event.isoDate}_${event.faculty}_${event.timings || ''}`;
+    const emailKey = `${baseKey}_email_${leadDurationMinutes}`;
+    sentMap[emailKey] = {
       sentAt: nowIso,
       recipient: recipientEmail,
-      topic: event.topic || event.chapter
+      topic: event.topic || event.chapter,
+      leadMinutes: leadDurationMinutes
     };
+    sentMap[baseKey] = sentMap[emailKey];
+    if (event.id) sentMap[event.id] = sentMap[emailKey];
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.SENT_KEY, JSON.stringify(sentMap));
     }
@@ -1287,13 +1292,17 @@ export class ReminderEmailService {
     }).catch(() => {});
 
     const sentMap = this.getSentReminders();
-    const eventKey = `${event.id || `${event.isoDate}_${event.faculty}`}_whatsapp`;
-    sentMap[eventKey] = {
+    const baseKey = event.id || `${event.isoDate}_${event.faculty}_${event.timings || ''}`;
+    const waKey = `${baseKey}_whatsapp_${leadDurationText || 'default'}`;
+    sentMap[waKey] = {
       sentAt: nowIso,
       senderPhone: senderPhoneObj.formatted,
       recipientPhone: phoneObj.formatted,
-      topic: event.topic || event.chapter
+      topic: event.topic || event.chapter,
+      leadText: leadDurationText
     };
+    sentMap[`${baseKey}_whatsapp`] = sentMap[waKey];
+    if (event.id) sentMap[`${event.id}_whatsapp`] = sentMap[waKey];
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.SENT_KEY, JSON.stringify(sentMap));
     }
@@ -1375,30 +1384,48 @@ export class ReminderEmailService {
     const dispatched = [];
     const leadMinutes = settings.leadDurationMinutes || 30;
     const now = new Date();
+
+    // Trigger tolerance window:
+    // How close to target reminder time (leadMinutes before class start) must the check be?
+    // If checks run every 30-60 seconds (or 5-10m cron):
+    // - For 12h or 24h reminders (lead >= 720m): allow a 60 min window (leadMinutes down to leadMinutes - 60).
+    // - For 2h to 6h reminders (lead >= 120m): allow a 30 min window (leadMinutes down to leadMinutes - 30).
+    // - For shorter reminders (15m, 30m, 45m, 1h): allow a 15 min window (leadMinutes down to leadMinutes - 15).
+    // This prevents triggering reminders at random arbitrary hours of the day (e.g. triggering a 24h reminder 4 hours before class).
+    const toleranceMinutes = leadMinutes >= 720 ? 60 : (leadMinutes >= 120 ? 30 : 15);
+    const minDiffMinutes = Math.max(0, leadMinutes - toleranceMinutes);
+    const maxDiffMinutes = leadMinutes + 5; // 5-minute forward leeway for timer jitter
     
     events.forEach(ev => {
       if (ev.eventType !== 'class' || !ev.isoDate || !ev.faculty) return;
       if (ev.faculty.toLowerCase().includes('cool off')) return;
 
-      const baseKey = ev.id || `${ev.isoDate}_${ev.faculty}_${ev.timings}`;
-      const emailSent = sentMap[baseKey];
-      const waSent = sentMap[`${baseKey}_whatsapp`];
+      const baseKey = ev.id || `${ev.isoDate}_${ev.faculty}_${ev.timings || ''}`;
+      const emailKey = `${baseKey}_email_${leadMinutes}`;
+      const waKey = `${baseKey}_whatsapp_${leadMinutes}`;
+      const emailSent = sentMap[emailKey] || sentMap[baseKey] || (ev.id && sentMap[ev.id]);
+      const waSent = sentMap[waKey] || sentMap[`${baseKey}_whatsapp`] || (ev.id && sentMap[`${ev.id}_whatsapp`]);
 
       const classDateStr = ev.isoDate;
       let startHours = 19;
       let startMins = 0;
 
-      if (ev.timings) {
-        const timeMatch = ev.timings.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      // Robust timing parser: supports "5:00 PM", "5 PM", "10:30 AM", "6pm to 8pm", etc.
+      const timingSource = ev.startTime || ev.timings || '';
+      if (timingSource) {
+        const timeMatch = timingSource.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
         if (timeMatch) {
           let h = parseInt(timeMatch[1], 10);
-          const m = parseInt(timeMatch[2], 10);
-          const ampm = timeMatch[3].toUpperCase();
+          const m = parseInt(timeMatch[2] || '0', 10);
+          const ampm = (timeMatch[3] || '').toUpperCase();
           if (ampm === 'PM' && h < 12) h += 12;
           if (ampm === 'AM' && h === 12) h = 0;
           startHours = h;
           startMins = m;
         }
+      } else if (typeof ev.startHour === 'number' && !isNaN(ev.startHour)) {
+        startHours = Math.floor(ev.startHour);
+        startMins = Math.round((ev.startHour - startHours) * 60);
       }
 
       const [y, m, d] = classDateStr.split('-').map(Number);
@@ -1406,7 +1433,8 @@ export class ReminderEmailService {
       const diffMs = classStartTime.getTime() - now.getTime();
       const diffMinutes = Math.round(diffMs / 60000);
 
-      const isWithinWindow = diffMinutes >= 0 && diffMinutes <= leadMinutes;
+      // Must be within the designated scheduled window for this lead interval
+      const isWithinWindow = diffMinutes >= minDiffMinutes && diffMinutes <= maxDiffMinutes;
 
       if (isWithinWindow) {
         if (isEmailEnabled && !emailSent) {
