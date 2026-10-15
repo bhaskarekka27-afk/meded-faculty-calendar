@@ -16,11 +16,12 @@
 import { BatchManager } from './sheetConnector.js';
 import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
-
-startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
+import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, isInMonth, nearestMonthWithEvents } from './dateUtils.js';
+
+startSharedSettingsSync();
 
 // ---- matching the logged-in faculty against the "Faculty" cell of a lecture row ----
 const NAME_NOISE = new Set(['dr', 'prof', 'professor', 'mr', 'ms', 'mrs', 'miss', 'sir', 'maam', 'mam', 'madam', 'er']);

@@ -6,10 +6,10 @@
 import { BatchManager, detectGoogleSheetTabs } from './sheetConnector.js';
 import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
-
-startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
+import { reminderEmailService } from './reminderEmailService.js';
 import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
+import { WorkloadManager } from './workloadData.js';
 import { renderWorkloadView } from './workloadView.js';
 import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal, getRequestById } from './requestsView.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, endOfWeek, isInMonth, nearestMonthWithEvents, parseSlotText, formatDuration } from './dateUtils.js';
@@ -35,6 +35,8 @@ import {
   FACULTY_SHEET_URL_KEY,
   FACULTY_SHEET_HEADERS
 } from './facultyOnboardingData.js';
+
+startSharedSettingsSync();
 
 class AdminDashboardController {
   constructor() {
