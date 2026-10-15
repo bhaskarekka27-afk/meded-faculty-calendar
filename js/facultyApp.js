@@ -349,8 +349,8 @@ export class FacultyDashboardController {
     const totalAllClasses = this.batches.reduce((n, b) => n + this.countMyClasses(b), 0);
     const isAllSelected = this.activeBatchId === 'all';
 
-    const appBatches = this.batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
-    const ytBatches = this.batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
+    const appBatches = this.batches.filter(b => b.isApp || b.platform === 'app' || b.platform === 'youtube_app');
+    const ytBatches = this.batches.filter(b => b.isYoutube || b.platform === 'youtube' || b.platform === 'youtube_app');
 
     const renderBatchButton = (batch) => {
       const isSelected = batch.id === this.activeBatchId;

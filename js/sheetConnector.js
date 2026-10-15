@@ -165,14 +165,16 @@ export function extractSheetDetails(url) {
  * from the banner (App + YT => delivered on both).
  * ------------------------------------------------------------------ */
 const HEADER_KEYS = {
-  date: /(^|\s)date$/,
-  day: /(^|\s)day$/,
-  faculty: /(^|\s)(faculty|faculty name|teacher|speaker)$/,
-  topic: /(^|\s)(topic|topics)$/,
-  subject: /(^|\s)subject$/,
-  chapter: /(^|\s)chapter$/,
-  time: /(^|\s)(time|timing|timings)$/,
-  duration: /(^|\s)duration$/
+  date: /(^|\s)dates?(\s*(&|and)?\s*days?)?$/i,
+  day: /(^|\s)days?$/i,
+  faculty: /(^|\s)(faculty|faculty\s*name|teacher|speaker|educator)s?$/i,
+  topic: /(^|\s)(topic|topics|topic\s*name)s?$/i,
+  subject: /(^|\s)(subject|subjects)s?$/i,
+  chapter: /(^|\s)(chapter|chapters|chapter\s*name)s?$/i,
+  time: /(^|\s)(time|timing|timings)s?$/i,
+  duration: /(^|\s)(duration|durations|working\s*hours|hours)s?$/i,
+  noLectures: /(^|\s)(no\s*of\s*lectures?|lectures?|class\s*count)s?$/i,
+  status: /(^|\s)(status)s?$/i
 };
 
 export function detectBannerLayout(rows) {
@@ -188,19 +190,24 @@ export function detectBannerLayout(rows) {
     });
     if (map.date === undefined || map.faculty === undefined) continue;
     if (map.topic === undefined && map.subject === undefined && map.chapter === undefined) continue;
-    const dateCell = cells[map.date];
-    const looksNew = i >= 1 || (map.day !== undefined && (dateCell === 'date' || dateCell.length > 25));
-    if (looksNew) return { headerIdx: i, cols: map };
+    return { headerIdx: i, cols: map };
   }
   return null;
 }
 
-export function detectDeliveryPlatform(text) {
-  const t = String(text || '').toLowerCase();
-  const yt = /\byt\b|youtube/.test(t);
-  const app = /\bapp\b|mobile/.test(t);
+export function detectDeliveryPlatform(text, fallbackText = '') {
+  const primary = String(text || '').trim().toLowerCase();
+  const fallback = String(fallbackText || '').trim().toLowerCase();
+  const t = primary || fallback;
+  
+  // Check YouTube indicators: yt, youtube, channel
+  const yt = /\byt\b|\byoutube\b|channel/i.test(t);
+  // Check App indicators: app, mobile
+  const app = /\bapp\b|mobile/i.test(t);
+
   if (yt && app) return 'youtube_app';
   if (yt) return 'youtube';
+  if (app) return 'app';
   return 'app';
 }
 
@@ -208,25 +215,62 @@ function processBannerSheet(rows, layout, id, sourceUrl, tabName, overrideName) 
   const { headerIdx, cols } = layout;
   const clean = v => String(v == null ? '' : v).replace(/\r/g, '').trim();
 
+  // Row 1 (Index 0): Designated to show the batch name
+  const row1Cells = (rows[0] || []).map(clean).filter(Boolean);
+  const row1Raw = row1Cells[0] || '';
+
+  // Row 2 (Index 1): Designated to fetch the medium (YT, App, or both YT and App)
+  const row2Cells = (headerIdx > 1 && rows[1]) ? (rows[1] || []).map(clean).filter(Boolean) : [];
+  const row2Raw = row2Cells.join(' ');
+
   // Banner = everything above the header row (+ long merged header label, if Google fused them)
   const bannerCells = [];
   for (let i = 0; i < headerIdx; i++) (rows[i] || []).forEach(c => { if (clean(c)) bannerCells.push(clean(c)); });
   const headerLabel = clean((rows[headerIdx] || [])[cols.date]);
   if (headerLabel.length > 25) bannerCells.push(headerLabel);
   const bannerText = bannerCells.join(' \n ');
-  let platform = detectDeliveryPlatform(bannerText);
-  if (platform === 'app' && sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE'))) platform = 'youtube';
+
+  // Platform detection: Row 2 is primary for medium; check YT, App, or both
+  let platform = detectDeliveryPlatform(row2Raw, bannerText);
+  if (platform === 'app' && sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE'))) {
+    platform = 'youtube_app';
+  }
   const isYoutube = platform === 'youtube' || platform === 'youtube_app';
   const isApp = platform === 'app' || platform === 'youtube_app';
 
+  // Batch name detection: Row 1 is designated to show batch name
   let detectedName = overrideName || '';
   if (!detectedName) {
-    const first = (bannerCells[0] || '').split('\n')[0];
-    detectedName = first.split(/Live [Oo]n PW/i)[0].replace(/Lecture\s*Planner/i, '').trim();
+    if (row1Raw) {
+      let bName = row1Raw.split('\n')[0].trim();
+      if (/Live [Oo]n/i.test(bName)) {
+        bName = bName.split(/Live [Oo]n/i)[0].trim();
+      }
+      bName = bName.replace(/Lecture\s*Planner/i, '').replace(/Date\s*(&|and)?\s*Days?/i, '').trim();
+      bName = bName.replace(/[\s\-_|:]+$/, '').trim();
+      if (bName) detectedName = bName;
+    }
+    if (!detectedName && bannerCells[0]) {
+      detectedName = bannerCells[0].split('\n')[0].split(/Live [Oo]n/i)[0].replace(/Lecture\s*Planner/i, '').trim();
+    }
     if (!detectedName) detectedName = `Batch ${new Date().toLocaleDateString()}`;
   }
-  const subtitle = platform === 'youtube_app' ? 'Live on PW MedEd App & YouTube'
-    : platform === 'youtube' ? 'Live On YT Channel & MedEd App' : 'Live on PW MedEd APP';
+
+  // Handle specific series names cleanly
+  if (detectedName.includes('INI-CET Essentials Series')) {
+    detectedName = 'INI-CET Essentials Series';
+  } else if (detectedName.includes('FMGE Express Revision Series')) {
+    detectedName = 'FMGE Express Revision Series';
+  }
+
+  let subtitle = '';
+  if (platform === 'youtube_app') {
+    subtitle = (row2Raw && /app/i.test(row2Raw) && /yt|youtube/i.test(row2Raw)) ? row2Raw : 'Live on PW MedEd App & YouTube';
+  } else if (platform === 'youtube') {
+    subtitle = row2Raw.toLowerCase().startsWith('live') ? row2Raw : (row2Raw ? `Live on YouTube (${row2Raw.replace(/yt channel name\s*:\s*/i, '').trim() || 'PW MedEd'})` : 'Live on YouTube Channel');
+  } else {
+    subtitle = row2Raw.toLowerCase().startsWith('live') ? row2Raw : 'Live on PW MedEd APP';
+  }
 
   const get = (r, k) => (cols[k] === undefined ? '' : clean(r[cols[k]]));
   const events = [];
@@ -340,21 +384,47 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
   // The faculty always comes from the column headed "Faculty Name" (wherever it sits); column B is only the fallback
   const facultyCol = header.findIndex(h => /(^|\s)faculty(\s*name)?$/i.test(String(h || '').replace(/\s+/g, ' ').trim()));
   const facCol = facultyCol >= 0 ? facultyCol : 1;
-
   const isFourColLayout = header.length <= 6 || (header[1] && header[1].toLowerCase().includes('faculty') && header[3] && header[3].toLowerCase().includes('time'));
-  const isYoutube = rawBatchHeader.toLowerCase().includes('yt channel') || 
-                    rawBatchHeader.toLowerCase().includes('youtube') || 
-                    (sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE')));
 
-  let detectedName = overrideName || rawBatchHeader;
-  let subtitle = isYoutube ? 'Live On YT Channel & MedEd App' : 'Live on PW MedEd APP';
+  const row1Raw = (rows[0] || []).map(c => String(c || '').trim()).find(Boolean) || '';
+  const row2Raw = (rows[1] || []).map(c => String(c || '').trim()).find(Boolean) || '';
 
-  if (!overrideName && rawBatchHeader) {
-    if (rawBatchHeader.includes('Live On PW') || rawBatchHeader.includes('Live on PW')) {
-      const split = rawBatchHeader.split(/Live [Oo]n PW/i);
+  // Row 2 is designated to fetch medium
+  let platform = detectDeliveryPlatform(row2Raw, rawBatchHeader);
+  if (platform === 'app' && sourceUrl && (sourceUrl.includes('1aCO-QvwVi2xIVB_kJWroM6Zv7vvI3MPOksDctjQAzYU') || sourceUrl.includes('1nsVXeu3Jn8sroOeGB5diOLMvQ7jdbt89hkU7-wdAOSE'))) {
+    platform = 'youtube_app';
+  }
+  const isYoutube = platform === 'youtube' || platform === 'youtube_app';
+  const isApp = platform === 'app' || platform === 'youtube_app';
+
+  // Row 1 is designated to show batch name
+  let detectedName = overrideName || '';
+  if (!detectedName && row1Raw) {
+    let bName = row1Raw.split('\n')[0].trim();
+    if (/Live [Oo]n/i.test(bName)) {
+      bName = bName.split(/Live [Oo]n/i)[0].trim();
+    }
+    bName = bName.replace(/Lecture\s*Planner/i, '').replace(/Date\s*(&|and)?\s*Days?/i, '').trim();
+    bName = bName.replace(/[\s\-_|:]+$/, '').trim();
+    if (bName) detectedName = bName;
+  }
+  if (!detectedName) detectedName = rawBatchHeader;
+
+  let subtitle = '';
+  if (platform === 'youtube_app') {
+    subtitle = (row2Raw && /app/i.test(row2Raw) && /yt|youtube/i.test(row2Raw)) ? row2Raw : 'Live on PW MedEd App & YouTube';
+  } else if (platform === 'youtube') {
+    subtitle = row2Raw.toLowerCase().startsWith('live') ? row2Raw : (row2Raw ? `Live on YouTube (${row2Raw.replace(/yt channel name\s*:\s*/i, '').trim() || 'PW MedEd'})` : 'Live on YouTube Channel');
+  } else {
+    subtitle = row2Raw.toLowerCase().startsWith('live') ? row2Raw : 'Live on PW MedEd APP';
+  }
+
+  if (!overrideName && detectedName) {
+    if (detectedName.includes('Live On PW') || detectedName.includes('Live on PW')) {
+      const split = detectedName.split(/Live [Oo]n PW/i);
       detectedName = split[0].trim();
     } else {
-      const match = rawBatchHeader.match(/^(.*?)(?:Lecture Planner|Date & Days|Live On|Time :)/i);
+      const match = detectedName.match(/^(.*?)(?:Lecture Planner|Date & Days|Live On|Time :)/i);
       if (match && match[1].trim()) {
         detectedName = match[1].trim();
       }
@@ -494,9 +564,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       startHour: parsedTiming.startHour,
       eventType,
       displayTitle,
-      platform: isYoutube ? 'youtube' : 'app',
+      platform,
       isYoutube: Boolean(isYoutube),
-      isApp: !isYoutube
+      isApp: Boolean(isApp)
     });
   }
 
@@ -510,9 +580,9 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     subtitle,
     sourceUrl,
     sheetTabName: tabName,
-    platform: isYoutube ? 'youtube' : 'app',
+    platform,
     isYoutube: Boolean(isYoutube),
-    isApp: !isYoutube,
+    isApp: Boolean(isApp),
     lastSynced: new Date().toISOString(),
     eventCount: events.length,
     events

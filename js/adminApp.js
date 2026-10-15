@@ -960,8 +960,8 @@ class AdminDashboardController {
       const totalAllClasses = allEvents.filter(e => e.eventType === 'class').length;
 
       const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
-      const appBatches = batches.filter(b => b.platform === 'app' || (!b.isYoutube && b.platform !== 'youtube'));
-      const ytBatches = batches.filter(b => b.platform === 'youtube' || b.platform === 'youtube_app' || b.isYoutube);
+      const appBatches = batches.filter(b => b.isApp || b.platform === 'app' || b.platform === 'youtube_app');
+      const ytBatches = batches.filter(b => b.isYoutube || b.platform === 'youtube' || b.platform === 'youtube_app');
 
       const renderBatchItem = (b) => {
         const isSelected = b.id === this.currentBatchId;
@@ -4323,10 +4323,12 @@ class AdminDashboardController {
 
   // --- 9b. Batch-Level Lecture Volume & Schedule Trajectory Graph ---
   buildBatchLectureGraphHtml() {
+    const batches = this.batchManager.getBatches() || [];
     const allEvents = this.batchManager.getAllEvents('all');
     const classes = allEvents.filter(e => e.eventType === 'class' && e.isoDate);
 
-    const BATCH_CONFIG = {
+    // Curated design tokens for known medical and dental cohorts
+    const KNOWN_CONFIGS = {
       'batch-prarambh-2026': {
         id: 'batch-prarambh-2026',
         shortName: "Prarambh '26",
@@ -4339,6 +4341,19 @@ class AdminDashboardController {
         badgeBg: 'bg-[#eef4f0]',
         badgeText: 'text-[#3b6347]',
         badgeBorder: 'border-[#cde0d3]'
+      },
+      'batch-1791357236534': {
+        id: 'batch-1791357236534',
+        shortName: "Nishchay '26",
+        fullName: 'Nishchay 2026 (MBBS 2nd Year)',
+        hex: '#0284c7',
+        gradient: 'from-[#0369a1] to-[#0ea5e9]',
+        lightBg: 'bg-[#f0f9ff]',
+        textColor: 'text-[#0284c7]',
+        borderColor: 'border-[#bae6fd]',
+        badgeBg: 'bg-[#f0f9ff]',
+        badgeText: 'text-[#0284c7]',
+        badgeBorder: 'border-[#bae6fd]'
       },
       'batch-sushruta-2026': {
         id: 'batch-sushruta-2026',
@@ -4378,24 +4393,186 @@ class AdminDashboardController {
         badgeBg: 'bg-[#eaf4f8]',
         badgeText: 'text-[#1c6e8c]',
         badgeBorder: 'border-[#c8e2ec]'
+      },
+      'batch-1791456757933': {
+        id: 'batch-1791456757933',
+        shortName: "RadioLink '26",
+        fullName: 'RadioLink Series',
+        hex: '#dc2626',
+        gradient: 'from-[#991b1b] to-[#ef4444]',
+        lightBg: 'bg-[#fef2f2]',
+        textColor: 'text-[#dc2626]',
+        borderColor: 'border-[#fecaca]',
+        badgeBg: 'bg-[#fef2f2]',
+        badgeText: 'text-[#dc2626]',
+        badgeBorder: 'border-[#fecaca]'
+      },
+      'batch-1791372027020': {
+        id: 'batch-1791372027020',
+        shortName: "BDS Survival '26",
+        fullName: 'BDS Survival Guide 2026',
+        hex: '#d97706',
+        gradient: 'from-[#b45309] to-[#f59e0b]',
+        lightBg: 'bg-[#fffbeb]',
+        textColor: 'text-[#d97706]',
+        borderColor: 'border-[#fde68a]',
+        badgeBg: 'bg-[#fffbeb]',
+        badgeText: 'text-[#d97706]',
+        badgeBorder: 'border-[#fde68a]'
+      },
+      'batch-1791293586018': {
+        id: 'batch-1791293586018',
+        shortName: "Nishchay BDS '26",
+        fullName: 'Nishchay BDS 2nd Year',
+        hex: '#059669',
+        gradient: 'from-[#047857] to-[#10b981]',
+        lightBg: 'bg-[#ecfdf5]',
+        textColor: 'text-[#059669]',
+        borderColor: 'border-[#a7f3d0]',
+        badgeBg: 'bg-[#ecfdf5]',
+        badgeText: 'text-[#059669]',
+        badgeBorder: 'border-[#a7f3d0]'
+      },
+      'batch-1791454816769': {
+        id: 'batch-1791454816769',
+        shortName: "Prarambh BDS '26",
+        fullName: 'Prarambh BDS 1st Year',
+        hex: '#4f46e5',
+        gradient: 'from-[#3730a3] to-[#6366f1]',
+        lightBg: 'bg-[#eef2ff]',
+        textColor: 'text-[#4f46e5]',
+        borderColor: 'border-[#c7d2fe]',
+        badgeBg: 'bg-[#eef2ff]',
+        badgeText: 'text-[#4f46e5]',
+        badgeBorder: 'border-[#c7d2fe]'
+      },
+      'batch-1791794508379': {
+        id: 'batch-1791794508379',
+        shortName: "FMGE Marathon",
+        fullName: 'FMGE Marathon Oct 2026',
+        hex: '#db2777',
+        gradient: 'from-[#be185d] to-[#ec4899]',
+        lightBg: 'bg-[#fdf2f8]',
+        textColor: 'text-[#db2777]',
+        borderColor: 'border-[#fbcfe8]',
+        badgeBg: 'bg-[#fdf2f8]',
+        badgeText: 'text-[#db2777]',
+        badgeBorder: 'border-[#fbcfe8]'
       }
     };
 
-    const BATCH_ORDER = [
+    const BATCH_CONFIG = { ...KNOWN_CONFIGS };
+    const PALETTE = [
+      { hex: '#0284c7', lightBg: 'bg-[#f0f9ff]', textColor: 'text-[#0284c7]', borderColor: 'border-[#bae6fd]', gradient: 'from-[#0369a1] to-[#0ea5e9]' },
+      { hex: '#059669', lightBg: 'bg-[#ecfdf5]', textColor: 'text-[#059669]', borderColor: 'border-[#a7f3d0]', gradient: 'from-[#047857] to-[#10b981]' },
+      { hex: '#d97706', lightBg: 'bg-[#fffbeb]', textColor: 'text-[#d97706]', borderColor: 'border-[#fde68a]', gradient: 'from-[#b45309] to-[#f59e0b]' },
+      { hex: '#4f46e5', lightBg: 'bg-[#eef2ff]', textColor: 'text-[#4f46e5]', borderColor: 'border-[#c7d2fe]', gradient: 'from-[#3730a3] to-[#6366f1]' },
+      { hex: '#db2777', lightBg: 'bg-[#fdf2f8]', textColor: 'text-[#db2777]', borderColor: 'border-[#fbcfe8]', gradient: 'from-[#be185d] to-[#ec4899]' },
+      { hex: '#dc2626', lightBg: 'bg-[#fef2f2]', textColor: 'text-[#dc2626]', borderColor: 'border-[#fecaca]', gradient: 'from-[#991b1b] to-[#ef4444]' }
+    ];
+
+    batches.forEach((b, idx) => {
+      if (!BATCH_CONFIG[b.id]) {
+        const bName = (b.name || '').toLowerCase();
+        let matchedKey = null;
+        if (bName.includes('radiolink')) matchedKey = 'batch-1791456757933';
+        else if (bName.includes('survival')) matchedKey = 'batch-1791372027020';
+        else if (bName.includes('bds') && bName.includes('nishchay')) matchedKey = 'batch-1791293586018';
+        else if (bName.includes('bds') && bName.includes('prarambh')) matchedKey = 'batch-1791454816769';
+        else if (bName.includes('marathon')) matchedKey = 'batch-1791794508379';
+        else if (bName.includes('nishchay')) matchedKey = 'batch-1791357236534';
+        else if (bName.includes('prarambh')) matchedKey = 'batch-prarambh-2026';
+        else if (bName.includes('sushruta')) matchedKey = 'batch-sushruta-2026';
+        else if (bName.includes('ini-cet') || bName.includes('inicet')) matchedKey = 'batch-inicet-essentials-2026';
+        else if (bName.includes('fmge')) matchedKey = 'batch-fmge-express-2026';
+
+        if (matchedKey && KNOWN_CONFIGS[matchedKey]) {
+          BATCH_CONFIG[b.id] = { ...KNOWN_CONFIGS[matchedKey], id: b.id };
+        } else {
+          const pal = PALETTE[idx % PALETTE.length];
+          const tag = getBatchTag(b.name);
+          BATCH_CONFIG[b.id] = {
+            id: b.id,
+            shortName: tag || b.name.slice(0, 14),
+            fullName: b.name,
+            hex: pal.hex,
+            gradient: pal.gradient,
+            lightBg: pal.lightBg,
+            textColor: pal.textColor,
+            borderColor: pal.borderColor,
+            badgeBg: pal.lightBg,
+            badgeText: pal.textColor,
+            badgeBorder: pal.borderColor
+          };
+        }
+      }
+    });
+
+    const priority = [
       'batch-prarambh-2026',
+      'batch-1791357236534',
       'batch-sushruta-2026',
       'batch-inicet-essentials-2026',
-      'batch-fmge-express-2026'
+      'batch-fmge-express-2026',
+      'batch-1791456757933',
+      'batch-1791372027020',
+      'batch-1791293586018',
+      'batch-1791454816769',
+      'batch-1791794508379'
+    ];
+    const presentBatchIds = batches.map(b => b.id);
+    const BATCH_ORDER = [
+      ...priority.filter(id => presentBatchIds.includes(id)),
+      ...presentBatchIds.filter(id => !priority.includes(id))
     ];
 
     const resolveBatchKey = (c) => {
       if (c.batchId && BATCH_CONFIG[c.batchId]) return c.batchId;
+      const bFound = batches.find(b => b.id === c.batchId);
+      if (bFound && BATCH_CONFIG[bFound.id]) return bFound.id;
+
       const name = (c.batchName || '').toLowerCase();
-      if (name.includes('prarambh')) return 'batch-prarambh-2026';
-      if (name.includes('sushruta')) return 'batch-sushruta-2026';
-      if (name.includes('ini-cet') || name.includes('inicet')) return 'batch-inicet-essentials-2026';
-      if (name.includes('fmge')) return 'batch-fmge-express-2026';
-      return 'batch-prarambh-2026';
+      if (name.includes('radiolink')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('radiolink'));
+        if (m) return m.id;
+      }
+      if (name.includes('survival')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('survival'));
+        if (m) return m.id;
+      }
+      if (name.includes('bds') && name.includes('nishchay')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('bds') && b.name.toLowerCase().includes('nishchay'));
+        if (m) return m.id;
+      }
+      if (name.includes('bds') && name.includes('prarambh')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('bds') && b.name.toLowerCase().includes('prarambh'));
+        if (m) return m.id;
+      }
+      if (name.includes('marathon')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('marathon'));
+        if (m) return m.id;
+      }
+      if (name.includes('nishchay')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('nishchay') && !b.name.toLowerCase().includes('bds'));
+        if (m) return m.id;
+      }
+      if (name.includes('prarambh')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('prarambh') && !b.name.toLowerCase().includes('bds'));
+        if (m) return m.id;
+      }
+      if (name.includes('sushruta')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('sushruta'));
+        if (m) return m.id;
+      }
+      if (name.includes('ini-cet') || name.includes('inicet')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('ini-cet') || b.name.toLowerCase().includes('inicet'));
+        if (m) return m.id;
+      }
+      if (name.includes('fmge')) {
+        const m = batches.find(b => b.name.toLowerCase().includes('fmge'));
+        if (m) return m.id;
+      }
+      return c.batchId || 'batch-prarambh-2026';
     };
 
     const parseHours = (dur) => {
@@ -4411,10 +4588,11 @@ class AdminDashboardController {
     classes.forEach(c => {
       const bKey = resolveBatchKey(c);
       const hrs = parseHours(c.duration);
-      if (cohortStats[bKey]) {
-        cohortStats[bKey].count++;
-        cohortStats[bKey].hours += hrs;
+      if (!cohortStats[bKey]) {
+        cohortStats[bKey] = { id: bKey, count: 0, hours: 0 };
       }
+      cohortStats[bKey].count++;
+      cohortStats[bKey].hours += hrs;
     });
 
     const granularity = this.batchGraphGranularity || 'month'; // 'day' | 'week' | 'month'
@@ -4436,6 +4614,12 @@ class AdminDashboardController {
       activeDayMonth = ['2026-09', '2026-10', '2026-11'].includes(dashYm) ? dashYm : '2026-09';
       this.batchGraphDayMonth = activeDayMonth;
     }
+
+    const monthActiveDays = {
+      '2026-09': new Set(filteredClasses.filter(c => c.isoDate && c.isoDate.startsWith('2026-09')).map(c => c.isoDate)).size,
+      '2026-10': new Set(filteredClasses.filter(c => c.isoDate && c.isoDate.startsWith('2026-10')).map(c => c.isoDate)).size,
+      '2026-11': new Set(filteredClasses.filter(c => c.isoDate && c.isoDate.startsWith('2026-11')).map(c => c.isoDate)).size
+    };
 
     let chartHtml = '';
     let inspectorHtml = '';
@@ -4483,7 +4667,7 @@ class AdminDashboardController {
         const segmentsHtml = BATCH_ORDER.map(bId => {
           const bData = m.batches[bId];
           if (!bData || bData.count === 0) return '';
-          const cfg = BATCH_CONFIG[bId];
+          const cfg = BATCH_CONFIG[bId] || { hex: '#4a7c59', shortName: 'Batch' };
           const segPct = ((bData.count / (m.total || 1)) * 100).toFixed(1);
           return `
             <div
@@ -4498,7 +4682,7 @@ class AdminDashboardController {
         const batchChipsHtml = BATCH_ORDER.map(bId => {
           const bData = m.batches[bId];
           if (!bData || bData.count === 0) return '';
-          const cfg = BATCH_CONFIG[bId];
+          const cfg = BATCH_CONFIG[bId] || { lightBg: 'bg-[#f4efe6]', borderColor: 'border-[#ded5c6]', hex: '#4a7c59', textColor: 'text-[#2c332d]', shortName: 'Batch' };
           return `
             <div class="flex items-center justify-between gap-1.5 py-1 px-2 rounded-lg ${cfg.lightBg} border ${cfg.borderColor} text-[10.5px]">
               <div class="flex items-center gap-1.5 truncate">
@@ -4545,7 +4729,7 @@ class AdminDashboardController {
             </div>
 
             <!-- Cohort Breakdown List -->
-            <div class="space-y-1 pt-1">
+            <div class="space-y-1 pt-1 max-h-36 overflow-y-auto pr-0.5">
               ${batchChipsHtml || `<p class="text-[10px] text-center text-[#8b958c] py-2">No sessions for filtered batch</p>`}
             </div>
           </div>
@@ -4575,9 +4759,9 @@ class AdminDashboardController {
             </span>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            ${BATCH_ORDER.map(bId => {
-              const cfg = BATCH_CONFIG[bId];
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+            ${BATCH_ORDER.filter(bId => activeMonth.batches[bId] && activeMonth.batches[bId].count > 0).map(bId => {
+              const cfg = BATCH_CONFIG[bId] || { borderColor: 'border-[#ded5c6]', textColor: 'text-[#2c332d]', shortName: 'Batch' };
               const bData = activeMonth.batches[bId] || { count: 0, hours: 0, classes: [] };
               const pct = Math.round((bData.count / (activeMonth.total || 1)) * 100);
               return `
@@ -4663,7 +4847,7 @@ class AdminDashboardController {
         const segmentsHtml = BATCH_ORDER.map(bId => {
           const bData = w.batches[bId];
           if (!bData || bData.count === 0) return '';
-          const cfg = BATCH_CONFIG[bId];
+          const cfg = BATCH_CONFIG[bId] || { hex: '#4a7c59', shortName: 'Batch' };
           const segPct = ((bData.count / (w.total || 1)) * 100).toFixed(1);
           return `
             <div
@@ -4735,9 +4919,9 @@ class AdminDashboardController {
             </span>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            ${BATCH_ORDER.map(bId => {
-              const cfg = BATCH_CONFIG[bId];
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+            ${BATCH_ORDER.filter(bId => activeWeek.batches[bId] && activeWeek.batches[bId].count > 0).map(bId => {
+              const cfg = BATCH_CONFIG[bId] || { borderColor: 'border-[#ded5c6]', textColor: 'text-[#2c332d]', shortName: 'Batch' };
               const bData = activeWeek.batches[bId] || { count: 0, hours: 0 };
               const pct = Math.round((bData.count / (activeWeek.total || 1)) * 100);
               return `
@@ -4797,7 +4981,7 @@ class AdminDashboardController {
       const peakDayKey = sortedDayKeys.find(k => days[k].total === maxDayClasses) || todayIso();
       peakBadgeText = `Peak Day: ${days[peakDayKey]?.formattedDate || 'Oct 15'} (${maxDayClasses} cls)`;
 
-      const selectedDayKey = this.batchGraphSelectedKey && days[this.batchGraphSelectedKey]
+      const selectedDayKey = this.batchGraphSelectedKey
         ? this.batchGraphSelectedKey
         : (days[todayIso()] ? todayIso() : peakDayKey);
 
@@ -4810,7 +4994,7 @@ class AdminDashboardController {
         const segmentsHtml = BATCH_ORDER.map(bId => {
           const bData = d.batches[bId];
           if (!bData || bData.count === 0) return '';
-          const cfg = BATCH_CONFIG[bId];
+          const cfg = BATCH_CONFIG[bId] || { hex: '#4a7c59', shortName: 'Batch' };
           const segPct = ((bData.count / (d.total || 1)) * 100).toFixed(1);
           return `
             <div
@@ -4866,29 +5050,41 @@ class AdminDashboardController {
       `;
 
       // Inspector for selected day
-      const activeDay = days[selectedDayKey] || days[peakDayKey] || { classes: [], formattedDate: 'Oct 15', total: 0, hours: 0 };
+      const activeDay = days[selectedDayKey] || (selectedDayKey ? {
+        key: selectedDayKey,
+        dayName: new Date(selectedDayKey + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
+        formattedDate: new Date(selectedDayKey + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        total: 0,
+        hours: 0,
+        classes: [],
+        batches: {}
+      } : (days[peakDayKey] || { classes: [], formattedDate: 'Oct 15', total: 0, hours: 0 }));
 
       const daySessionsHtml = (activeDay.classes || []).map(c => {
         const bKey = resolveBatchKey(c);
-        const cfg = BATCH_CONFIG[bKey];
-        const isYt = c.isYoutube || c.platform === 'youtube' || (c.batchName && /youtube|yt/i.test(c.batchName));
+        const cfg = BATCH_CONFIG[bKey] || {
+          shortName: getBatchTag(c.batchName) || 'Batch',
+          badgeBg: 'bg-[#f4efe6]',
+          badgeText: 'text-[#576058]',
+          badgeBorder: 'border-[#ded5c6]'
+        };
+        const timingStr = c.timings || c.time || (c.startTime ? (c.endTime ? `${c.startTime} - ${c.endTime}` : c.startTime) : 'Class Scheduled');
+        const platformBadgeHtml = renderPlatformBadges(c, { compact: false });
 
         return `
           <div class="p-2.5 rounded-xl bg-white border border-[#ded5c6] hover:border-[#3b6347] transition-all flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${cfg.badgeBg} ${cfg.badgeText} border ${cfg.badgeBorder} shrink-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${cfg.badgeBg} ${cfg.badgeText} border ${cfg.badgeBorder} shrink-0" title="${cfg.fullName || c.batchName || ''}">
                 ${cfg.shortName}
               </span>
               <div class="truncate">
                 <strong class="text-xs font-bold text-[#2c332d] block truncate">${c.subject || 'Lecture'} • ${c.faculty || 'Faculty'}</strong>
-                <span class="text-[10px] text-[#788279]">${c.time || '10:00 AM - 12:00 PM'} • ${c.duration || '2 hrs'}</span>
+                <span class="text-[10px] text-[#788279]">${timingStr} • ${c.duration || '2 hrs'}</span>
               </div>
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0 text-xs">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isYt ? 'bg-[#fdf2f2] text-[#9e1c1c] border border-[#f8c8c8]' : 'bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]'}">
-                ${isYt ? 'YouTube Live' : 'PW MedEd App'}
-              </span>
+              ${platformBadgeHtml}
             </div>
           </div>
         `;
@@ -4914,9 +5110,10 @@ class AdminDashboardController {
       `;
     }
 
-    // Cohort Legend HTML
-    const legendHtml = BATCH_ORDER.map(bId => {
+    // Cohort Legend HTML: Only display cohorts that have classes in the dataset
+    const legendHtml = BATCH_ORDER.filter(bId => (cohortStats[bId] && cohortStats[bId].count > 0)).map(bId => {
       const cfg = BATCH_CONFIG[bId];
+      if (!cfg) return '';
       const stats = cohortStats[bId] || { count: 0, hours: 0 };
       const isFiltered = cohortFilter === bId;
 
@@ -4989,9 +5186,9 @@ class AdminDashboardController {
           <!-- Day-Wise Month Switcher (Only visible in Day-Wise view) -->
           ${granularity === 'day' ? `
             <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-bold">
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (14)</button>
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (26)</button>
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (27)</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (${monthActiveDays['2026-09'] || 0})</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (${monthActiveDays['2026-10'] || 0})</button>
+              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (${monthActiveDays['2026-11'] || 0})</button>
             </div>
           ` : `
             <div class="text-[11px] font-bold text-[#68736a] bg-[#f7f4ed] px-2.5 py-1 rounded-lg border border-[#ded5c6]">

@@ -5,10 +5,17 @@
 
 export function getBatchTag(batchName) {
   if (!batchName) return '';
-  if (batchName.includes('Prarambh')) return "Prarambh '26";
-  if (batchName.includes('Sushruta')) return "Sushruta '26";
-  if (batchName.includes('INI-CET') || batchName.includes('INICET')) return "INI-CET '26";
-  if (batchName.includes('FMGE')) return "FMGE '26";
+  const n = batchName.toLowerCase();
+  if (n.includes('radiolink')) return "RadioLink '26";
+  if (n.includes('survival')) return "BDS Survival '26";
+  if (n.includes('bds') && n.includes('prarambh')) return "Prarambh BDS '26";
+  if (n.includes('bds') && n.includes('nishchay')) return "Nishchay BDS '26";
+  if (n.includes('marathon')) return "FMGE Marathon";
+  if (n.includes('nishchay')) return "Nishchay '26";
+  if (n.includes('prarambh')) return "Prarambh '26";
+  if (n.includes('sushruta')) return "Sushruta '26";
+  if (n.includes('ini-cet') || n.includes('inicet')) return "INI-CET '26";
+  if (n.includes('fmge')) return "FMGE '26";
   return batchName.length > 18 ? `${batchName.slice(0, 16)}...` : batchName;
 }
 
@@ -17,22 +24,35 @@ export function renderBatchBadge(batchName) {
   if (!tag) return '';
 
   let colorClasses = 'bg-[#f4efe6] text-[#576058] border-[#ded5c6]';
-  if (batchName.includes('Prarambh')) {
+  const n = (batchName || '').toLowerCase();
+  if (n.includes('radiolink')) {
+    colorClasses = 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]';
+  } else if (n.includes('survival')) {
+    colorClasses = 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]';
+  } else if (n.includes('bds') && n.includes('prarambh')) {
+    colorClasses = 'bg-[#eef2ff] text-[#4f46e5] border-[#c7d2fe]';
+  } else if (n.includes('bds') && n.includes('nishchay')) {
+    colorClasses = 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]';
+  } else if (n.includes('marathon')) {
+    colorClasses = 'bg-[#fdf2f8] text-[#db2777] border-[#fbcfe8]';
+  } else if (n.includes('nishchay')) {
+    colorClasses = 'bg-[#f0f9ff] text-[#0369a1] border-[#bae6fd]';
+  } else if (n.includes('prarambh')) {
     colorClasses = 'bg-[#eef4f0] text-[#3b6347] border-[#cde0d3]';
-  } else if (batchName.includes('Sushruta')) {
+  } else if (n.includes('sushruta')) {
     colorClasses = 'bg-[#fbf3ec] text-[#c26d3e] border-[#eed9cc]';
-  } else if (batchName.includes('INI-CET') || batchName.includes('INICET')) {
+  } else if (n.includes('ini-cet') || n.includes('inicet')) {
     colorClasses = 'bg-[#f3eef8] text-[#6b3ba7] border-[#dfd0f0]';
-  } else if (batchName.includes('FMGE')) {
+  } else if (n.includes('fmge')) {
     colorClasses = 'bg-[#eaf4f8] text-[#1c6e8c] border-[#c8e2ec]';
   }
 
   // Long custom batch names are cut by CSS (not mid-word dots) so the platform icons beside it always fit
-  const known = /Prarambh|Sushruta|INI-CET|INICET|FMGE/.test(batchName);
+  const known = /Prarambh|Sushruta|INI-CET|INICET|FMGE|Nishchay|RadioLink|Survival|Marathon/i.test(batchName);
   const label = known ? tag : batchName;
   const safe = String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const title = String(batchName).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  return `<span class="inline-block max-w-[84px] truncate align-middle text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses}" title="${title}">${safe}</span>`;
+  return `<span class="inline-block max-w-[96px] truncate align-middle text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses}" title="${title}">${safe}</span>`;
 }
 
 export function renderPlatformBadges(ev, options = { compact: false }) {
@@ -41,19 +61,13 @@ export function renderPlatformBadges(ev, options = { compact: false }) {
   const isYt = Boolean(
     ev.isYoutube ||
     ev.platform === 'youtube' ||
-    ev.platform === 'youtube_app' ||
-    (ev.batchName && (ev.batchName.includes('INI-CET') || ev.batchName.includes('INICET') || ev.batchName.includes('FMGE'))) ||
-    (ev.name && (ev.name.includes('INI-CET') || ev.name.includes('INICET') || ev.name.includes('FMGE')))
-  );
-
-  const isYtOnly = Boolean(
-    ev.platform === 'youtube' ||
-    (ev.batchName && (ev.batchName.includes('INI-CET') || ev.batchName.includes('INICET') || ev.batchName.includes('FMGE'))) ||
-    (ev.name && (ev.name.includes('INI-CET') || ev.name.includes('INICET') || ev.name.includes('FMGE')))
+    ev.platform === 'youtube_app'
   );
 
   const isApp = Boolean(
-    (ev.isApp || ev.platform === 'app' || ev.platform === 'youtube_app') && !isYtOnly
+    ev.isApp ||
+    ev.platform === 'app' ||
+    ev.platform === 'youtube_app'
   );
 
   const ytLogoSvg = `<svg class="w-2.5 h-2.5 fill-current shrink-0" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
@@ -108,11 +122,17 @@ export function getDeliveryPlatformText(evOrBatch) {
   const isYt = Boolean(
     evOrBatch.isYoutube ||
     evOrBatch.platform === 'youtube' ||
-    evOrBatch.platform === 'youtube_app' ||
-    (evOrBatch.batchName && (evOrBatch.batchName.includes('INI-CET') || evOrBatch.batchName.includes('FMGE'))) ||
-    (evOrBatch.name && (evOrBatch.name.includes('INI-CET') || evOrBatch.name.includes('FMGE')))
+    evOrBatch.platform === 'youtube_app'
+  );
+  const isApp = Boolean(
+    evOrBatch.isApp ||
+    evOrBatch.platform === 'app' ||
+    evOrBatch.platform === 'youtube_app'
   );
 
+  if (isYt && isApp) {
+    return 'Live on PW MedEd App & YouTube';
+  }
   if (isYt) {
     return 'Live on YouTube Channel';
   }

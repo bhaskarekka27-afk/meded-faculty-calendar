@@ -62,9 +62,33 @@ export default defineConfig({
               }
               const timestamp = Date.now();
 
+              let targetGid = gid;
+              try {
+                const editResp = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit?_t=${timestamp}`, {
+                  headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+                });
+                const html = await editResp.text();
+                const re = /\\\"(\d+)\\\",\[\{\\\"1\\\":\[\[0,0,\\\"([^\\\"]+)\\\"/g;
+                let m;
+                const tabs = [];
+                while ((m = re.exec(html)) !== null) tabs.push({ gid: m[1], name: m[2].trim() });
+                const req = (sheet || '').toLowerCase();
+                const match = tabs.find(t => t.name.toLowerCase() === req) ||
+                              tabs.find(t => t.name.toLowerCase().includes(req)) ||
+                              tabs.find(t => req.includes(t.name.toLowerCase())) ||
+                              tabs.find(t => /planner|lecture/i.test(t.name)) ||
+                              tabs.find(t => /schedule/i.test(t.name));
+                if (match) targetGid = match.gid;
+              } catch (_) {}
+
               // Candidate URLs to try in order with cache-busting timestamp
               const urlsToTry = [];
-              if (gid) {
+              if (targetGid != null) {
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${targetGid}&_t=${timestamp}`);
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${targetGid}&_t=${timestamp}`);
+              }
+              if (gid && gid !== targetGid) {
+                urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&_t=${timestamp}`);
                 urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
               }
               urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);

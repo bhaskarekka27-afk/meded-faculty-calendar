@@ -88,6 +88,44 @@ async function detectTabs(res, q) {
   }
 }
 
+const tabGidCache = new Map();
+
+async function resolveSheetGid(sheetId, requestedSheetName) {
+  const cacheKey = `${sheetId}:${requestedSheetName || ''}`;
+  if (tabGidCache.has(cacheKey)) return tabGidCache.get(cacheKey);
+  try {
+    const timestamp = Date.now();
+    const r = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit?_t=${timestamp}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
+    const html = await r.text();
+    const re = /\\\"(\d+)\\\",\[\{\\\"1\\\":\[\[0,0,\\\"([^\\\"]+)\\\"/g;
+    let m;
+    const tabs = [];
+    while ((m = re.exec(html)) !== null) {
+      tabs.push({ gid: m[1], name: m[2].trim() });
+    }
+    let matchedGid = null;
+    if (requestedSheetName) {
+      const req = requestedSheetName.toLowerCase();
+      const match = tabs.find(t => t.name.toLowerCase() === req) ||
+                    tabs.find(t => t.name.toLowerCase().includes(req)) ||
+                    tabs.find(t => req.includes(t.name.toLowerCase())) ||
+                    tabs.find(t => /planner|lecture/i.test(t.name)) ||
+                    tabs.find(t => /schedule/i.test(t.name));
+      if (match) matchedGid = match.gid;
+    }
+    if (!matchedGid && tabs.length > 0) {
+      const best = tabs.find(t => /planner|lecture/i.test(t.name)) || tabs.find(t => /schedule/i.test(t.name)) || tabs[0];
+      matchedGid = best ? best.gid : null;
+    }
+    if (matchedGid) tabGidCache.set(cacheKey, matchedGid);
+    return matchedGid;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function fetchSheet(res, q) {
   let sheetId = q.sheetId;
   let gid = q.gid;
@@ -100,9 +138,20 @@ async function fetchSheet(res, q) {
   const sheet = q.sheet || 'Lecture Planner';
   if (!sheetId) return json(res, 400, { error: 'Missing sheetId' });
 
+  const resolvedGid = await resolveSheetGid(sheetId, sheet);
+  const targetGid = resolvedGid || gid;
+
   const timestamp = Date.now();
   const tries = [];
-  if (gid) tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
+  // Prioritize authentic spreadsheet CSV export (preserves uncorrupted row 1 batch name and row 2 medium)
+  if (targetGid != null) {
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${targetGid}&_t=${timestamp}`);
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${targetGid}&_t=${timestamp}`);
+  }
+  if (gid && gid !== targetGid) {
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&_t=${timestamp}`);
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
+  }
   tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
   tries.push(
     sheet.endsWith(' ')
