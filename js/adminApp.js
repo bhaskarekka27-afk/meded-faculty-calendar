@@ -9,9 +9,7 @@ import { startSharedSettingsSync } from './sharedSettings.js';
 
 startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
-import { reminderEmailService } from './reminderEmailService.js';
-import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
-import { WorkloadManager } from './workloadData.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
 import { renderWorkloadView } from './workloadView.js';
 import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal, getRequestById } from './requestsView.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, endOfWeek, isInMonth, nearestMonthWithEvents, parseSlotText, formatDuration } from './dateUtils.js';
@@ -4331,7 +4329,7 @@ class AdminDashboardController {
     const KNOWN_CONFIGS = {
       'batch-prarambh-2026': {
         id: 'batch-prarambh-2026',
-        shortName: "Prarambh '26",
+        shortName: "MBBS • Prarambh '26",
         fullName: 'Prarambh 2026 (MBBS 1st Year)',
         hex: '#3b6347',
         gradient: 'from-[#2d4d37] to-[#4a7c59]',
@@ -4344,7 +4342,7 @@ class AdminDashboardController {
       },
       'batch-1791357236534': {
         id: 'batch-1791357236534',
-        shortName: "Nishchay '26",
+        shortName: "MBBS • Nishchay '26",
         fullName: 'Nishchay 2026 (MBBS 2nd Year)',
         hex: '#0284c7',
         gradient: 'from-[#0369a1] to-[#0ea5e9]',
@@ -4357,7 +4355,7 @@ class AdminDashboardController {
       },
       'batch-sushruta-2026': {
         id: 'batch-sushruta-2026',
-        shortName: "Sushruta '26",
+        shortName: "MBBS • Sushruta '26",
         fullName: 'Sushruta 2026 (MBBS 3rd Year)',
         hex: '#c26d3e',
         gradient: 'from-[#a15124] to-[#c26d3e]',
@@ -4383,7 +4381,7 @@ class AdminDashboardController {
       },
       'batch-fmge-express-2026': {
         id: 'batch-fmge-express-2026',
-        shortName: "FMGE '26",
+        shortName: "FMGE • Express '26",
         fullName: 'FMGE Express Revision Series',
         hex: '#1c6e8c',
         gradient: 'from-[#145269] to-[#0096cc]',
@@ -4409,7 +4407,7 @@ class AdminDashboardController {
       },
       'batch-1791372027020': {
         id: 'batch-1791372027020',
-        shortName: "BDS Survival '26",
+        shortName: "BDS • Survival '26",
         fullName: 'BDS Survival Guide 2026',
         hex: '#d97706',
         gradient: 'from-[#b45309] to-[#f59e0b]',
@@ -4422,7 +4420,7 @@ class AdminDashboardController {
       },
       'batch-1791293586018': {
         id: 'batch-1791293586018',
-        shortName: "Nishchay BDS '26",
+        shortName: "BDS • Nishchay '26",
         fullName: 'Nishchay BDS 2nd Year',
         hex: '#059669',
         gradient: 'from-[#047857] to-[#10b981]',
@@ -4435,7 +4433,7 @@ class AdminDashboardController {
       },
       'batch-1791454816769': {
         id: 'batch-1791454816769',
-        shortName: "Prarambh BDS '26",
+        shortName: "BDS • Prarambh '26",
         fullName: 'Prarambh BDS 1st Year',
         hex: '#4f46e5',
         gradient: 'from-[#3730a3] to-[#6366f1]',
@@ -4448,7 +4446,7 @@ class AdminDashboardController {
       },
       'batch-1791794508379': {
         id: 'batch-1791794508379',
-        shortName: "FMGE Marathon",
+        shortName: "FMGE • Marathon '26",
         fullName: 'FMGE Marathon Oct 2026',
         hex: '#db2777',
         gradient: 'from-[#be185d] to-[#ec4899]',
@@ -8882,7 +8880,50 @@ class AdminDashboardController {
     const batchEl = document.getElementById('modalDetailBatch');
     if (batchEl) {
       batchEl.innerHTML = `${renderBatchBadge(ev.batchName || 'PW MedEd')} ${renderPlatformBadges(ev, { size: 'sm' })}`;
-      batchEl.className = 'inline-flex items-center gap-1.5';
+      batchEl.className = 'inline-flex items-center gap-1.5 flex-wrap';
+    }
+
+    const container = modal.querySelector('.space-y-2');
+    if (container) {
+      // Course / Stream Row (MBBS / BDS / FMGE / INI-CET)
+      let programRow = document.getElementById('modalDetailProgramRow');
+      if (!programRow) {
+        programRow = document.createElement('div');
+        programRow.id = 'modalDetailProgramRow';
+        programRow.className = 'flex justify-between items-center';
+        programRow.innerHTML = `<span class="text-[#68736a] font-semibold">Course / Stream:</span><span id="modalDetailProgram" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>`;
+        container.insertBefore(programRow, container.firstChild);
+      }
+      const programEl = document.getElementById('modalDetailProgram');
+      if (programEl) {
+        const prog = getProgramType(ev.batchName);
+        const yearMatch = (ev.batchName || '').match(/\b(1st|2nd|3rd|4th|final)\s*year\b/i);
+        const yearText = yearMatch ? ` • ${yearMatch[0]}` : '';
+        if (prog) {
+          programEl.innerHTML = `${renderProgramBadge(ev.batchName)} <span class="text-xs font-bold text-[#2c332d]">${prog}${yearText}</span>`;
+        } else {
+          programEl.innerHTML = `<span class="text-xs font-bold text-[#2c332d]">Medical Education</span>`;
+        }
+      }
+
+      // Batch Row (Row 1 from spreadsheet)
+      let fullBatchRow = document.getElementById('modalDetailFullBatchRow');
+      if (!fullBatchRow) {
+        fullBatchRow = document.createElement('div');
+        fullBatchRow.id = 'modalDetailFullBatchRow';
+        fullBatchRow.className = 'flex justify-between items-center gap-2';
+        fullBatchRow.innerHTML = `<span class="text-[#68736a] font-semibold shrink-0">Batch (Spreadsheet):</span><span id="modalDetailFullBatch" class="font-bold text-[#2c332d] text-right truncate text-xs" style="max-width:240px"></span>`;
+        if (programRow && programRow.nextSibling) {
+          container.insertBefore(fullBatchRow, programRow.nextSibling);
+        } else {
+          container.insertBefore(fullBatchRow, container.firstChild);
+        }
+      }
+      const fullBatchEl = document.getElementById('modalDetailFullBatch');
+      if (fullBatchEl) {
+        fullBatchEl.textContent = ev.batchName || 'PW MedEd Standard Batch';
+        fullBatchEl.title = ev.batchName || '';
+      }
     }
 
     document.getElementById('modalDetailSubject').textContent = ev.subject || 'Medical Lecture';
@@ -8895,7 +8936,6 @@ class AdminDashboardController {
     // Delivery Platform row
     let platformRow = document.getElementById('modalDetailPlatformRow');
     if (!platformRow) {
-      const container = modal.querySelector('.space-y-2');
       if (container) {
         platformRow = document.createElement('div');
         platformRow.id = 'modalDetailPlatformRow';

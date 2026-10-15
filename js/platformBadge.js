@@ -1,22 +1,77 @@
 /**
  * PW MedEd - Platform Delivery & Batch Badge Helper
- * Renders visual bifurcation badges for YouTube (YT) and App (Mobile).
+ * Renders visual bifurcation badges for YouTube (YT) and App (Mobile),
+ * as well as program badges for MBBS, BDS, FMGE, INI-CET, etc.
  */
+
+export function getProgramType(batchName) {
+  if (!batchName) return '';
+  const s = String(batchName);
+  if (/\bMBBS\b/i.test(s)) return 'MBBS';
+  if (/\bBDS\b/i.test(s)) return 'BDS';
+  if (/\bFMGE\b/i.test(s)) return 'FMGE';
+  if (/\bINI-?CET\b/i.test(s)) return 'INI-CET';
+  if (/\bNEET\s*PG\b/i.test(s)) return 'NEET PG';
+  return '';
+}
+
+export function renderProgramBadge(batchName) {
+  const prog = getProgramType(batchName);
+  if (!prog) return '';
+  let color = 'bg-[#f4efe6] text-[#576058] border-[#ded5c6]';
+  if (prog === 'MBBS') {
+    color = 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]';
+  } else if (prog === 'BDS') {
+    color = 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]';
+  } else if (prog === 'FMGE') {
+    color = 'bg-[#eaf4f8] text-[#1c6e8c] border-[#c8e2ec]';
+  } else if (prog === 'INI-CET') {
+    color = 'bg-[#f3eef8] text-[#6b3ba7] border-[#dfd0f0]';
+  }
+  return `<span class="inline-block text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${color} tracking-wider shadow-xs" title="Academic Program: ${prog}">${prog}</span>`;
+}
 
 export function getBatchTag(batchName) {
   if (!batchName) return '';
   const n = batchName.toLowerCase();
+  const prog = getProgramType(batchName);
+
   if (n.includes('radiolink')) return "RadioLink '26";
-  if (n.includes('survival')) return "BDS Survival '26";
-  if (n.includes('bds') && n.includes('prarambh')) return "Prarambh BDS '26";
-  if (n.includes('bds') && n.includes('nishchay')) return "Nishchay BDS '26";
-  if (n.includes('marathon')) return "FMGE Marathon";
-  if (n.includes('nishchay')) return "Nishchay '26";
-  if (n.includes('prarambh')) return "Prarambh '26";
-  if (n.includes('sushruta')) return "Sushruta '26";
+  if (n.includes('survival')) return "BDS • Survival '26";
+  
+  // Specific checks for BDS
+  if (n.includes('bds')) {
+    if (n.includes('prarambh')) return "BDS • Prarambh '26";
+    if (n.includes('nishchay')) return "BDS • Nishchay '26";
+    return "BDS '26";
+  }
+
+  // Specific checks for MBBS
+  if (n.includes('mbbs')) {
+    if (n.includes('prarambh')) return "MBBS • Prarambh '26";
+    if (n.includes('nishchay')) return "MBBS • Nishchay '26";
+    if (n.includes('sushruta')) return "MBBS • Sushruta '26";
+    return "MBBS '26";
+  }
+
+  // Specific checks for FMGE
+  if (n.includes('marathon')) return "FMGE • Marathon '26";
+  if (n.includes('fmge')) {
+    if (n.includes('express')) return "FMGE • Express '26";
+    return "FMGE '26";
+  }
+
   if (n.includes('ini-cet') || n.includes('inicet')) return "INI-CET '26";
-  if (n.includes('fmge')) return "FMGE '26";
-  return batchName.length > 18 ? `${batchName.slice(0, 16)}...` : batchName;
+  if (n.includes('nishchay')) return prog ? `${prog} • Nishchay '26` : "Nishchay '26";
+  if (n.includes('prarambh')) return prog ? `${prog} • Prarambh '26` : "Prarambh '26";
+  if (n.includes('sushruta')) return prog ? `${prog} • Sushruta '26` : "Sushruta '26";
+
+  if (prog) {
+    const cleanName = batchName.replace(/2026|Batch|Year|for/gi, '').trim().split(/\s+/).slice(0, 2).join(' ');
+    return `${prog} • ${cleanName || 'Batch'}`;
+  }
+
+  return batchName.length > 20 ? `${batchName.slice(0, 18)}...` : batchName;
 }
 
 export function renderBatchBadge(batchName) {
@@ -28,31 +83,38 @@ export function renderBatchBadge(batchName) {
   if (n.includes('radiolink')) {
     colorClasses = 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]';
   } else if (n.includes('survival')) {
-    colorClasses = 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]';
+    colorClasses = 'bg-[#fffbeb] text-[#b45309] border-[#fde68a]';
   } else if (n.includes('bds') && n.includes('prarambh')) {
-    colorClasses = 'bg-[#eef2ff] text-[#4f46e5] border-[#c7d2fe]';
+    colorClasses = 'bg-[#e0e7ff] text-[#4338ca] border-[#c7d2fe]';
   } else if (n.includes('bds') && n.includes('nishchay')) {
-    colorClasses = 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]';
+    colorClasses = 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]';
+  } else if (n.includes('bds')) {
+    colorClasses = 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]';
   } else if (n.includes('marathon')) {
-    colorClasses = 'bg-[#fdf2f8] text-[#db2777] border-[#fbcfe8]';
-  } else if (n.includes('nishchay')) {
-    colorClasses = 'bg-[#f0f9ff] text-[#0369a1] border-[#bae6fd]';
-  } else if (n.includes('prarambh')) {
-    colorClasses = 'bg-[#eef4f0] text-[#3b6347] border-[#cde0d3]';
-  } else if (n.includes('sushruta')) {
-    colorClasses = 'bg-[#fbf3ec] text-[#c26d3e] border-[#eed9cc]';
-  } else if (n.includes('ini-cet') || n.includes('inicet')) {
-    colorClasses = 'bg-[#f3eef8] text-[#6b3ba7] border-[#dfd0f0]';
+    colorClasses = 'bg-[#fdf2f8] text-[#be185d] border-[#fbcfe8]';
   } else if (n.includes('fmge')) {
     colorClasses = 'bg-[#eaf4f8] text-[#1c6e8c] border-[#c8e2ec]';
+  } else if (n.includes('mbbs') && n.includes('nishchay')) {
+    colorClasses = 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]';
+  } else if (n.includes('mbbs') && n.includes('prarambh')) {
+    colorClasses = 'bg-[#eef4f0] text-[#2d5f39] border-[#c4dcce]';
+  } else if (n.includes('mbbs') && n.includes('sushruta')) {
+    colorClasses = 'bg-[#fbf3ec] text-[#b45309] border-[#eed9cc]';
+  } else if (n.includes('mbbs')) {
+    colorClasses = 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]';
+  } else if (n.includes('nishchay')) {
+    colorClasses = 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]';
+  } else if (n.includes('prarambh')) {
+    colorClasses = 'bg-[#eef4f0] text-[#2d5f39] border-[#c4dcce]';
+  } else if (n.includes('sushruta')) {
+    colorClasses = 'bg-[#fbf3ec] text-[#b45309] border-[#eed9cc]';
+  } else if (n.includes('ini-cet') || n.includes('inicet')) {
+    colorClasses = 'bg-[#f3eef8] text-[#6b3ba7] border-[#dfd0f0]';
   }
 
-  // Long custom batch names are cut by CSS (not mid-word dots) so the platform icons beside it always fit
-  const known = /Prarambh|Sushruta|INI-CET|INICET|FMGE|Nishchay|RadioLink|Survival|Marathon/i.test(batchName);
-  const label = known ? tag : batchName;
-  const safe = String(label).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const safe = String(tag).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const title = String(batchName).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  return `<span class="inline-block max-w-[96px] truncate align-middle text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses}" title="${title}">${safe}</span>`;
+  return `<span class="inline-block max-w-[135px] truncate align-middle text-[9px] font-bold px-1.5 py-0.2 rounded border ${colorClasses} badge-3d" title="${title}">${safe}</span>`;
 }
 
 export function renderPlatformBadges(ev, options = { compact: false }) {

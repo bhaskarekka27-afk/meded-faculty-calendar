@@ -19,9 +19,7 @@ import { startSharedSettingsSync } from './sharedSettings.js';
 
 startSharedSettingsSync();
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
-import { reminderEmailService } from './reminderEmailService.js';
-import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText } from './platformBadge.js';
-import { addFacultyRequest } from './requestsView.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, isInMonth, nearestMonthWithEvents } from './dateUtils.js';
 
 // ---- matching the logged-in faculty against the "Faculty" cell of a lecture row ----
@@ -1479,6 +1477,44 @@ export class FacultyDashboardController {
       }
     }
 
+    // Course / Stream & Full Batch info (from Row 1)
+    let programRow = document.getElementById('facultyModalProgramRow');
+    if (!programRow) {
+      const container = this.detailModal.querySelector('.space-y-3');
+      if (container) {
+        programRow = document.createElement('div');
+        programRow.id = 'facultyModalProgramRow';
+        programRow.className = 'text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex flex-col gap-1.5';
+        programRow.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-[#68736a]">Course / Stream:</span>
+            <span id="facultyModalProgramText" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>
+          </div>
+          <div class="flex items-center justify-between border-t border-[#eee7dc] pt-1.5">
+            <span class="font-semibold text-[#68736a] shrink-0">Batch (Spreadsheet):</span>
+            <span id="facultyModalBatchText" class="font-bold text-[#2c332d] truncate text-right text-xs" style="max-width:240px"></span>
+          </div>
+        `;
+        container.insertBefore(programRow, container.firstChild);
+      }
+    }
+    const progTextEl = document.getElementById('facultyModalProgramText');
+    if (progTextEl) {
+      const prog = getProgramType(ev.batchName);
+      const yearMatch = (ev.batchName || '').match(/\b(1st|2nd|3rd|4th|final)\s*year\b/i);
+      const yearText = yearMatch ? ` • ${yearMatch[0]}` : '';
+      if (prog) {
+        progTextEl.innerHTML = `${renderProgramBadge(ev.batchName)} <span class="text-xs font-bold text-[#2c332d]">${prog}${yearText}</span>`;
+      } else {
+        progTextEl.innerHTML = `<span class="text-xs font-bold text-[#2c332d]">Medical Education</span>`;
+      }
+    }
+    const batchTextEl = document.getElementById('facultyModalBatchText');
+    if (batchTextEl) {
+      batchTextEl.textContent = ev.batchName || 'PW MedEd Standard Batch';
+      batchTextEl.title = ev.batchName || '';
+    }
+
     // Delivery Platform info
     let platformEl = document.getElementById('facultyModalPlatformText');
     if (!platformEl) {
@@ -1487,7 +1523,11 @@ export class FacultyDashboardController {
         const row = document.createElement('div');
         row.className = 'text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between';
         row.innerHTML = `<span class="font-semibold text-[#68736a]">Delivery Platform:</span><span id="facultyModalPlatformText" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>`;
-        container.insertBefore(row, container.firstChild);
+        if (programRow && programRow.nextSibling) {
+          container.insertBefore(row, programRow.nextSibling);
+        } else {
+          container.appendChild(row);
+        }
         platformEl = document.getElementById('facultyModalPlatformText');
       }
     }

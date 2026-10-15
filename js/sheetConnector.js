@@ -246,6 +246,7 @@ function processBannerSheet(rows, layout, id, sourceUrl, tabName, overrideName) 
       if (/Live [Oo]n/i.test(bName)) {
         bName = bName.split(/Live [Oo]n/i)[0].trim();
       }
+      bName = bName.replace(/\s*Channel\s*Name.*$/i, '').trim();
       bName = bName.replace(/Lecture\s*Planner/i, '').replace(/Date\s*(&|and)?\s*Days?/i, '').trim();
       bName = bName.replace(/[\s\-_|:]+$/, '').trim();
       if (bName) detectedName = bName;
@@ -404,6 +405,7 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     if (/Live [Oo]n/i.test(bName)) {
       bName = bName.split(/Live [Oo]n/i)[0].trim();
     }
+    bName = bName.replace(/\s*Channel\s*Name.*$/i, '').trim();
     bName = bName.replace(/Lecture\s*Planner/i, '').replace(/Date\s*(&|and)?\s*Days?/i, '').trim();
     bName = bName.replace(/[\s\-_|:]+$/, '').trim();
     if (bName) detectedName = bName;
