@@ -5120,7 +5120,7 @@ class AdminDashboardController {
       return `
         <button
           type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all cursor-pointer text-xs font-semibold ${
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-semibold shrink-0 whitespace-nowrap ${
             isFiltered
               ? `${cfg.badgeBg} ${cfg.badgeText} ${cfg.badgeBorder} ring-2 ring-[#3b6347]/20 font-bold`
               : 'bg-white hover:bg-[#f7f4ed] text-[#3b433c] border-[#ded5c6]'
@@ -5128,8 +5128,8 @@ class AdminDashboardController {
           data-cohort-filter="${bId}"
           title="Filter to ${cfg.fullName}"
         >
-          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${cfg.hex};"></span>
-          <span class="truncate">${cfg.shortName}</span>
+          <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${cfg.hex};"></span>
+          <span class="whitespace-nowrap">${cfg.shortName}</span>
           <span class="font-bold text-[10.5px] text-[#2c332d]">(${stats.count})</span>
         </button>
       `;
@@ -5164,14 +5164,14 @@ class AdminDashboardController {
           </div>
         </div>
 
-        <!-- Cohort Filter & Day-Month Filter Bar -->
-        <div class="flex flex-wrap items-center justify-between gap-2.5 text-xs">
-          <!-- Cohort Chips -->
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-[11px] font-bold text-[#788279] mr-1">Filter Cohort:</span>
+        <!-- Cohort Filter Bar (Single Line with Horizontal Scroller & Chevron Arrows) -->
+        <div class="flex items-center justify-between gap-3 text-xs w-full">
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 relative">
+            <span class="text-[11px] font-bold text-[#788279] shrink-0 mr-1">Filter Cohort:</span>
+            
             <button
               type="button"
-              class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer text-xs font-semibold ${
+              class="px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-semibold shrink-0 whitespace-nowrap ${
                 cohortFilter === 'all'
                   ? 'btn-3d-primary font-bold text-white border-transparent'
                   : 'bg-white hover:bg-[#f7f4ed] text-[#3b433c] border-[#ded5c6]'
@@ -5180,21 +5180,55 @@ class AdminDashboardController {
             >
               All Cohorts (${classes.length})
             </button>
-            ${legendHtml}
+
+            <!-- Scroll Left Chevron Button -->
+            <button
+              id="btnCohortScrollLeft"
+              type="button"
+              class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer hidden"
+              aria-label="Scroll left"
+              title="Scroll cohorts left"
+            >
+              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+
+            <!-- Horizontal Scroll Container for Cohort Tabs -->
+            <div
+              id="batchGraphCohortScroll"
+              class="flex-1 overflow-x-auto scroll-smooth no-scrollbar py-1"
+              style="scrollbar-width: none; -ms-overflow-style: none;"
+            >
+              <div class="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
+                ${legendHtml}
+              </div>
+            </div>
+
+            <!-- Scroll Right Chevron Button -->
+            <button
+              id="btnCohortScrollRight"
+              type="button"
+              class="w-7 h-7 rounded-lg bg-white border border-[#ded5c6] text-[#576058] hover:text-[#2c332d] hover:bg-[#f7f4ed] shadow-2xs flex items-center justify-center shrink-0 transition-all cursor-pointer"
+              aria-label="Scroll right"
+              title="Scroll cohorts right"
+            >
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
           </div>
 
-          <!-- Day-Wise Month Switcher (Only visible in Day-Wise view) -->
-          ${granularity === 'day' ? `
-            <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-bold">
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (${monthActiveDays['2026-09'] || 0})</button>
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (${monthActiveDays['2026-10'] || 0})</button>
-              <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (${monthActiveDays['2026-11'] || 0})</button>
-            </div>
-          ` : `
-            <div class="text-[11px] font-bold text-[#68736a] bg-[#f7f4ed] px-2.5 py-1 rounded-lg border border-[#ded5c6]">
-              ${filteredClasses.length} Sessions Plotted • ${totalFilteredHours} Teaching Hours
-            </div>
-          `}
+          <!-- Right side: Day-Wise Month Switcher or Plotted Sessions Badge -->
+          <div class="shrink-0 flex items-center">
+            ${granularity === 'day' ? `
+              <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#f4efe6] border border-[#ded5c6] text-[11px] font-bold shrink-0 whitespace-nowrap">
+                <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-09' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-09">Sep '26 (${monthActiveDays['2026-09'] || 0})</button>
+                <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-10' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-10">Oct '26 (${monthActiveDays['2026-10'] || 0})</button>
+                <button type="button" class="px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${activeDayMonth === '2026-11' ? 'bg-white text-[#2c332d] shadow-xs' : 'text-[#68736a] hover:text-[#2c332d]'}" data-day-month-filter="2026-11">Nov '26 (${monthActiveDays['2026-11'] || 0})</button>
+              </div>
+            ` : `
+              <div class="text-[11px] font-bold text-[#68736a] bg-[#f7f4ed] px-2.5 py-1 rounded-lg border border-[#ded5c6] shrink-0 whitespace-nowrap">
+                ${filteredClasses.length} Sessions Plotted • ${totalFilteredHours} Teaching Hours
+              </div>
+            `}
+          </div>
         </div>
 
         <!-- The Main Chart Visualization Area -->
@@ -5208,6 +5242,50 @@ class AdminDashboardController {
 
   attachBatchLectureGraphListeners(container) {
     if (!container) return;
+
+    // Cohort horizontal scroll arrows
+    const cohortScroll = container.querySelector('#batchGraphCohortScroll');
+    const leftBtn = container.querySelector('#btnCohortScrollLeft');
+    const rightBtn = container.querySelector('#btnCohortScrollRight');
+
+    const updateCohortArrows = () => {
+      if (!cohortScroll) return;
+      const scrollLeft = cohortScroll.scrollLeft || 0;
+      const maxScroll = Math.max(0, (cohortScroll.scrollWidth || 0) - (cohortScroll.clientWidth || 0));
+
+      if (leftBtn) {
+        if (scrollLeft > 2 && maxScroll > 0) {
+          leftBtn.classList.remove('hidden');
+        } else {
+          leftBtn.classList.add('hidden');
+        }
+      }
+
+      if (rightBtn) {
+        if (scrollLeft < maxScroll - 2 && maxScroll > 0) {
+          rightBtn.classList.remove('hidden');
+        } else {
+          rightBtn.classList.add('hidden');
+        }
+      }
+    };
+
+    if (cohortScroll) {
+      cohortScroll.addEventListener('scroll', updateCohortArrows, { passive: true });
+      setTimeout(updateCohortArrows, 60);
+
+      leftBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cohortScroll.scrollBy({ left: -220, behavior: 'smooth' });
+        setTimeout(updateCohortArrows, 320);
+      });
+
+      rightBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cohortScroll.scrollBy({ left: 220, behavior: 'smooth' });
+        setTimeout(updateCohortArrows, 320);
+      });
+    }
 
     // Granularity Switcher
     container.querySelector('#batchGraphScopeDayBtn')?.addEventListener('click', () => {
