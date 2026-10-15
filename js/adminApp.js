@@ -1036,12 +1036,32 @@ class AdminDashboardController {
         el.addEventListener('click', (e) => {
           if (e.target.closest('.btn-delete-batch')) return;
           this.currentBatchId = el.getAttribute('data-batch-id');
+          this.batchGraphCohort = this.currentBatchId;
           document.getElementById('adminBatchDropdown')?.classList.add('hidden');
           this.selectedSubject = 'all';
 
           // Preserve selected month & year - DO NOT reset to today
-          const selYear = this.currentYear !== undefined ? this.currentYear : new Date().getFullYear();
-          const selMonth = this.currentMonth !== undefined ? this.currentMonth : new Date().getMonth();
+          let selYear = this.currentYear !== undefined ? this.currentYear : new Date().getFullYear();
+          let selMonth = this.currentMonth !== undefined ? this.currentMonth : new Date().getMonth();
+
+          // If the selected batch has classes, verify if current month has classes; if not, switch to month with classes
+          if (this.currentBatchId !== 'all') {
+            const allEvs = this.batchManager.getAllEvents(this.currentBatchId);
+            const classEvs = allEvs.filter(ev => ev.eventType === 'class' && ev.isoDate);
+            if (classEvs.length > 0) {
+              const curPrefix = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
+              const hasInCurMonth = classEvs.some(ev => ev.isoDate.startsWith(curPrefix));
+              if (!hasInCurMonth) {
+                const firstEv = classEvs[0];
+                const [y, m, d] = firstEv.isoDate.split('-').map(Number);
+                selYear = y;
+                selMonth = m - 1;
+                this.selectedDayIso = firstEv.isoDate;
+                this.currentWeekStart = startOfWeek(parseIso(firstEv.isoDate) || new Date(y, m - 1, d));
+              }
+            }
+          }
+
           this.currentYear = selYear;
           this.currentMonth = selMonth;
 
@@ -1054,6 +1074,12 @@ class AdminDashboardController {
           }
           const anchorDate = parseIso(this.selectedDayIso) || new Date(selYear, selMonth, 1);
           this.currentWeekStart = startOfWeek(anchorDate);
+
+          // Synchronize dashboard period so dashboard and calendar show identical period
+          this.dashboardYear = this.currentYear;
+          this.dashboardMonth = this.currentMonth;
+          this.dashboardWeekStart = new Date(this.currentWeekStart);
+          this.dashboardDayIso = this.selectedDayIso;
 
           // Ensure Faculty Highlights tab displays data of selected month
           this.facultyHighlightScope = 'month';
@@ -3538,10 +3564,16 @@ class AdminDashboardController {
 
     this.facultyHighlightScope = this.dashboardScope;
     this.batchGraphGranularity = this.dashboardScope;
+    if (!this.batchGraphCohort || this.batchGraphCohort === 'all') {
+      this.batchGraphCohort = this.currentBatchId || 'all';
+    }
     this.renderFacultyHighlightsCard();
 
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
-    const classes = allEvents.filter(e => e.eventType === 'class');
+    let classes = allEvents.filter(e => e.eventType === 'class');
+    if (this.selectedSubject && this.selectedSubject !== 'all') {
+      classes = classes.filter(e => e.subject && e.subject.toLowerCase() === this.selectedSubject.toLowerCase());
+    }
 
     let filtered = [];
     let periodText = '';
@@ -5321,8 +5353,12 @@ class AdminDashboardController {
     // Cohort Filters
     container.querySelectorAll('[data-cohort-filter]').forEach(btn => {
       btn.addEventListener('click', () => {
-        this.batchGraphCohort = btn.getAttribute('data-cohort-filter');
-        this.updateBatchLectureGraph(container);
+        const cohortId = btn.getAttribute('data-cohort-filter');
+        this.batchGraphCohort = cohortId;
+        this.currentBatchId = cohortId;
+        this.updateHeaderBatchSelector();
+        this.updateSummaryCards();
+        this.renderAll();
       });
     });
 
