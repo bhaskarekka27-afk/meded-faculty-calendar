@@ -2542,7 +2542,7 @@ class AdminDashboardController {
     let html = '';
     for (let i = 0; i < calendarCells.length; i += 7) {
       const row = calendarCells.slice(i, i + 7);
-      html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[145px]">`;
+      html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[180px]">`;
 
       row.forEach((cell) => {
         const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class'); // a Sunday with a scheduled class is a normal class day
@@ -2610,25 +2610,28 @@ class AdminDashboardController {
         `;
 
         if (classEvents.length > 0) {
-          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pt-1.5 pb-1 px-1 -mx-1 no-scrollbar">`;
+          html += `<div class="space-y-2 overflow-y-auto max-h-[220px] pt-1.5 pb-1 px-1 -mx-1 no-scrollbar">`;
           classEvents.forEach(ev => {
             const initial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').split(' ').map(w => w[0]).join('').slice(0, 2) : 'DR';
             const batchBadge = renderBatchBadge(ev.batchName);
             const platformBadge = renderPlatformBadges(ev, { compact: true });
 
             html += `
-              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-2.5 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
-                <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
-                  <span class="uppercase tracking-wide truncate">${ev.subject || 'Lecture'}</span>
-                  <div class="flex items-center gap-1 shrink-0">
+              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
+                <div class="space-y-1 mb-1.5">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${ev.subject || 'Lecture'}">${ev.subject || 'Lecture'}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     ${batchBadge}
                     ${platformBadge}
                   </div>
                 </div>
-                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1" title="${ev.topic || ev.chapter}">
+                ${ev.topic || ev.chapter ? `
+                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
-                </p>
-                <div class="text-[11px] text-[#576058] mt-1.5 flex items-center gap-1.5">
+                </p>` : ''}
+                <div class="text-[11px] text-[#576058] mt-1 flex items-center gap-1.5">
                   <div class="w-4 h-4 rounded-full bg-[#f4ece1] border border-[#705c30] flex items-center justify-center text-[8px] font-bold text-[#705c30] shrink-0">
                     ${initial}
                   </div>
@@ -2957,8 +2960,8 @@ class AdminDashboardController {
             <div class="bg-white border border-[#d8e5dc] hover:border-[#4a7c59] rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group overflow-hidden max-w-full" data-event-id="${ev.id}">
               <div class="min-w-0">
                 <!-- Top Subject & Venue Row -->
-                <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1 flex-wrap">
-                  <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d max-w-[95px]">
+                <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1.5 flex-wrap">
+                  <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d max-w-full" title="${ev.subject || 'Lecture'}">
                     ${ev.subject || 'Lecture'}
                   </span>
                   <div class="flex items-center gap-1 flex-wrap shrink-0">

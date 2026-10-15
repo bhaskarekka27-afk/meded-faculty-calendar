@@ -1011,7 +1011,7 @@ export class FacultyDashboardController {
     let html = '';
     for (let i = 0; i < calendarCells.length; i += 7) {
       const row = calendarCells.slice(i, i + 7);
-      html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[145px]">`;
+      html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[180px]">`;
 
       row.forEach(cell => {
         const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class');
@@ -1085,25 +1085,28 @@ export class FacultyDashboardController {
         `;
 
         if (classEvents.length > 0) {
-          html += `<div class="space-y-1.5 overflow-y-auto max-h-[170px] pt-1.5 pb-1 px-1 -mx-1 no-scrollbar">`;
+          html += `<div class="space-y-2 overflow-y-auto max-h-[220px] pt-1.5 pb-1 px-1 -mx-1 no-scrollbar">`;
           classEvents.forEach(ev => {
             const initial = this.getFacultyInitials(ev.faculty);
             const batchBadge = renderBatchBadge(ev.batchName);
             const platformBadges = renderPlatformBadges(ev, { compact: true });
 
             html += `
-              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-2.5 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
-                <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
-                  <span class="uppercase tracking-wide truncate">${ev.subject || 'Medical Lecture'}</span>
-                  <div class="flex items-center gap-1 shrink-0">
+              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
+                <div class="space-y-1 mb-1.5">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${ev.subject || 'Medical Lecture'}">${ev.subject || 'Medical Lecture'}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
                     ${batchBadge}
                     ${platformBadges}
                   </div>
                 </div>
-                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1" title="${ev.topic || ev.chapter}">
+                ${ev.topic || ev.chapter ? `
+                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
-                </p>
-                <div class="text-[11px] text-[#576058] mt-1.5 flex items-center gap-1.5">
+                </p>` : ''}
+                <div class="text-[11px] text-[#576058] mt-1 flex items-center gap-1.5">
                   <div class="w-4 h-4 rounded-full bg-[#f4ece1] border border-[#705c30] flex items-center justify-center text-[8px] font-bold text-[#705c30] shrink-0">
                     ${initial}
                   </div>
@@ -1249,9 +1252,11 @@ export class FacultyDashboardController {
 
           html += `
             <div class="card-3d p-3 rounded-xl border border-[#ded5c6] hover:border-[#4a7c59] transition-all cursor-pointer class-card-clickable" data-event-id="${c.id}">
-              <div class="flex items-center justify-between text-[10px] font-bold text-[#3b6347] mb-1 gap-1">
-                <span class="uppercase tracking-wide truncate">${c.subject || 'Medical Lecture'}</span>
-                <div class="flex items-center gap-1 shrink-0">
+              <div class="space-y-1 mb-1.5">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${c.subject || 'Medical Lecture'}">${c.subject || 'Medical Lecture'}</span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
                   ${batchBadge}
                   ${platformBadges}
                 </div>
