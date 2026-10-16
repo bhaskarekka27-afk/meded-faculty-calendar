@@ -200,3 +200,139 @@ export function getDeliveryPlatformText(evOrBatch) {
   }
   return 'Live on PW MedEd Mobile App';
 }
+
+/**
+ * Normalized status reader for lecture-level status (Conducted / Cancelled / Rescheduled)
+ */
+export function getLectureStatus(ev) {
+  if (!ev) return { status: 'scheduled', isConducted: false, isCancelled: false, isRescheduled: false, label: 'Scheduled', raw: '' };
+
+  const raw = String(ev.sheetStatus || '').trim();
+  const lower = raw.toLowerCase();
+
+  const isCancelled = Boolean(
+    ev.isCancelled ||
+    /^(cancelled|canceled)$/i.test(lower) ||
+    lower.includes('cancel')
+  );
+
+  const isConducted = Boolean(
+    !isCancelled && (
+      ev.isConducted ||
+      /^(conducted|completed|done)$/i.test(lower) ||
+      lower.includes('conducted') ||
+      lower.includes('completed')
+    )
+  );
+
+  const isRescheduled = Boolean(
+    !isCancelled && !isConducted && (
+      ev.isRescheduled ||
+      /^(rescheduled)$/i.test(lower) ||
+      lower.includes('reschedul')
+    )
+  );
+
+  let label = 'Scheduled';
+  let type = 'scheduled';
+  if (isConducted) {
+    label = 'Conducted';
+    type = 'conducted';
+  } else if (isCancelled) {
+    label = 'Cancelled';
+    type = 'cancelled';
+  } else if (isRescheduled) {
+    label = 'Rescheduled';
+    type = 'rescheduled';
+  }
+
+  return { status: type, isConducted, isCancelled, isRescheduled, raw, label };
+}
+
+/**
+ * Render visual badge for lecture status (Green for Conducted, Red for Cancelled)
+ */
+export function renderLectureStatusBadge(ev, options = {}) {
+  const { isConducted, isCancelled, isRescheduled } = getLectureStatus(ev);
+
+  if (isConducted) {
+    const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
+    return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#dcfce7] text-[#15803d] border border-[#86efac] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Conducted"><svg class="w-2.5 h-2.5 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>Conducted</span>`;
+  }
+
+  if (isCancelled) {
+    const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
+    return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#fee2e2] text-[#b91c1c] border border-[#fca5a5] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Cancelled"><svg class="w-2.5 h-2.5 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>Cancelled</span>`;
+  }
+
+  if (isRescheduled) {
+    const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
+    return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#fef3c7] text-[#b45309] border border-[#fcd34d] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Rescheduled"><span class="w-1.5 h-1.5 rounded-full bg-[#d97706]"></span>Rescheduled</span>`;
+  }
+
+  if (options.showScheduled) {
+    return `<span class="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#f4efe6] text-[#576058] border border-[#ded5c6] shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-[#8b958c]"></span>Scheduled</span>`;
+  }
+
+  return '';
+}
+
+/**
+ * Returns Tailwind classes for calendar cards based on status
+ * Conducted: Vibrant green theme (#16a34a / #dcfce7 / #f0fdf4)
+ * Cancelled: Vibrant red theme (#dc2626 / #fee2e2 / #fef2f2)
+ */
+export function getLectureCardStyle(ev, isToday = false) {
+  const { isConducted, isCancelled, isRescheduled } = getLectureStatus(ev);
+
+  if (isConducted) {
+    return {
+      cardClass: 'bg-[#f0fdf4] hover:bg-[#e6f9ec] border-2 border-[#16a34a] shadow-xs',
+      borderClass: 'border-2 border-[#16a34a]',
+      bgClass: 'bg-[#f0fdf4]',
+      textClass: 'text-[#14532d]',
+      subClass: 'text-[#15803d]',
+      indicatorDot: 'bg-[#16a34a]',
+      accentBorder: 'border-l-4 border-l-[#16a34a]',
+      badge: renderLectureStatusBadge(ev, { compact: true })
+    };
+  }
+
+  if (isCancelled) {
+    return {
+      cardClass: 'bg-[#fef2f2] hover:bg-[#fde8e8] border-2 border-[#dc2626] shadow-xs opacity-90',
+      borderClass: 'border-2 border-[#dc2626]',
+      bgClass: 'bg-[#fef2f2]',
+      textClass: 'text-[#991b1b] line-through',
+      subClass: 'text-[#b91c1c]',
+      indicatorDot: 'bg-[#dc2626]',
+      accentBorder: 'border-l-4 border-l-[#dc2626]',
+      badge: renderLectureStatusBadge(ev, { compact: true })
+    };
+  }
+
+  if (isRescheduled) {
+    return {
+      cardClass: 'bg-[#fffbeb] hover:bg-[#fef3c7] border-2 border-[#d97706] shadow-xs',
+      borderClass: 'border-2 border-[#d97706]',
+      bgClass: 'bg-[#fffbeb]',
+      textClass: 'text-[#92400e]',
+      subClass: 'text-[#b45309]',
+      indicatorDot: 'bg-[#d97706]',
+      accentBorder: 'border-l-4 border-l-[#d97706]',
+      badge: renderLectureStatusBadge(ev, { compact: true })
+    };
+  }
+
+  return {
+    cardClass: isToday ? 'bg-[#fbf9f5] hover:bg-white border-2 border-[#4a7c59] shadow-sm' : 'bg-[#fbf9f5] hover:bg-white border border-[#d8e5dc] shadow-sm',
+    borderClass: isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]',
+    bgClass: 'bg-[#fbf9f5]',
+    textClass: 'text-[#2c332d]',
+    subClass: 'text-[#2d5f39]',
+    indicatorDot: 'bg-[#4a7c59]',
+    accentBorder: '',
+    badge: ''
+  };
+}
+

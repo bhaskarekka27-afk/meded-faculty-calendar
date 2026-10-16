@@ -18,7 +18,7 @@ import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
-import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge, renderLectureStatusBadge, getLectureCardStyle, getLectureStatus } from './platformBadge.js';
 import { toLocalIso, todayIso, parseIso, startOfWeek, isInMonth, nearestMonthWithEvents } from './dateUtils.js';
 
 startSharedSettingsSync();
@@ -1090,12 +1090,15 @@ export class FacultyDashboardController {
             const initial = this.getFacultyInitials(ev.faculty);
             const batchBadge = renderBatchBadge(ev.batchName);
             const platformBadges = renderPlatformBadges(ev, { compact: true });
+            const statusBadge = renderLectureStatusBadge(ev, { compact: true });
+            const cardStyle = getLectureCardStyle(ev, cell.isToday);
 
             html += `
-              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
+              <div class="${cardStyle.cardClass} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
                 <div class="space-y-1 mb-1.5">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${ev.subject || 'Medical Lecture'}">${ev.subject || 'Medical Lecture'}</span>
+                    <span class="uppercase tracking-wider font-extrabold text-[11px] ${cardStyle.subClass} truncate" title="${ev.subject || 'Medical Lecture'}">${ev.subject || 'Medical Lecture'}</span>
+                    ${statusBadge}
                   </div>
                   <div class="flex items-center gap-1.5 flex-wrap">
                     ${batchBadge}
@@ -1103,7 +1106,7 @@ export class FacultyDashboardController {
                   </div>
                 </div>
                 ${ev.topic || ev.chapter ? `
-                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
+                <p class="text-xs font-bold ${cardStyle.textClass} leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
                 </p>` : ''}
                 <div class="text-[11px] text-[#576058] mt-1 flex items-center gap-1.5">
@@ -1248,20 +1251,23 @@ export class FacultyDashboardController {
         dayClasses.forEach(c => {
           const batchBadge = renderBatchBadge(c.batchName);
           const platformBadges = renderPlatformBadges(c, { compact: true });
+          const statusBadge = renderLectureStatusBadge(c, { compact: true });
+          const cardStyle = getLectureCardStyle(c);
           const initial = this.getFacultyInitials(c.faculty);
 
           html += `
-            <div class="card-3d p-3 rounded-xl border border-[#ded5c6] hover:border-[#4a7c59] transition-all cursor-pointer class-card-clickable" data-event-id="${c.id}">
+            <div class="${cardStyle.cardClass} p-3 rounded-xl transition-all cursor-pointer class-card-clickable" data-event-id="${c.id}">
               <div class="space-y-1 mb-1.5">
                 <div class="flex items-center justify-between gap-1">
-                  <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${c.subject || 'Medical Lecture'}">${c.subject || 'Medical Lecture'}</span>
+                  <span class="uppercase tracking-wider font-extrabold text-[11px] ${cardStyle.subClass} truncate" title="${c.subject || 'Medical Lecture'}">${c.subject || 'Medical Lecture'}</span>
+                  ${statusBadge}
                 </div>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${batchBadge}
                   ${platformBadges}
                 </div>
               </div>
-              <h4 class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-2 mb-1.5">
+              <h4 class="text-xs font-bold ${cardStyle.textClass} leading-snug line-clamp-2 mb-1.5">
                 ${c.topic || c.chapter}
               </h4>
               <div class="text-[11px] text-[#576058] mb-1.5 flex items-center gap-1.5">
@@ -1270,7 +1276,7 @@ export class FacultyDashboardController {
                 </div>
                 <span class="truncate font-medium">${c.faculty}</span>
               </div>
-              <div class="text-[10px] text-[#4a7c59] font-mono font-bold">
+              <div class="text-[10px] font-bold text-[#4a7c59] font-mono">
                 ${(c.timings || '7:00 PM - 9:00 PM').replace(/\s*to\s*/i, ' – ')}
               </div>
               <div class="text-[10px] text-[#68736a] mt-1 pt-1 border-t border-black/5 flex items-center justify-between">
@@ -1351,11 +1357,11 @@ export class FacultyDashboardController {
     events.forEach(ev => {
       const isToday = ev.isoDate === this.todayIso;
       const initial = this.getFacultyInitials(ev.faculty);
+      const statusBadge = renderLectureStatusBadge(ev, { compact: false });
+      const cardStyle = getLectureCardStyle(ev, isToday);
 
       html += `
-        <div class="card-3d p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border transition-all cursor-pointer class-card-clickable ${
-          isToday ? 'border-[#4a7c59] bg-[#fcfdfc] ring-1 ring-[#4a7c59]' : 'hover:border-[#4a7c59]'
-        }" data-event-id="${ev.id}">
+        <div class="${cardStyle.cardClass} p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all cursor-pointer class-card-clickable" data-event-id="${ev.id}">
           <div class="flex items-start gap-3.5">
             <!-- Date badge -->
             <div class="w-14 h-14 rounded-xl flex flex-col items-center justify-center text-center shrink-0 border ${
@@ -1372,6 +1378,7 @@ export class FacultyDashboardController {
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">
                   ${ev.subject || 'Biochemistry'}
                 </span>
+                ${statusBadge}
                 ${renderBatchBadge(ev.batchName)}
                 ${renderPlatformBadges(ev, { compact: true })}
                 <span class="text-xs font-mono font-bold text-[#4a7c59] flex items-center gap-1">
@@ -1380,7 +1387,7 @@ export class FacultyDashboardController {
                 </span>
                 ${isToday ? '<span class="text-[9px] font-bold uppercase bg-[#4a7c59] text-white px-1.5 py-0.2 rounded-md">Today</span>' : ''}
               </div>
-              <h4 class="font-headline font-bold text-sm sm:text-base text-[#2c332d] leading-snug">
+              <h4 class="font-headline font-bold text-sm sm:text-base ${cardStyle.textClass} leading-snug">
                 ${ev.topic || ev.chapter || 'Lecture Session'}
               </h4>
               <p class="text-xs text-[#68736a] mt-0.5">
@@ -1539,6 +1546,22 @@ export class FacultyDashboardController {
     }
     if (platformEl) {
       platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
+
+    // Lecture Status Row (Conducted / Cancelled / Scheduled)
+    let statusEl = document.getElementById('facultyModalStatusText');
+    if (!statusEl) {
+      const container = this.detailModal.querySelector('.space-y-3');
+      if (container) {
+        const row = document.createElement('div');
+        row.className = 'text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between';
+        row.innerHTML = `<span class="font-semibold text-[#68736a]">Lecture Status:</span><span id="facultyModalStatusText" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>`;
+        container.appendChild(row);
+        statusEl = document.getElementById('facultyModalStatusText');
+      }
+    }
+    if (statusEl) {
+      statusEl.innerHTML = renderLectureStatusBadge(ev) || '<span class="text-xs font-bold text-[#576058] bg-[#f4efe6] px-2 py-0.5 rounded-md border border-[#ded5c6]">Scheduled</span>';
     }
 
     if (this.modalGCalBtn) {
@@ -2459,7 +2482,9 @@ export class FacultyDashboardController {
     // Render classes
     dayClasses.forEach(ev => {
       const card = document.createElement('article');
-      card.className = 'bg-white rounded-2xl border border-terra-border/80 p-4 shadow-soft space-y-3.5 cursor-pointer hover:border-terra-forest/40 transition-all';
+      const cardStyle = getLectureCardStyle(ev);
+      const statusBadge = renderLectureStatusBadge(ev, { compact: true });
+      card.className = `${cardStyle.cardClass} rounded-2xl p-4 shadow-soft space-y-3.5 cursor-pointer transition-all`;
       if (typeof card.setAttribute === 'function') {
         card.setAttribute('data-purpose', 'lecture-card');
       }
@@ -2476,9 +2501,12 @@ export class FacultyDashboardController {
       card.innerHTML = `
         <!-- Header Row 1: Subject Badge (Left) & App/YT Live Badge (Right) -->
         <div class="flex items-center justify-between gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-forest text-white shadow-sm">
-            ${ev.subject || this.facultySubject}
-          </span>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-terra-forest text-white shadow-sm">
+              ${ev.subject || this.facultySubject}
+            </span>
+            ${statusBadge}
+          </div>
           <span class="text-[10px] font-semibold px-2 py-0.5 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
             <span class="w-1.5 h-1.5 rounded-full animate-pulse ${pulseColor}"></span>
             ${badgeLiveText}
@@ -2500,7 +2528,7 @@ export class FacultyDashboardController {
 
         <!-- Title and Details -->
         <div>
-          <h4 class="text-base font-bold text-terra-charcoal leading-snug tracking-tight">${ev.topic || 'Medical Lecture'}</h4>
+          <h4 class="text-base font-bold ${cardStyle.textClass} leading-snug tracking-tight">${ev.topic || 'Medical Lecture'}</h4>
           <div class="text-xs text-terra-muted mt-2 flex items-center gap-2 font-medium">
             <div class="w-6 h-6 rounded-full bg-terra-sand border border-terra-border text-terra-forest flex items-center justify-center text-[10px] font-bold shrink-0">
               ${initials}
@@ -2621,7 +2649,10 @@ export class FacultyDashboardController {
       } else {
         // Lecture item
         const item = document.createElement('div');
-        item.className = 'bg-terra-card border border-terra-border rounded-xl p-3 flex items-center justify-between shadow-soft cursor-pointer hover:border-terra-forest/40 transition-colors';
+        const statusBadge = typeof renderLectureStatusBadge === 'function' ? renderLectureStatusBadge(ev, { size: 'sm' }) : '';
+        const cardStyle = typeof getLectureCardStyle === 'function' ? getLectureCardStyle(ev, isToday) : null;
+        const cardClass = cardStyle ? cardStyle.className : 'bg-terra-card border border-terra-border rounded-xl p-3 flex items-center justify-between shadow-soft cursor-pointer hover:border-terra-forest/40 transition-colors';
+        item.className = cardClass + ' cursor-pointer';
         
         const batchObj = this.batches.find(b => b.id === ev.batchId) || { name: 'Prarambh 2026', platform: 'app' };
         const isYoutube = (batchObj.platform === 'youtube' || batchObj.isYoutube);
@@ -2631,23 +2662,26 @@ export class FacultyDashboardController {
 
         item.innerHTML = `
           <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="w-10 h-10 rounded-lg bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
-              <span class="text-[10px] font-bold uppercase text-terra-forest">${dayStr}</span>
-              <span class="text-sm font-black leading-none text-terra-forest">${d || 21}</span>
+            <div class="w-10 h-10 rounded-lg ${cardStyle?.isConducted ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : (cardStyle?.isCancelled ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-terra-forestLight border-terra-forest/20 text-terra-forest')} border flex flex-col items-center justify-center shrink-0">
+              <span class="text-[10px] font-bold uppercase">${dayStr}</span>
+              <span class="text-sm font-black leading-none">${d || 21}</span>
             </div>
             <div class="min-w-0 flex-1 space-y-1">
               <div class="flex items-center justify-between gap-1.5">
-                <span class="text-[10px] font-bold uppercase text-terra-forest">${ev.subject || this.facultySubject}</span>
-                <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
-                  <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
-                  ${badgeLiveText}
-                </span>
+                <span class="text-[10px] font-bold uppercase ${cardStyle?.isConducted ? 'text-emerald-700' : (cardStyle?.isCancelled ? 'text-rose-700' : 'text-terra-forest')}">${ev.subject || this.facultySubject}</span>
+                <div class="flex items-center gap-1 shrink-0">
+                  ${statusBadge}
+                  <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
+                    <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
+                    ${badgeLiveText}
+                  </span>
+                </div>
               </div>
               <div class="flex items-center justify-between gap-1.5 text-[10px] font-semibold text-terra-muted">
                 <span class="truncate max-w-[130px]">${batchObj.name || "Prarambh '26"}</span>
                 <span class="shrink-0 font-medium font-mono">${(ev.timings || '7:00pm to 9:00pm').replace(/\s*to\s*/i, ' to ')}</span>
               </div>
-              <h4 class="text-xs font-bold text-terra-charcoal truncate pt-0.5">${ev.topic || 'Medical Lecture'}</h4>
+              <h4 class="text-xs font-bold text-terra-charcoal truncate pt-0.5 ${cardStyle?.textStyle || ''}">${ev.topic || 'Medical Lecture'}</h4>
             </div>
           </div>
           <button aria-label="View lecture details" class="w-8 h-8 rounded-lg bg-terra-sand hover:bg-terra-sandHover flex items-center justify-center text-terra-charcoal shrink-0 ml-2 cursor-pointer" type="button">
@@ -2851,28 +2885,35 @@ export class FacultyDashboardController {
       const badgeLiveClass = isYoutube ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
       const pulseColor = isYoutube ? 'bg-rose-500' : 'bg-emerald-500';
 
+      const statusBadge = typeof renderLectureStatusBadge === 'function' ? renderLectureStatusBadge(c, { size: 'sm' }) : '';
+      const cardStyle = typeof getLectureCardStyle === 'function' ? getLectureCardStyle(c, false) : null;
+      const cardClass = cardStyle ? cardStyle.className : 'bg-white rounded-2xl border border-terra-border/80 p-3.5 shadow-soft flex items-center justify-between cursor-pointer hover:border-terra-forest/40 transition-all';
+
       const card = document.createElement('div');
-      card.className = 'bg-white rounded-2xl border border-terra-border/80 p-3.5 shadow-soft flex items-center justify-between cursor-pointer hover:border-terra-forest/40 transition-all';
+      card.className = cardClass + ' cursor-pointer';
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0 flex-1">
-          <div class="w-12 h-12 rounded-xl bg-terra-forestLight border border-terra-forest/20 flex flex-col items-center justify-center shrink-0">
-            <span class="text-[9px] font-bold uppercase text-terra-forest">${monthNames[dateObj.getMonth()]}</span>
-            <span class="text-base font-black leading-none text-terra-forest">${d || 1}</span>
+          <div class="w-12 h-12 rounded-xl ${cardStyle?.isConducted ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : (cardStyle?.isCancelled ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-terra-forestLight border-terra-forest/20 text-terra-forest')} border flex flex-col items-center justify-center shrink-0">
+            <span class="text-[9px] font-bold uppercase">${monthNames[dateObj.getMonth()]}</span>
+            <span class="text-base font-black leading-none">${d || 1}</span>
             <span class="text-[8px] font-semibold text-terra-muted uppercase">${dayNames[dateObj.getDay()]}</span>
           </div>
           <div class="min-w-0 flex-1 space-y-1">
             <div class="flex items-center justify-between gap-1.5 text-[10px] font-bold">
-              <span class="text-terra-forest uppercase">${c.subject || this.facultySubject}</span>
-              <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
-                <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
-                ${badgeLiveText}
-              </span>
+              <span class="${cardStyle?.isConducted ? 'text-emerald-700' : (cardStyle?.isCancelled ? 'text-rose-700' : 'text-terra-forest')} uppercase">${c.subject || this.facultySubject}</span>
+              <div class="flex items-center gap-1 shrink-0">
+                ${statusBadge}
+                <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded border flex items-center gap-1 shrink-0 ${badgeLiveClass}">
+                  <span class="w-1.5 h-1.5 rounded-full ${pulseColor}"></span>
+                  ${badgeLiveText}
+                </span>
+              </div>
             </div>
             <div class="flex items-center justify-between gap-1.5 text-[10px] font-semibold text-terra-muted">
               <span class="truncate max-w-[130px]">${batchObj.name || "Prarambh '26"}</span>
               <span class="shrink-0 font-medium font-mono">${(c.timings || '7:00 PM – 9:00 PM').replace(/\s*to\s*/i, ' to ')}</span>
             </div>
-            <h4 class="text-xs font-bold text-terra-charcoal truncate mt-0.5">${c.topic || 'Medical Lecture'}</h4>
+            <h4 class="text-xs font-bold text-terra-charcoal truncate mt-0.5 ${cardStyle?.textStyle || ''}">${c.topic || 'Medical Lecture'}</h4>
             <div class="text-[10px] text-terra-muted truncate mt-0.5">${c.faculty || this.currentFaculty}</div>
           </div>
         </div>
@@ -2909,6 +2950,19 @@ export class FacultyDashboardController {
 
     if (modalPlatformText) {
       modalPlatformText.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
+
+    const modalStatusRow = document.getElementById('mobileModalStatusRow');
+    const modalStatusText = document.getElementById('mobileModalStatusText');
+    if (modalStatusRow && modalStatusText) {
+      const statusBadge = typeof renderLectureStatusBadge === 'function' ? renderLectureStatusBadge(ev, { size: 'sm' }) : '';
+      if (statusBadge) {
+        modalStatusText.innerHTML = statusBadge;
+        modalStatusRow.classList.remove('hidden');
+      } else {
+        modalStatusText.innerHTML = '<span class="text-xs text-neutral-400 font-medium">Scheduled / Active</span>';
+        modalStatusRow.classList.remove('hidden');
+      }
     }
 
     // Format Date & Day nicely

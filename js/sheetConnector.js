@@ -174,7 +174,11 @@ const HEADER_KEYS = {
   time: /(^|\s)(time|timing|timings)s?$/i,
   duration: /(^|\s)(duration|durations|working\s*hours|hours)s?$/i,
   noLectures: /(^|\s)(no\s*of\s*lectures?|lectures?|class\s*count)s?$/i,
-  status: /(^|\s)(status)s?$/i
+  status: /(^|\s)(status|lecture\s*status|class\s*status|session\s*status)s?$/i,
+  rescheduledDate: /(^|\s)(rescheduled\s*date)s?$/i,
+  rescheduledTime: /(^|\s)(rescheduled\s*time)s?$/i,
+  rescheduledDuration: /(^|\s)(rescheduled\s*duration)s?$/i,
+  updatedAt: /(^|\s)(status\s*updated\s*at)s?$/i
 };
 
 export function detectBannerLayout(rows) {
@@ -286,18 +290,20 @@ function processBannerSheet(rows, layout, id, sourceUrl, tabName, overrideName) 
     let facultyStr = get(r, 'faculty');
     let timingsStr = get(r, 'time');
     let durationStr = get(r, 'duration');
+    let statusRaw = get(r, 'status');
     const topicRaw = get(r, 'topic');
     const subjectRaw = get(r, 'subject');
     const chapterRaw = get(r, 'chapter');
 
     if (dateStr) {
-      carry = { dateStr, dayLabel, facultyStr, timingsStr, durationStr };
+      carry = { dateStr, dayLabel, facultyStr, timingsStr, durationStr, statusRaw };
     } else if (carry) {
       dateStr = carry.dateStr;
       dayLabel = dayLabel || carry.dayLabel;
       facultyStr = facultyStr || carry.facultyStr;
       timingsStr = timingsStr || carry.timingsStr;
       durationStr = durationStr || carry.durationStr;
+      statusRaw = statusRaw || carry.statusRaw;
     } else {
       continue;
     }
@@ -318,11 +324,23 @@ function processBannerSheet(rows, layout, id, sourceUrl, tabName, overrideName) 
       ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? (Math.round(parsedTiming.durationMinutes / 60) === 1 ? 'Hour' : 'Hours') : 'Mins'}`
       : '1 Hour');
 
+    const cleanStatus = String(statusRaw || '').trim();
+    const normStatus = cleanStatus.toLowerCase();
+    const isCancelled = /^(cancelled|canceled)$/i.test(normStatus) || normStatus.includes('cancel');
+    const isConducted = /^(conducted|completed|done)$/i.test(normStatus) || normStatus.includes('conducted') || normStatus.includes('completed');
+    const isRescheduled = /^(rescheduled)$/i.test(normStatus) || normStatus.includes('reschedul');
+
     events.push({
       id: `${id}_ev_${i}`,
       batchId: id,
-      sheetStatus: '', isCancelled: false, isRescheduled: false,
-      rescheduledDate: '', rescheduledTime: '', rescheduledDuration: '', statusUpdatedAt: '',
+      sheetStatus: cleanStatus,
+      isConducted,
+      isCancelled,
+      isRescheduled,
+      rescheduledDate: get(r, 'rescheduledDate'),
+      rescheduledTime: get(r, 'rescheduledTime'),
+      rescheduledDuration: get(r, 'rescheduledDuration'),
+      statusUpdatedAt: get(r, 'updatedAt'),
       batchName: detectedName,
       rowIndex: i + 1,
       dateRaw: dateStr,
@@ -444,16 +462,22 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
     detectedName = overrideName || `Batch ${new Date().toLocaleDateString()}`;
   }
 
-  // Columns written back by the Apps Script Web App (apps-script/Code.gs).
-  // Located by header name so inserting a column in the sheet cannot shift
-  // them, and absent entirely on sheets that have never been written to.
-  const findCol = (name) => header.findIndex(h => String(h || '').replace(/\s+/g, ' ').trim().toLowerCase() === name);
+  // Columns written back by the Apps Script Web App (apps-script/Code.gs) or existing in sheet.
+  // Located by header name so inserting a column in the sheet cannot shift them.
+  const findColMatch = (pattern) => header.findIndex(h => pattern.test(String(h || '').replace(/\s+/g, ' ').trim()));
+  let statusColIdx = findColMatch(/^(status|lecture\s*status|class\s*status|session\s*status)$/i);
+  if (statusColIdx === -1) {
+    statusColIdx = header.findIndex(h => {
+      const s = String(h || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      return s.includes('status') && !s.includes('updated') && !s.includes('rescheduled');
+    });
+  }
   const statusCols = {
-    status: findCol('status'),
-    rescheduledDate: findCol('rescheduled date'),
-    rescheduledTime: findCol('rescheduled time'),
-    rescheduledDuration: findCol('rescheduled duration'),
-    updatedAt: findCol('status updated at')
+    status: statusColIdx,
+    rescheduledDate: findColMatch(/^rescheduled\s*date$/i),
+    rescheduledTime: findColMatch(/^rescheduled\s*time$/i),
+    rescheduledDuration: findColMatch(/^rescheduled\s*duration$/i),
+    updatedAt: findColMatch(/^status\s*updated\s*at$/i)
   };
 
   const events = [];
@@ -531,16 +555,20 @@ export function processRawCSVToBatch(csvText, id, sourceUrl, tabName = 'Lecture 
       : '2 Hours');
 
     const cell = (idx) => (idx >= 0 ? (r[idx] || '').trim() : '');
-    const sheetStatus = cell(statusCols.status);
-    const normalisedStatus = sheetStatus.toLowerCase();
+    const rawStatus = cell(statusCols.status);
+    const normalisedStatus = rawStatus.toLowerCase().trim();
+    const isCancelled = /^(cancelled|canceled)$/i.test(normalisedStatus) || normalisedStatus.includes('cancel');
+    const isConducted = /^(conducted|completed|done)$/i.test(normalisedStatus) || normalisedStatus.includes('conducted') || normalisedStatus.includes('completed');
+    const isRescheduled = /^(rescheduled)$/i.test(normalisedStatus) || normalisedStatus.includes('reschedul');
 
     events.push({
       id: `${id}_ev_${i}`,
       batchId: id,
       // Live status as it currently stands in the sheet.
-      sheetStatus,
-      isCancelled: normalisedStatus === 'cancelled' || normalisedStatus === 'canceled',
-      isRescheduled: normalisedStatus === 'rescheduled',
+      sheetStatus: rawStatus,
+      isConducted,
+      isCancelled,
+      isRescheduled,
       rescheduledDate: cell(statusCols.rescheduledDate),
       rescheduledTime: cell(statusCols.rescheduledTime),
       rescheduledDuration: cell(statusCols.rescheduledDuration),
@@ -1272,8 +1300,35 @@ export class BatchManager {
                     parsed[existingIdx].sourceUrl = defBatch.sourceUrl;
                     parsed[existingIdx].sheetTabName = defBatch.sheetTabName;
                   }
+                  // Sync status for default batches if stored copy lacks them
+                  if (Array.isArray(defBatch.events) && Array.isArray(parsed[existingIdx].events)) {
+                    for (const defEv of defBatch.events) {
+                      const matchEv = parsed[existingIdx].events.find(e => e.id === defEv.id);
+                      if (matchEv && defEv.sheetStatus && !matchEv.sheetStatus) {
+                        matchEv.sheetStatus = defEv.sheetStatus;
+                        matchEv.isConducted = defEv.isConducted;
+                        matchEv.isCancelled = defEv.isCancelled;
+                        matchEv.isRescheduled = defEv.isRescheduled;
+                      }
+                    }
+                  }
                 }
               }
+
+              // Normalize status flags for all loaded events across all batches
+              for (const b of parsed) {
+                if (Array.isArray(b.events)) {
+                  for (const ev of b.events) {
+                    if (ev.sheetStatus) {
+                      const lower = String(ev.sheetStatus).toLowerCase().trim();
+                      if (/conducted|completed|done/i.test(lower)) ev.isConducted = true;
+                      if (/cancel/i.test(lower)) ev.isCancelled = true;
+                      if (/reschedul/i.test(lower)) ev.isRescheduled = true;
+                    }
+                  }
+                }
+              }
+
               const visible = parsed.filter(b => !isBatchRemoved(b, tombsNow));
               this.batches = visible.length > 0 ? visible : parsed;
               this.saveToStorage(false);

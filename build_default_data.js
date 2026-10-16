@@ -167,9 +167,25 @@ function processAppBatchFile(filename, id, defaultUrl, defaultGid) {
       displayTitle = facultyStr || 'Holiday';
     }
     
+    const header = rows[0] || [];
+    const statusIdx = header.findIndex(h => /status/i.test(h));
+    const rawStatus = statusIdx >= 0 ? (r[statusIdx] || '').trim() : '';
+    const normStatus = rawStatus.toLowerCase();
+    const isCancelled = /^(cancelled|canceled)$/i.test(normStatus) || normStatus.includes('cancel');
+    const isConducted = /^(conducted|completed|done)$/i.test(normStatus) || normStatus.includes('conducted') || normStatus.includes('completed');
+    const isRescheduled = /^(rescheduled)$/i.test(normStatus) || normStatus.includes('reschedul');
+
     events.push({
       id: `${id}_ev_${i}`,
       batchId: id,
+      sheetStatus: rawStatus,
+      isConducted,
+      isCancelled,
+      isRescheduled,
+      rescheduledDate: '',
+      rescheduledTime: '',
+      rescheduledDuration: '',
+      statusUpdatedAt: '',
       batchName,
       rowIndex: i + 1,
       dateRaw: dateStr,
@@ -275,9 +291,26 @@ function processYTBatchCSV(content, id, name, subtitle, defaultUrl, defaultGid, 
       ? `${parsedTiming.durationMinutes >= 60 ? Math.round(parsedTiming.durationMinutes / 60) : parsedTiming.durationMinutes} ${parsedTiming.durationMinutes >= 60 ? 'Hours' : 'Mins'}` 
       : '2 Hours';
 
+    const header = rows[0] || [];
+    const statusColIdx = header.findIndex(h => /status/i.test(h));
+    const statusIdx = statusColIdx >= 0 ? statusColIdx : 4;
+    const rawStatus = (r[statusIdx] || '').trim();
+    const normStatus = rawStatus.toLowerCase();
+    const isCancelled = /^(cancelled|canceled)$/i.test(normStatus) || normStatus.includes('cancel');
+    const isConducted = /^(conducted|completed|done)$/i.test(normStatus) || normStatus.includes('conducted') || normStatus.includes('completed');
+    const isRescheduled = /^(rescheduled)$/i.test(normStatus) || normStatus.includes('reschedul');
+
     events.push({
       id: `${id}_ev_${i}`,
       batchId: id,
+      sheetStatus: rawStatus,
+      isConducted,
+      isCancelled,
+      isRescheduled,
+      rescheduledDate: '',
+      rescheduledTime: '',
+      rescheduledDuration: '',
+      statusUpdatedAt: '',
       batchName: name,
       rowIndex: i + 1,
       dateRaw: dateStr,

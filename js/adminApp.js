@@ -8,7 +8,7 @@ import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
-import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge } from './platformBadge.js';
+import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge, renderLectureStatusBadge, getLectureCardStyle, getLectureStatus } from './platformBadge.js';
 import { WorkloadManager } from './workloadData.js';
 import { renderWorkloadView } from './workloadView.js';
 import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal, getRequestById } from './requestsView.js';
@@ -2641,12 +2641,15 @@ class AdminDashboardController {
             const initial = ev.faculty ? ev.faculty.replace(/^Dr\.\s*/i, '').split(' ').map(w => w[0]).join('').slice(0, 2) : 'DR';
             const batchBadge = renderBatchBadge(ev.batchName);
             const platformBadge = renderPlatformBadges(ev, { compact: true });
+            const statusBadge = renderLectureStatusBadge(ev, { compact: true });
+            const cardStyle = getLectureCardStyle(ev, cell.isToday);
 
             html += `
-              <div class="bg-[#fbf9f5] hover:bg-white border ${cell.isToday ? 'border-2 border-[#4a7c59]' : 'border-[#d8e5dc]'} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
+              <div class="${cardStyle.cardClass} rounded-xl p-3 text-left transition-all shadow-sm cursor-pointer class-card-clickable" data-event-id="${ev.id}">
                 <div class="space-y-1 mb-1.5">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="uppercase tracking-wider font-extrabold text-[11px] text-[#2d5f39] truncate" title="${ev.subject || 'Lecture'}">${ev.subject || 'Lecture'}</span>
+                    <span class="uppercase tracking-wider font-extrabold text-[11px] ${cardStyle.subClass} truncate" title="${ev.subject || 'Lecture'}">${ev.subject || 'Lecture'}</span>
+                    ${statusBadge}
                   </div>
                   <div class="flex items-center gap-1.5 flex-wrap">
                     ${batchBadge}
@@ -2654,7 +2657,7 @@ class AdminDashboardController {
                   </div>
                 </div>
                 ${ev.topic || ev.chapter ? `
-                <p class="text-xs font-bold text-[#2c332d] leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
+                <p class="text-xs font-bold ${cardStyle.textClass} leading-snug line-clamp-1 mb-1" title="${ev.topic || ev.chapter}">
                   ${ev.topic || ev.chapter}
                 </p>` : ''}
                 <div class="text-[11px] text-[#576058] mt-1 flex items-center gap-1.5">
@@ -2971,6 +2974,8 @@ class AdminDashboardController {
           const subStyle = this.getSubjectColorStyles(ev.subject);
           const initials = this.getFacultyInitials(ev.faculty);
           const gcalUrl = generateGoogleCalendarUrl(ev);
+          const statusBadge = renderLectureStatusBadge(ev, { compact: true });
+          const cardStyle = getLectureCardStyle(ev);
 
           // Clean, compact timing formatting (e.g. "6:30pm – 9:00pm")
           let timingStr = ev.timings || '7:00 PM - 9:00 PM';
@@ -2983,19 +2988,22 @@ class AdminDashboardController {
           const durationStr = (ev.duration || '2h').replace(/hours?/i, 'h').trim();
 
           html += `
-            <div class="bg-white border border-[#d8e5dc] hover:border-[#4a7c59] rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group overflow-hidden max-w-full" data-event-id="${ev.id}">
+            <div class="${cardStyle.cardClass} rounded-xl p-3 text-left transition-all cursor-pointer week-class-card flex flex-col justify-between gap-2.5 group overflow-hidden max-w-full" data-event-id="${ev.id}">
               <div class="min-w-0">
                 <!-- Top Subject & Venue Row -->
                 <div class="flex items-center justify-between text-[10px] font-bold mb-1.5 gap-1.5 flex-wrap">
-                  <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d max-w-full" title="${ev.subject || 'Lecture'}">
-                    ${ev.subject || 'Lecture'}
-                  </span>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="uppercase tracking-wider px-2 py-0.5 rounded-md ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} truncate badge-3d max-w-full" title="${ev.subject || 'Lecture'}">
+                      ${ev.subject || 'Lecture'}
+                    </span>
+                    ${statusBadge}
+                  </div>
                   <div class="flex items-center gap-1 flex-wrap shrink-0">
                     ${renderBatchBadge(ev.batchName)}
                     ${renderPlatformBadges(ev, { compact: true })}
                   </div>
                 </div>
-                <h4 class="text-xs font-bold text-[#2c332d] leading-snug font-headline group-hover:text-[#4a7c59] transition-colors line-clamp-2" title="${ev.chapter || 'Chapter'}">
+                <h4 class="text-xs font-bold ${cardStyle.textClass} leading-snug font-headline group-hover:text-[#4a7c59] transition-colors line-clamp-2" title="${ev.chapter || 'Chapter'}">
                   ${ev.chapter || 'Chapter'}
                 </h4>
                 <p class="text-[11px] text-[#576058] mt-1 line-clamp-2 leading-relaxed" title="${ev.topic || ev.chapter}">
@@ -3061,6 +3069,7 @@ class AdminDashboardController {
                 <th class="py-2.5 px-3">Day &amp; Date</th>
                 <th class="py-2.5 px-3">Faculty Specialist</th>
                 <th class="py-2.5 px-3">Subject</th>
+                <th class="py-2.5 px-3">Status</th>
                 <th class="py-2.5 px-3">Chapter</th>
                 <th class="py-2.5 px-3">Topic Covered</th>
                 <th class="py-2.5 px-3">Timings</th>
@@ -3073,7 +3082,7 @@ class AdminDashboardController {
     if (weekClasses.length === 0) {
       html += `
         <tr>
-          <td colspan="7" class="text-center py-8 text-[#8b958c]">
+          <td colspan="8" class="text-center py-8 text-[#8b958c]">
             <span class="material-symbols-outlined text-[28px] opacity-40 block mb-1">calendar_today</span>
             No lectures scheduled for this week.
           </td>
@@ -3082,6 +3091,7 @@ class AdminDashboardController {
     } else {
       weekClasses.forEach(ev => {
         const subStyle = this.getSubjectColorStyles(ev.subject);
+        const statusBadge = renderLectureStatusBadge(ev, { compact: true });
         html += `
           <tr class="hover:bg-[#fbf9f5] transition-colors cursor-pointer week-table-row" data-event-id="${ev.id}">
             <td class="py-3 px-3 font-bold text-[#2c332d] whitespace-nowrap">${ev.dateRaw || ev.isoDate}</td>
@@ -3099,6 +3109,9 @@ class AdminDashboardController {
                 ${renderBatchBadge(ev.batchName)}
                 ${renderPlatformBadges(ev, { compact: true })}
               </div>
+            </td>
+            <td class="py-3 px-3 whitespace-nowrap">
+              ${statusBadge || '<span class="text-[10px] font-semibold text-[#8b958c]">Scheduled</span>'}
             </td>
             <td class="py-3 px-3 font-bold text-[#2c332d]">${ev.chapter}</td>
             <td class="py-3 px-3 text-[#576058] max-w-xs truncate" title="${ev.topic}">${ev.topic}</td>
@@ -3351,6 +3364,8 @@ class AdminDashboardController {
         const subStyle = this.getSubjectColorStyles(ev.subject);
         const initials = this.getFacultyInitials(ev.faculty);
         const gcalUrl = generateGoogleCalendarUrl(ev);
+        const statusBadge = renderLectureStatusBadge(ev, { compact: false });
+        const cardStyle = getLectureCardStyle(ev);
 
         html += `
           <div class="relative flex items-start gap-4 group">
@@ -3360,12 +3375,13 @@ class AdminDashboardController {
             </div>
 
             <!-- Main Milestone Card -->
-            <div class="w-full bg-white border border-[#ded5c6] hover:border-[#4a7c59] rounded-2xl p-4 sm:p-5 timeline-card-3d cursor-pointer shadow-xs hover:shadow-md transition-all" data-event-id="${ev.id}">
+            <div class="w-full ${cardStyle.cardClass} rounded-2xl p-4 sm:p-5 timeline-card-3d cursor-pointer shadow-xs hover:shadow-md transition-all" data-event-id="${ev.id}">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${subStyle.pillBg} ${subStyle.pillText} border ${subStyle.border} badge-3d">
                     ${ev.subject || 'Lecture'}
                   </span>
+                  ${statusBadge}
                   ${renderBatchBadge(ev.batchName)}
                   ${renderPlatformBadges(ev, { compact: true })}
                   <span class="text-xs font-bold text-[#2c332d]">${ev.dateRaw || ev.isoDate}</span>
@@ -3377,7 +3393,7 @@ class AdminDashboardController {
               </div>
 
               <div class="mt-3">
-                <h4 class="font-headline font-bold text-base text-[#2c332d] group-hover:text-[#4a7c59] transition-colors leading-snug">${ev.chapter || 'Chapter'}</h4>
+                <h4 class="font-headline font-bold text-base ${cardStyle.textClass} group-hover:text-[#4a7c59] transition-colors leading-snug">${ev.chapter || 'Chapter'}</h4>
                 <p class="text-xs text-[#576058] mt-1 leading-relaxed">${ev.topic || ev.chapter}</p>
               </div>
 
@@ -3418,6 +3434,7 @@ class AdminDashboardController {
                   <th class="py-3 px-4">Date &amp; Day</th>
                   <th class="py-3 px-4">Faculty Specialist</th>
                   <th class="py-3 px-4">Subject</th>
+                  <th class="py-3 px-4">Status</th>
                   <th class="py-3 px-4">Chapter Name</th>
                   <th class="py-3 px-4">Topic Covered</th>
                   <th class="py-3 px-4">Timings</th>
@@ -3431,7 +3448,7 @@ class AdminDashboardController {
       if (events.length === 0) {
         html += `
           <tr>
-            <td colspan="8" class="text-center py-12 text-[#8b958c]">
+            <td colspan="9" class="text-center py-12 text-[#8b958c]">
               <span class="material-symbols-outlined text-[32px] block opacity-40 mb-2">search_off</span>
               No lecture schedules found matching your query.
             </td>
@@ -3443,7 +3460,7 @@ class AdminDashboardController {
             html += `
               <tr class="bg-[#faf6f0] hover:bg-[#f6eee2] transition-colors">
                 <td class="py-3 px-4 font-bold text-[#c26d3e] whitespace-nowrap">${ev.dateRaw || ev.isoDate}</td>
-                <td colspan="6" class="py-3 px-4 text-center">
+                <td colspan="7" class="py-3 px-4 text-center">
                   <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fbf3ec] text-[#c26d3e] font-bold text-[11px] border border-[#eed9cc]">
                     <span class="material-symbols-outlined text-[15px]">self_improvement</span> COOL OFF • Self Study Day
                   </span>
@@ -3458,7 +3475,7 @@ class AdminDashboardController {
             html += `
               <tr class="bg-[#fdfbf6] hover:bg-[#f8f2e4] transition-colors">
                 <td class="py-3 px-4 font-bold text-[#705c30] whitespace-nowrap">${ev.dateRaw || ev.isoDate}</td>
-                <td colspan="6" class="py-3 px-4 text-center">
+                <td colspan="7" class="py-3 px-4 text-center">
                   <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f8e0a8] text-[#705c30] font-bold text-[11px] border border-[#dcc48e]">
                     <span class="material-symbols-outlined text-[15px]">celebration</span> ${ev.faculty || 'Official Holiday'}
                   </span>
@@ -3471,6 +3488,7 @@ class AdminDashboardController {
 
           const subStyle = this.getSubjectColorStyles(ev.subject);
           const gcalUrl = generateGoogleCalendarUrl(ev);
+          const statusBadge = renderLectureStatusBadge(ev, { compact: true });
 
           html += `
             <tr class="hover:bg-[#fbf9f5] transition-colors cursor-pointer class-row-clickable" data-event-id="${ev.id}">
@@ -3489,6 +3507,9 @@ class AdminDashboardController {
                   ${renderBatchBadge(ev.batchName)}
                   ${renderPlatformBadges(ev, { compact: true })}
                 </div>
+              </td>
+              <td class="py-3 px-4 whitespace-nowrap">
+                ${statusBadge || '<span class="text-[10px] font-semibold text-[#8b958c]">Scheduled</span>'}
               </td>
               <td class="py-3 px-4 font-bold text-[#2c332d]">${ev.chapter}</td>
               <td class="py-3 px-4 text-[#576058] max-w-xs truncate" title="${ev.topic}">${ev.topic}</td>
@@ -8988,6 +9009,22 @@ class AdminDashboardController {
     const platformEl = document.getElementById('modalDetailPlatform');
     if (platformEl) {
       platformEl.innerHTML = `${getDeliveryPlatformText(ev)} ${renderPlatformBadges(ev, { size: 'sm' })}`;
+    }
+
+    // Lecture Status Row (Conducted / Cancelled / Scheduled)
+    let statusRow = document.getElementById('modalDetailStatusRow');
+    if (!statusRow) {
+      if (container) {
+        statusRow = document.createElement('div');
+        statusRow.id = 'modalDetailStatusRow';
+        statusRow.className = 'flex justify-between items-center pt-1 border-t border-[#eee7dc]';
+        statusRow.innerHTML = `<span class="text-[#68736a] font-semibold">Lecture Status:</span><span id="modalDetailStatusBadge"></span>`;
+        container.appendChild(statusRow);
+      }
+    }
+    const statusBadgeEl = document.getElementById('modalDetailStatusBadge');
+    if (statusBadgeEl) {
+      statusBadgeEl.innerHTML = renderLectureStatusBadge(ev) || '<span class="text-xs font-bold text-[#576058] bg-[#f4efe6] px-2 py-0.5 rounded-md border border-[#ded5c6]">Scheduled</span>';
     }
 
     modal.classList.remove('hidden');
