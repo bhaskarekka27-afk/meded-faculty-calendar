@@ -14,7 +14,7 @@ class AppController {
     this.batchManager = new BatchManager();
     
     // State
-    this.currentBatchId = 'batch-prarambh-2026'; // Default to 1st year batch
+    this.currentBatchId = 'all'; // Default to all batches on login and reload
     this.activeView = 'month'; // 'month' | 'timetable' | 'agenda' | 'faculty'
     this.searchQuery = '';
     this.selectedSubjects = new Set();
@@ -359,14 +359,13 @@ class AppController {
     if (!select) return;
 
     const batches = this.batchManager.getBatches();
-    let html = '';
+    let html = `<option value="all" ${this.currentBatchId === 'all' ? 'selected' : ''}>✦ All Batches (Combined Cross-Schedule)</option>`;
 
     batches.forEach(b => {
       const isSelected = b.id === this.currentBatchId;
       html += `<option value="${b.id}" ${isSelected ? 'selected' : ''}>${b.name}</option>`;
     });
 
-    html += `<option value="all" ${this.currentBatchId === 'all' ? 'selected' : ''}>✦ All Batches (Combined Cross-Schedule)</option>`;
     select.innerHTML = html;
 
     // Update batch info display

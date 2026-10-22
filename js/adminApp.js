@@ -49,7 +49,7 @@ class AdminDashboardController {
       facultyQuery: '',
       sortBy: 'hours'
     };
-    this.currentBatchId = 'batch-prarambh-2026';
+    this.currentBatchId = 'all'; // Default to all batches on login and reload
     const _now = new Date();
     this.currentYear = _now.getFullYear();
     this.currentMonth = _now.getMonth();
@@ -153,7 +153,7 @@ class AdminDashboardController {
       // Refresh calendar, charts, and metric cards whenever real-time sync receives updated sheet data
       const batches = this.batchManager.getBatches();
       if (this.currentBatchId !== 'all' && !batches.some(b => b.id === this.currentBatchId)) {
-        this.currentBatchId = batches[0] ? batches[0].id : 'batch-prarambh-2026';
+        this.currentBatchId = 'all';
       }
       this.updateHeaderBatchSelector();
       this.updateMonthTitle();
@@ -298,10 +298,12 @@ class AdminDashboardController {
       this.currentBatchId = valid[0].id;
       return valid[0];
     }
-    return this.batchManager.getBatches()[0] || {
-      id: 'batch-prarambh-2026',
-      name: 'Prarambh 2026 Batch for MBBS 1st Year',
-      events: []
+    this.currentBatchId = 'all';
+    return {
+      id: 'all',
+      name: 'All Batches • Combined Schedule',
+      sheetTabName: 'All Sheets',
+      events: this.batchManager.getAllEvents('all')
     };
   }
 
@@ -1087,6 +1089,13 @@ class AdminDashboardController {
     if (label && batch) {
       label.textContent = batch.name;
     }
+    const pill = typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById('adminBatchPill') : null;
+    const icon = pill && typeof pill.querySelector === 'function' 
+      ? pill.querySelector('.material-symbols-outlined:first-child') 
+      : (typeof document !== 'undefined' && typeof document.querySelector === 'function' ? document.querySelector('#adminBatchPill .material-symbols-outlined:first-child') : null);
+    if (icon) {
+      icon.textContent = this.currentBatchId === 'all' ? 'select_all' : 'school';
+    }
 
     const dropdownList = document.getElementById('adminBatchDropdownList');
     if (dropdownList) {
@@ -1234,7 +1243,7 @@ class AdminDashboardController {
           const idToDelete = btn.getAttribute('data-delete-id');
           if (confirm('Are you sure you want to remove this batch?')) {
             this.batchManager.removeBatch(idToDelete);
-            this.currentBatchId = this.batchManager.getBatches()[0].id;
+            this.currentBatchId = 'all';
             this.selectedSubject = 'all';
             this.facultyHighlightScope = 'month';
             this.renderAll();
@@ -1246,12 +1255,12 @@ class AdminDashboardController {
       dropdownList.querySelector('#adminResetBatchesLink')?.addEventListener('click', () => {
         if (confirm('Reset all batch calendars to default (Prarambh 2026 & Sushruta 2026)?')) {
           this.batchManager.resetToDefaults();
-          this.currentBatchId = 'batch-prarambh-2026';
+          this.currentBatchId = 'all';
           document.getElementById('adminBatchDropdown')?.classList.add('hidden');
           this.selectedSubject = 'all';
           this.facultyHighlightScope = 'month';
           this.renderAll();
-          this.showToast('Reset to default batches');
+          this.showToast('Reset to default batches (All Batches selected)');
         }
       });
 
@@ -8736,7 +8745,7 @@ class AdminDashboardController {
         if (confirm(`Are you sure you want to disconnect "${b?.name || 'this sheet'}"?`)) {
           this.batchManager.removeBatch(batchId);
           if (this.currentBatchId === batchId) {
-            this.currentBatchId = this.batchManager.getBatches()[0]?.id || 'batch-prarambh-2026';
+            this.currentBatchId = 'all';
           }
           this.renderAll();
           this.renderConnectedSheetsSettings();

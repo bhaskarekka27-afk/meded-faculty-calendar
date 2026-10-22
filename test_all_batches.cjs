@@ -112,7 +112,7 @@ async function runControllerTests() {
 
   console.log('--- Testing Faculty Dashboard Batch Switching ---');
   console.log('Initial Faculty activeBatchId:', facCtrl.activeBatchId);
-  assert.strictEqual(facCtrl.activeBatchId, 'batch-prarambh-2026');
+  assert.strictEqual(facCtrl.activeBatchId, 'all');
 
   // Switch to 'all'
   facCtrl.switchBatch('all');
@@ -168,7 +168,7 @@ async function runControllerTests() {
   const adminCtrl = new AdminDashboardController();
 
   console.log('Initial Admin currentBatchId:', adminCtrl.currentBatchId);
-  assert.strictEqual(adminCtrl.currentBatchId, 'batch-prarambh-2026');
+  assert.strictEqual(adminCtrl.currentBatchId, 'all');
 
   // Switch admin to 'all'
   adminCtrl.currentBatchId = 'all';

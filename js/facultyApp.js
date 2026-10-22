@@ -85,7 +85,7 @@ export class FacultyDashboardController {
   init() {
     this.loadFacultySession();
     this.batches = this.getVisibleBatches();
-    this.activeBatchId = this.batches[0] ? this.batches[0].id : 'all';
+    this.activeBatchId = 'all';
     this.bindDOM();
     this.bindMobileDOM();
     this.populateBatchDropdown();
@@ -2611,6 +2611,7 @@ export class FacultyDashboardController {
 
     // Render up to 6 remaining items
     upcomingEvents.slice(0, 6).forEach(ev => {
+      const isToday = ev.isoDate === this.todayIso;
       const [y, m, d] = (ev.isoDate || '').split('-').map(Number);
       const dateObj = (y && m && d) ? new Date(y, m - 1, d) : new Date();
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
