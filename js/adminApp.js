@@ -2489,6 +2489,13 @@ class AdminDashboardController {
       actionControls?.classList.add('hidden');
       summaryCards?.classList.remove('hidden');
       renderWorkloadView(workloadSection, this.workloadManager, this.workloadState);
+      if (this.workloadManager && typeof this.workloadManager.refreshFromApi === 'function') {
+        this.workloadManager.refreshFromApi().then((updated) => {
+          if (updated && this.mainTab === 'workload') {
+            renderWorkloadView(workloadSection, this.workloadManager, this.workloadState);
+          }
+        }).catch(() => {});
+      }
     } else if (this.mainTab === 'onboarding') {
       onboardingSection?.classList.remove('hidden');
       actionControls?.classList.add('hidden');

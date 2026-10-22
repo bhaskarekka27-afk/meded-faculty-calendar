@@ -13879,7 +13879,12 @@ export const DEFAULT_WORKLOAD_ENTRIES = [
 export class WorkloadManager {
   constructor() {
     this.entries = [];
+    this.lastSynced = null;
+    this.tabs = FACULTY_TABS_CONFIG;
     this.loadFromStorage();
+    if (typeof window !== 'undefined') {
+      this.refreshFromApi().catch(() => {});
+    }
   }
 
   loadFromStorage() {
@@ -13888,7 +13893,7 @@ export class WorkloadManager {
         const stored = localStorage.getItem(WORKLOAD_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length >= 700) {
+          if (Array.isArray(parsed) && parsed.length > 50) {
             this.entries = parsed;
             return;
           }
@@ -13912,21 +13917,83 @@ export class WorkloadManager {
   }
 
   /**
+   * Fast background fetch from server cache/storage
+   */
+  async refreshFromApi() {
+    try {
+      const base = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : 'http://localhost:5173';
+      const res = await fetch(`${base}/api/workload?_t=${Date.now()}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.entries) && data.entries.length > 0) {
+        this.entries = data.entries;
+        this.lastSynced = data.lastSynced || new Date().toISOString();
+        if (Array.isArray(data.tabs) && data.tabs.length > 0) {
+          this.tabs = data.tabs;
+        }
+        this.saveToStorage();
+        return true;
+      }
+    } catch (err) {
+      console.warn('[WorkloadManager] API refresh error:', err);
+    }
+    return false;
+  }
+
+  /**
    * Live sync with Google Sheets across all faculty tabs
    */
   async syncFromGoogleSheet(onProgress) {
+    if (typeof onProgress === 'function') {
+      onProgress({ current: 1, total: 1, name: 'Google Sheets Workload' });
+    }
+
+    const base = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : 'http://localhost:5173';
+
+    // 1. Try server-side direct live sync
+    try {
+      const res = await fetch(`${base}/api/workload/sync-now`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.entries) && data.entries.length > 0) {
+          this.entries = data.entries;
+          this.lastSynced = data.lastSynced || new Date().toISOString();
+          if (Array.isArray(data.tabs) && data.tabs.length > 0) {
+            this.tabs = data.tabs;
+          }
+          this.saveToStorage();
+          return { success: true, count: this.entries.length };
+        }
+      }
+    } catch (apiErr) {
+      console.warn('[WorkloadManager] Server sync-now failed, trying direct browser tab fetch:', apiErr);
+    }
+
+    // 2. Fallback: Dynamic browser-side fetch across all tabs
     const sheetId = WORKLOAD_SHEET_ID;
+    let tabsToFetch = this.tabs && this.tabs.length > 0 ? this.tabs : FACULTY_TABS_CONFIG;
+
+    try {
+      const tabRes = await fetch(`${base}/api/workload/tabs?_t=${Date.now()}`);
+      if (tabRes.ok) {
+        const tabData = await tabRes.json();
+        if (Array.isArray(tabData.tabs) && tabData.tabs.length > 0) {
+          tabsToFetch = tabData.tabs;
+        }
+      }
+    } catch (_) {}
+
     const allFetched = [];
 
-    for (let tIdx = 0; tIdx < FACULTY_TABS_CONFIG.length; tIdx++) {
-      const tab = FACULTY_TABS_CONFIG[tIdx];
+    for (let tIdx = 0; tIdx < tabsToFetch.length; tIdx++) {
+      const tab = tabsToFetch[tIdx];
       if (typeof onProgress === 'function') {
-        onProgress({ current: tIdx + 1, total: FACULTY_TABS_CONFIG.length, name: tab.name });
+        onProgress({ current: tIdx + 1, total: tabsToFetch.length, name: tab.name });
       }
 
       let csvText = '';
       try {
-        const proxyUrl = `/api/fetch-sheet?sheetId=${sheetId}&gid=${tab.gid}`;
+        const proxyUrl = `${base}/api/fetch-sheet?sheetId=${sheetId}&gid=${tab.gid}`;
         const res = await fetch(proxyUrl);
         if (res.ok) {
           csvText = await res.text();
@@ -13947,8 +14014,9 @@ export class WorkloadManager {
       }
     }
 
-    if (allFetched.length >= 500) {
+    if (allFetched.length > 50) {
       this.entries = allFetched;
+      this.lastSynced = new Date().toISOString();
       this.saveToStorage();
       return { success: true, count: allFetched.length };
     }

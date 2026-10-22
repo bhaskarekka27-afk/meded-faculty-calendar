@@ -8,7 +8,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T09:48:08.137Z",
+    "lastSynced": "2026-10-22T10:00:12.220Z",
     "eventCount": 35,
     "events": [
       {
@@ -1317,7 +1317,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T09:48:09.529Z",
+    "lastSynced": "2026-10-22T10:00:13.608Z",
     "eventCount": 31,
     "events": [
       {
@@ -2478,7 +2478,7 @@ export const DEFAULT_BATCHES = [
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-22T09:48:10.937Z",
+    "lastSynced": "2026-10-22T10:00:15.220Z",
     "eventCount": 22,
     "events": [
       {
@@ -3306,7 +3306,7 @@ export const DEFAULT_BATCHES = [
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-22T09:48:12.369Z",
+    "lastSynced": "2026-10-22T10:00:16.696Z",
     "eventCount": 27,
     "events": [
       {

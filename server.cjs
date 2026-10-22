@@ -137,8 +137,11 @@ async function fetchSheetRaw(sheetIdOrUrl, sheet = 'Lecture Planner', gidParam =
   }
   if (!sheetId) throw new Error('Missing sheetId');
 
-  const resolvedGid = await resolveSheetGid(sheetId, sheet);
-  const targetGid = resolvedGid || gid;
+  let targetGid = gid;
+  if (!targetGid) {
+    const resolvedGid = await resolveSheetGid(sheetId, sheet);
+    targetGid = resolvedGid || null;
+  }
 
   const timestamp = Date.now();
   const tries = [];
@@ -146,16 +149,16 @@ async function fetchSheetRaw(sheetIdOrUrl, sheet = 'Lecture Planner', gidParam =
     tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${targetGid}&_t=${timestamp}`);
     tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${targetGid}&_t=${timestamp}`);
   }
-  if (gid && gid !== targetGid) {
-    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&_t=${timestamp}`);
-    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${timestamp}`);
+  if (!gid && sheet && sheet !== 'Lecture Planner') {
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
+    tries.push(
+      sheet.endsWith(' ')
+        ? `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}&_t=${timestamp}`
+        : `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}&_t=${timestamp}`
+    );
+  } else if (!targetGid && sheet) {
+    tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
   }
-  tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${timestamp}`);
-  tries.push(
-    sheet.endsWith(' ')
-      ? `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet.trim())}&_t=${timestamp}`
-      : `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet + ' ')}&_t=${timestamp}`
-  );
 
   for (const target of tries) {
     try {
@@ -163,12 +166,12 @@ async function fetchSheetRaw(sheetIdOrUrl, sheet = 'Lecture Planner', gidParam =
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
       });
       const text = await r.text();
-      if (text && text.trim().length > 50 && !/^"?Completion %/.test(text)) {
+      if (text && text.trim().length > 30 && !/^"?Completion %/.test(text)) {
         return text;
       }
     } catch (_) { /* try next */ }
   }
-  throw new Error(`Could not find a valid lecture tab for "${sheet}".`);
+  throw new Error(`Could not find a valid sheet tab for "${sheet}" (gid: ${targetGid || 'auto'}).`);
 }
 
 async function fetchSheet(res, q) {
@@ -1586,12 +1589,313 @@ function handleNotificationsApi(req, res, pathname) {
   return json(res, 405, { error: 'Method not allowed' });
 }
 
+// --- Workload Data Sync & Persistence ---
+const WORKLOAD_SHEET_ID = '1dXhAe2a-1Veks15_4QxftrEe2iDhwQKWVmBgllMk2cI';
+const WORKLOAD_JSON_FILE = path.join(ROOT, 'data_workload.json');
+
+function cleanFacultyTabName(tabName = '') {
+  if (!tabName) return 'Faculty Doctor';
+  let clean = tabName.trim();
+  clean = clean.replace(/\s+Sir$/i, '').replace(/\s+Ma'am$/i, '').replace(/\s+Maam$/i, '');
+  if (!clean.startsWith('Dr.') && !clean.startsWith('Prof.')) {
+    clean = 'Dr. ' + clean;
+  }
+  return clean;
+}
+
+function parseCSVStateMachine(text) {
+  if (!text) return [];
+  const lines = [];
+  let row = [];
+  let inQuotes = false;
+  let currentField = '';
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentField.trim());
+      currentField = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      row.push(currentField.trim());
+      lines.push(row);
+      row = [];
+      currentField = '';
+    } else {
+      currentField += char;
+    }
+  }
+  if (currentField || row.length > 0) {
+    row.push(currentField.trim());
+    lines.push(row);
+  }
+  return lines;
+}
+
+function normalizeMonth(monthName = '', dateRaw = '') {
+  let m = (monthName || '').trim();
+  if (dateRaw) {
+    const match = dateRaw.match(/(\d{1,2})[\/\-\.]([A-Za-z]+)[\/\-\.](\d{2,4})/);
+    if (match && match[2]) {
+      m = match[2];
+    }
+  }
+
+  const map = {
+    jan: 'January', janary: 'January', january: 'January',
+    feb: 'February', feburary: 'February', february: 'February',
+    mar: 'March', march: 'March',
+    apr: 'April', april: 'April',
+    may: 'May',
+    jun: 'June', june: 'June',
+    jul: 'July', july: 'July',
+    aug: 'August', august: 'August',
+    sep: 'September', sept: 'September', september: 'September',
+    oct: 'October', october: 'October',
+    nov: 'November', november: 'November',
+    dec: 'December', december: 'December'
+  };
+
+  const cleanM = m.replace(/202[0-9]/g, '').trim().toLowerCase();
+  return map[cleanM] || m || 'Unspecified';
+}
+
+function parseWorkloadCSVServer(csvText, tabName, gid = '') {
+  const rows = parseCSVStateMachine(csvText);
+  if (rows.length < 2) return [];
+
+  let headerRowIdx = -1;
+  let headers = [];
+  for (let i = 0; i < Math.min(8, rows.length); i++) {
+    const r = rows[i];
+    if (r.some(c => /month/i.test(c) || /^1$/i.test(c) || /date/i.test(c))) {
+      headerRowIdx = i;
+      headers = r;
+      break;
+    }
+  }
+
+  let monthCol = -1, dateCol = -1, batchCol = -1, liveTypeCol = -1, hoursCol = -1, cancelCol = -1, reschedCol = -1, reasonCol = -1;
+  if (headerRowIdx !== -1) {
+    headers.forEach((h, idx) => {
+      const lower = h.toLowerCase().trim();
+      if (lower === 'month' || lower === '1' || lower === 'months' || lower === 'month 2026') monthCol = idx;
+      else if (lower === 'date' || lower === 'dates') dateCol = idx;
+      else if (lower.includes('batch')) batchCol = idx;
+      else if (lower.includes('live type') || lower.includes('platform') || lower === 'type') liveTypeCol = idx;
+      else if (lower.includes('working hours') || lower === 'hours' || lower === 'working hour' || lower.includes('hrs')) hoursCol = idx;
+      else if (lower.includes('class cancel') || lower === 'cancel' || lower === 'cancelled') cancelCol = idx;
+      else if (lower.includes('reschedule') || lower === 'reschedule class') reschedCol = idx;
+      else if (lower.includes('reason')) reasonCol = idx;
+    });
+  }
+
+  if (monthCol === -1) monthCol = 0;
+  if (dateCol === -1) dateCol = 1;
+  if (batchCol === -1) batchCol = 2;
+  if (cancelCol === -1) cancelCol = 7;
+  if (reschedCol === -1) reschedCol = 6;
+  if (liveTypeCol === -1) liveTypeCol = 8;
+  if (hoursCol === -1) hoursCol = 10;
+
+  const entries = [];
+  let currentMonth = '';
+  const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 1;
+
+  for (let i = startRow; i < rows.length; i++) {
+    const cols = rows[i];
+    if (cols.length < 2 || cols.every(c => !c)) continue;
+
+    const rawMonth = cols[monthCol] || '';
+    if (rawMonth && !/total|sum|average|note/i.test(rawMonth)) {
+      currentMonth = rawMonth;
+    }
+
+    const rawDate = cols[dateCol] || '';
+    const rawBatch = cols[batchCol] || '';
+    const rawLiveType = cols[liveTypeCol] || '';
+    const rawHours = cols[hoursCol] || '';
+    const rawCancel = cols[cancelCol] || '';
+    const rawResched = cols[reschedCol] || '';
+    const rawReason = reasonCol !== -1 ? (cols[reasonCol] || '') : '';
+
+    if (/total|sum|average/i.test(rawMonth) || /total|sum|average/i.test(rawDate) || /total|sum|average/i.test(rawBatch)) {
+      continue;
+    }
+    if (!rawDate && !rawBatch && (!rawHours || rawHours === '0')) {
+      continue;
+    }
+
+    const normMonth = normalizeMonth(currentMonth, rawDate);
+    const hours = parseFloat(rawHours) || 0;
+    const isCancel = rawCancel.toUpperCase() === 'TRUE';
+    const isResched = rawResched.toUpperCase() === 'TRUE';
+
+    const isYt = /youtube|yt/i.test(rawLiveType) || /youtube/i.test(rawBatch);
+    const isApp = /app/i.test(rawLiveType) || (!isYt && rawLiveType.length > 0) || (!isYt && !rawLiveType && hours > 0);
+
+    let isoDate = null;
+    if (rawDate) {
+      const dateMatch = rawDate.match(/(\d{1,2})[\/\-\.]([A-Za-z]+)[\/\-\.](\d{2,4})/);
+      if (dateMatch) {
+        const monthMap = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06', july: '07', august: '08', september: '09', october: '10', november: '11', december: '12', jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+        const mNum = monthMap[dateMatch[2].toLowerCase()] || '05';
+        const yNum = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
+        isoDate = `${yNum}-${mNum}-${dateMatch[1].padStart(2, '0')}`;
+      }
+    }
+
+    entries.push({
+      id: `wl-${gid || tabName}-${i}`,
+      faculty: cleanFacultyTabName(tabName),
+      tabName: tabName,
+      gid: gid || '',
+      month: normMonth,
+      dateRaw: rawDate,
+      isoDate: isoDate,
+      batchName: rawBatch || 'Standard Lecture',
+      liveType: rawLiveType || (isYt && isApp ? 'YT+APP' : (isYt ? 'Youtube' : 'App')),
+      workingHours: hours,
+      isApp: isApp,
+      isYoutube: isYt,
+      isCancel: isCancel,
+      isResched: isResched,
+      reason: rawReason
+    });
+  }
+
+  return entries;
+}
+
+let isWorkloadSyncing = false;
+let workloadCache = null;
+
+async function syncWorkloadData(force = false) {
+  if (isWorkloadSyncing && !force) return workloadCache;
+  isWorkloadSyncing = true;
+  try {
+    const timestamp = Date.now();
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${WORKLOAD_SHEET_ID}/edit?_t=${timestamp}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
+    const html = await res.text();
+    const re = /\\\"(\d+)\\\",\[\{\\\"1\\\":\[\[0,0,\\\"([^\\\"]+)\\\"/g;
+    let match;
+    const tabs = [];
+    while ((match = re.exec(html)) !== null) {
+      const gid = match[1];
+      const name = match[2].trim();
+      if (/dashboard|summary|template/i.test(name)) continue;
+      tabs.push({ gid, name });
+    }
+
+    if (tabs.length === 0) {
+      console.warn('[Workload Sync] No faculty tabs detected on spreadsheet.');
+      isWorkloadSyncing = false;
+      return workloadCache;
+    }
+
+    const promises = tabs.map(async (tab) => {
+      try {
+        const r = await fetch(`https://docs.google.com/spreadsheets/d/${WORKLOAD_SHEET_ID}/gviz/tq?tqx=out:csv&gid=${tab.gid}&_t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        const csv = await r.text();
+        return parseWorkloadCSVServer(csv, tab.name, tab.gid);
+      } catch (e) {
+        console.error(`[Workload Sync] Error fetching tab ${tab.name}:`, e.message);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(promises);
+    const all = results.flat();
+
+    if (all.length > 50 || force) {
+      const payload = {
+        lastSynced: new Date().toISOString(),
+        total: all.length,
+        tabsCount: tabs.length,
+        tabs: tabs,
+        entries: all
+      };
+      workloadCache = payload;
+      fs.writeFileSync(WORKLOAD_JSON_FILE, JSON.stringify(payload), 'utf-8');
+      console.log(`[Workload Sync] 📊 Workload synced successfully: ${all.length} entries across ${tabs.length} tabs.`);
+    }
+    isWorkloadSyncing = false;
+    return workloadCache;
+  } catch (err) {
+    console.error('[Workload Sync] Failed to sync workload from sheet:', err.message);
+    isWorkloadSyncing = false;
+    return workloadCache;
+  }
+}
+
+function getWorkloadData() {
+  if (workloadCache) return workloadCache;
+  if (fs.existsSync(WORKLOAD_JSON_FILE)) {
+    try {
+      const raw = fs.readFileSync(WORKLOAD_JSON_FILE, 'utf-8');
+      workloadCache = JSON.parse(raw);
+      return workloadCache;
+    } catch (_) {}
+  }
+  return null;
+}
+
+async function handleWorkloadApi(req, res, pathname) {
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.end();
+  }
+
+  if (pathname === '/api/workload/sync-now' && req.method === 'POST') {
+    try {
+      const synced = await syncWorkloadData(true);
+      return json(res, 200, { success: true, ...synced });
+    } catch (err) {
+      return json(res, 500, { success: false, error: err.message });
+    }
+  }
+
+  if (pathname === '/api/workload/tabs' && req.method === 'GET') {
+    const data = getWorkloadData();
+    return json(res, 200, { success: true, tabs: data?.tabs || [] });
+  }
+
+  if (req.method === 'GET') {
+    let data = getWorkloadData();
+    if (!data) {
+      data = await syncWorkloadData(true);
+    }
+    return json(res, 200, { success: true, ...data });
+  }
+
+  return json(res, 405, { error: 'Method not allowed' });
+}
+
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsed.pathname);
 
   if (pathname.startsWith('/api/detect-tabs')) return detectTabs(res, parsed.query);
   if (pathname.startsWith('/api/fetch-sheet')) return fetchSheet(res, parsed.query);
+  if (pathname.startsWith('/api/workload')) return handleWorkloadApi(req, res, pathname);
   if (pathname.startsWith('/api/faculty-onboarding')) return handleFacultyOnboardingApi(req, res, pathname);
   if (pathname.startsWith('/api/batches')) return handleBatchesApi(req, res, pathname);
   if (pathname.startsWith('/api/requests')) return handleRequestsApi(req, res, pathname);
@@ -1657,5 +1961,18 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Start Server-Side Sheet Auto-Sync Engine (checks sheets every 30s)
   sheetSyncEngine.start(30000);
+
+  // Initial Workload Sync from Google Sheet (3s delay) and auto-poll every 60s
+  setTimeout(() => {
+    syncWorkloadData(false).catch(err => {
+      console.error('[Workload Sync] Initial sync error:', err.message);
+    });
+  }, 3000);
+
+  setInterval(() => {
+    syncWorkloadData(false).catch(err => {
+      console.error('[Workload Sync] Interval sync error:', err.message);
+    });
+  }, 60000);
 });
 
