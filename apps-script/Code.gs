@@ -1692,4 +1692,83 @@ function checkAndSendScheduledReminders_() {
   return { ok: true, dispatchedCount: dispatched.length, dispatched: dispatched };
 }
 
+// ---------------------------------------------------------------------------
+// REAL-TIME SHEET SYNC WEBHOOK TRIGGERS (onEdit & onChange)
+// ---------------------------------------------------------------------------
+
+/**
+ * Simple Trigger: Fires immediately whenever any cell is edited in the spreadsheet.
+ */
+function onEdit(e) {
+  try {
+    notifyPortalSheetUpdated_(e, 'onEdit');
+  } catch (err) {
+    Logger.log('onEdit notify error: ' + err.message);
+  }
+}
+
+/**
+ * Installable Trigger: Fires on structural changes (row additions, deletions, imports).
+ */
+function onChange(e) {
+  try {
+    notifyPortalSheetUpdated_(e, e ? e.changeType : 'onChange');
+  } catch (err) {
+    Logger.log('onChange notify error: ' + err.message);
+  }
+}
+
+/**
+ * Sends a lightweight webhook ping to the MedEd server so the server fetches
+ * the latest sheet data immediately without waiting for the periodic 30s poller.
+ */
+function notifyPortalSheetUpdated_(e, eventType) {
+  var props = PropertiesService.getScriptProperties();
+  var portalUrl = props.getProperty('PW_MEDED_PORTAL_URL') || 'http://localhost:5173';
+  var webhookUrl = portalUrl.replace(/\/+$/, '') + '/api/sheets/webhook';
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = '';
+  if (e && e.range && e.range.getSheet) {
+    sheetName = e.range.getSheet().getName();
+  } else if (ss && ss.getActiveSheet) {
+    sheetName = ss.getActiveSheet().getName();
+  }
+
+  // Skip changes on internal log or non-lecture tabs
+  if (/reschedule log|audit/i.test(sheetName)) return;
+
+  var payload = {
+    sheetId: ss ? ss.getId() : '',
+    sheetName: sheetName,
+    eventType: eventType || 'edit',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    UrlFetchApp.fetch(webhookUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    Logger.log('✓ Notified MedEd Portal webhook for update on sheet: ' + sheetName);
+  } catch (err) {
+    // If the local portal is not publicly reachable from Google cloud,
+    // the server's autonomous 30-second poller with MD5 fingerprinting guarantees sync.
+    Logger.log('Webhook ping skipped/unreachable: ' + err.message);
+  }
+}
+
+/**
+ * Helper to configure the portal URL for webhooks in Google Apps Script properties.
+ */
+function set_portal_webhook_url(url) {
+  var target = (url || 'http://localhost:5173').trim();
+  PropertiesService.getScriptProperties().setProperty('PW_MEDED_PORTAL_URL', target);
+  Logger.log('Portal webhook URL set to: ' + target);
+  return { ok: true, portalUrl: target };
+}
+
+
 

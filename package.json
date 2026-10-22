@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "nodemailer": "^10.2.0",
     "pino": "^10.4.0",
     "qrcode": "^1.5.4",
     "vite": "^6.2.0"

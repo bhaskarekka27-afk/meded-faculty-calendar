@@ -97,7 +97,34 @@ export class ReminderEmailService {
         }
       });
       this.pullServerSettings().catch(() => {});
+      this.pullServerNotifications().catch(() => {});
+      setInterval(() => {
+        this.pullServerNotifications().catch(() => {});
+      }, 25000);
     }
+  }
+
+  async pullServerNotifications() {
+    if (typeof fetch === 'undefined') return;
+    try {
+      const res = await fetch('/api/notifications', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.notifications) && data.notifications.length > 0) {
+          const current = this.getAllNotifications();
+          const existingIds = new Set(current.map(n => n.id));
+          const newNotifs = data.notifications.filter(n => !existingIds.has(n.id));
+          if (newNotifs.length > 0) {
+            const merged = [...newNotifs, ...current].slice(0, 300);
+            this._inMemoryNotifs = merged;
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem(this.NOTIFICATIONS_KEY, JSON.stringify(merged));
+            }
+            this.broadcastEvent('meded:notifications_updated', merged);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   async pullServerSettings() {
@@ -788,7 +815,15 @@ export class ReminderEmailService {
     // 1. Try local server relay endpoint first (/api/send-email)
     try {
       if (typeof fetch !== 'undefined') {
-        const res = await fetch('/api/send-email', {
+        let endpoint = '/api/send-email';
+        if (typeof window !== 'undefined' && window.location && window.location.origin) {
+          endpoint = `${window.location.origin}/api/send-email`;
+        } else if (typeof process !== 'undefined' && process.env) {
+          const p = process.env.PORT || 5173;
+          endpoint = `http://localhost:${p}/api/send-email`;
+        }
+
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1385,16 +1420,11 @@ export class ReminderEmailService {
     const leadMinutes = settings.leadDurationMinutes || 30;
     const now = new Date();
 
-    // Trigger tolerance window:
-    // How close to target reminder time (leadMinutes before class start) must the check be?
-    // If checks run every 30-60 seconds (or 5-10m cron):
-    // - For 12h or 24h reminders (lead >= 720m): allow a 60 min window (leadMinutes down to leadMinutes - 60).
-    // - For 2h to 6h reminders (lead >= 120m): allow a 30 min window (leadMinutes down to leadMinutes - 30).
-    // - For shorter reminders (15m, 30m, 45m, 1h): allow a 15 min window (leadMinutes down to leadMinutes - 15).
-    // This prevents triggering reminders at random arbitrary hours of the day (e.g. triggering a 24h reminder 4 hours before class).
-    const toleranceMinutes = leadMinutes >= 720 ? 60 : (leadMinutes >= 120 ? 30 : 15);
-    const minDiffMinutes = Math.max(0, leadMinutes - toleranceMinutes);
-    const maxDiffMinutes = leadMinutes + 5; // 5-minute forward leeway for timer jitter
+    // Trigger window:
+    // Any upcoming class starting between now (with 15m grace window for classes just starting)
+    // and leadMinutes ahead (with 5m forward leeway for timer jitter).
+    const minDiffMinutes = -15;
+    const maxDiffMinutes = leadMinutes + 5;
     
     events.forEach(ev => {
       if (ev.eventType !== 'class' || !ev.isoDate || !ev.faculty) return;

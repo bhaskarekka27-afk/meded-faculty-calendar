@@ -8,7 +8,7 @@ import { DEFAULT_BATCHES } from './defaultData.js';
 import { startSharedSettingsSync } from './sharedSettings.js';
 import { generateGoogleCalendarUrl, generateIcsContent, downloadIcsFile } from './icsExporter.js';
 import { reminderEmailService } from './reminderEmailService.js';
-import { renderPlatformBadges, renderBatchBadge, getDeliveryPlatformText, getProgramType, renderProgramBadge, renderLectureStatusBadge, getLectureCardStyle, getLectureStatus } from './platformBadge.js';
+import { renderPlatformBadges, renderBatchBadge, getBatchTag, getDeliveryPlatformText, getProgramType, renderProgramBadge, renderLectureStatusBadge, getLectureCardStyle, getLectureStatus } from './platformBadge.js';
 import { WorkloadManager } from './workloadData.js';
 import { renderWorkloadView } from './workloadView.js';
 import { renderRequestsView, getStoredRequests, updateRequestStatus, saveStoredRequests, addFacultyRequest, openRescheduleApprovalModal, getRequestById } from './requestsView.js';
@@ -104,6 +104,10 @@ class AdminDashboardController {
     this.batchGraphDayMonth = 'all'; // 'all' | '2026-09' | '2026-10' | '2026-11'
     this.batchGraphSelectedKey = null; // Key of inspected item
 
+    // Dashboard Class Delivery Status Filter & Search State
+    this.dashboardDeliveryFilter = 'all'; // 'all' | 'conducted' | 'cancelled' | 'rescheduled' | 'scheduled'
+    this.dashboardDeliverySearch = '';
+
     // Faculty Onboarding State - loaded dynamically from persistent spreadsheet & storage
     this.onboardingPage = 1;
     this.onboardingPageSize = 5;
@@ -129,6 +133,7 @@ class AdminDashboardController {
     this.setupWhatsAppPreviewModal();
     this.setupEventDetailModal();
     this.setupFacultyHighlightsCard();
+    this.setupDeliveryCardScopeButtons();
     this.setupFacultyHighlightsModal();
     this.setupBatchRealTimeSyncListener();
     this.initOnboardingHandlers();
@@ -306,6 +311,18 @@ class AdminDashboardController {
 
   getAllActiveEvents() {
     let events = this.batchManager.getAllEvents(this.currentBatchId);
+
+    // Apply Delivery Status Filter (Conducted, Cancelled, Rescheduled, Scheduled)
+    if (this.calendarStatusFilter && this.calendarStatusFilter !== 'all') {
+      events = events.filter(e => {
+        const st = getLectureStatus(e);
+        if (this.calendarStatusFilter === 'conducted') return st.isConducted;
+        if (this.calendarStatusFilter === 'cancelled') return st.isCancelled;
+        if (this.calendarStatusFilter === 'rescheduled') return st.isRescheduled;
+        if (this.calendarStatusFilter === 'scheduled') return (!st.isConducted && !st.isCancelled && !st.isRescheduled);
+        return true;
+      });
+    }
 
     // Apply Teacher / Faculty Filter
     if (this.selectedFaculty && this.selectedFaculty !== 'all') {
@@ -701,6 +718,8 @@ class AdminDashboardController {
         this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
         this.currentYear = this.currentWeekStart.getFullYear();
         this.currentMonth = this.currentWeekStart.getMonth();
+        this.facultyHighlightScope = 'week';
+        this.deliveryScope = 'week';
       } else {
         this.currentMonth--;
         if (this.currentMonth < 0) {
@@ -708,10 +727,15 @@ class AdminDashboardController {
           this.currentYear--;
         }
         this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
+        this.facultyHighlightScope = 'month';
+        this.deliveryScope = 'month';
       }
-      this.facultyHighlightScope = 'month';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
     });
 
@@ -720,6 +744,8 @@ class AdminDashboardController {
         this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
         this.currentYear = this.currentWeekStart.getFullYear();
         this.currentMonth = this.currentWeekStart.getMonth();
+        this.facultyHighlightScope = 'week';
+        this.deliveryScope = 'week';
       } else {
         this.currentMonth++;
         if (this.currentMonth > 11) {
@@ -727,10 +753,15 @@ class AdminDashboardController {
           this.currentYear++;
         }
         this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
+        this.facultyHighlightScope = 'month';
+        this.deliveryScope = 'month';
       }
-      this.facultyHighlightScope = 'month';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
     });
 
@@ -744,10 +775,14 @@ class AdminDashboardController {
       this.dashboardMonth = now.getMonth();
       this.dashboardWeekStart = startOfWeek(now);
       this.dashboardDayIso = todayIso();
-      this.facultyHighlightScope = 'month';
+      this.facultyHighlightScope = this.calendarSubView === 'week' ? 'week' : 'month';
+      this.deliveryScope = this.facultyHighlightScope;
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
 
       setTimeout(() => {
@@ -762,6 +797,110 @@ class AdminDashboardController {
     });
 
     this.setupTeacherFilter();
+    this.setupCalendarStatusFilter();
+  }
+
+  setupCalendarStatusFilter() {
+    const statusBtn = document.getElementById('calActionStatusBtn');
+    const statusDropdown = document.getElementById('calActionStatusDropdown');
+
+    if (!statusBtn || !statusDropdown) return;
+
+    statusBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      statusDropdown.classList.toggle('hidden');
+      if (!statusDropdown.classList.contains('hidden')) {
+        this.renderCalendarStatusDropdownList();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!statusBtn.contains(e.target) && !statusDropdown.contains(e.target)) {
+        statusDropdown.classList.add('hidden');
+      }
+    });
+  }
+
+  renderCalendarStatusDropdownList() {
+    const listEl = document.getElementById('calActionStatusList');
+    if (!listEl) return;
+
+    const allBatchEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allBatchEvents.filter(e => e.eventType === 'class');
+
+    const counts = {
+      all: classes.length,
+      conducted: 0,
+      cancelled: 0,
+      rescheduled: 0,
+      scheduled: 0
+    };
+
+    classes.forEach(e => {
+      const st = getLectureStatus(e);
+      if (st.isConducted) counts.conducted++;
+      else if (st.isCancelled) counts.cancelled++;
+      else if (st.isRescheduled) counts.rescheduled++;
+      else counts.scheduled++;
+    });
+
+    const currentFilter = this.calendarStatusFilter || 'all';
+
+    const items = [
+      { key: 'all', label: 'All Classes', count: counts.all, color: '#4a7c59', bg: 'bg-[#eef4f0]', text: 'text-[#2d4d37]', border: 'border-[#cde0d3]', icon: 'select_all' },
+      { key: 'conducted', label: 'Conducted Classes', count: counts.conducted, color: '#16a34a', bg: 'bg-[#dcfce7]', text: 'text-[#15803d]', border: 'border-[#86efac]', icon: 'check_circle' },
+      { key: 'cancelled', label: 'Cancelled Classes', count: counts.cancelled, color: '#dc2626', bg: 'bg-[#fee2e2]', text: 'text-[#b91c1c]', border: 'border-[#fca5a5]', icon: 'cancel' },
+      { key: 'rescheduled', label: 'Rescheduled Classes', count: counts.rescheduled, color: '#d97706', bg: 'bg-[#fef3c7]', text: 'text-[#b45309]', border: 'border-[#fcd34d]', icon: 'update' },
+      { key: 'scheduled', label: 'Scheduled / Planned', count: counts.scheduled, color: '#576058', bg: 'bg-[#f7f4ed]', text: 'text-[#576058]', border: 'border-[#ded5c6]', icon: 'schedule' }
+    ];
+
+    let html = '';
+    items.forEach(item => {
+      const isSelected = currentFilter === item.key;
+      html += `
+        <div class="px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors ${isSelected ? `${item.bg} ${item.text} font-bold` : 'text-[#3b433c]'}" data-cal-status="${item.key}">
+          <div class="flex items-center gap-2 truncate pr-2">
+            <span class="w-6 h-6 rounded-full ${item.bg} ${item.text} border ${item.border} flex items-center justify-center text-[10px] font-bold shrink-0">
+              <span class="material-symbols-outlined text-[14px]">${item.icon}</span>
+            </span>
+            <span class="truncate block font-bold text-[#2c332d]">${item.label}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${item.bg} ${item.text} border ${item.border}">
+              ${item.count}
+            </span>
+            ${isSelected ? `<span class="material-symbols-outlined text-[16px] ${item.text}">check</span>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll('[data-cal-status]').forEach(el => {
+      el.addEventListener('click', () => {
+        const st = el.getAttribute('data-cal-status');
+        this.calendarStatusFilter = st;
+        document.getElementById('calActionStatusDropdown')?.classList.add('hidden');
+        this.updateCalendarStatusFilterLabel();
+        this.renderMainContent();
+        const found = items.find(i => i.key === st);
+        this.showToast(`Filtering calendar by ${found ? found.label : st}`);
+      });
+    });
+  }
+
+  updateCalendarStatusFilterLabel() {
+    const labelEl = document.getElementById('calActionStatusLabel');
+    if (!labelEl) return;
+    const labels = {
+      all: 'All Classes',
+      conducted: 'Conducted',
+      cancelled: 'Cancelled',
+      rescheduled: 'Rescheduled',
+      scheduled: 'Scheduled'
+    };
+    labelEl.textContent = labels[this.calendarStatusFilter || 'all'] || 'All Classes';
   }
 
   setupTeacherFilter() {
@@ -1171,21 +1310,33 @@ class AdminDashboardController {
 
     btnMonth?.addEventListener('click', () => {
       this.calendarSubView = 'month';
+      this.facultyHighlightScope = 'month';
+      this.deliveryScope = 'month';
       this.mainTab = 'calendar';
       this.updateDockState('calendar');
       this.updateViewButtons();
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
     });
 
     btnWeek?.addEventListener('click', () => {
       this.calendarSubView = 'week';
+      this.facultyHighlightScope = 'week';
+      this.deliveryScope = 'week';
       this.mainTab = 'calendar';
       this.updateDockState('calendar');
       this.updateViewButtons();
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
     });
 
@@ -1194,8 +1345,12 @@ class AdminDashboardController {
       this.mainTab = 'calendar';
       this.updateDockState('calendar');
       this.updateViewButtons();
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
       this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderMainContent();
     });
   }
@@ -1334,6 +1489,29 @@ class AdminDashboardController {
     if (pacePercentEl) pacePercentEl.textContent = `${pacePct}%`;
     if (paceStatusEl) paceStatusEl.textContent = pacePct >= 70 ? 'On-Track' : (pacePct >= 40 ? 'In-Progress' : 'Planning');
     if (paceBadgeEl) paceBadgeEl.textContent = 'NMC Aligned';
+
+    // Card 4: Class Delivery Status (Conducted, Cancelled, Rescheduled, Scheduled)
+    this.renderDeliveryStatusCard();
+
+    const deliveryCardBtn = document.getElementById('cardClassDeliveryStatusBtn');
+    if (deliveryCardBtn && !deliveryCardBtn._hasStatusClick) {
+      deliveryCardBtn._hasStatusClick = true;
+      deliveryCardBtn.addEventListener('click', (e) => {
+        if (e.target.closest('#cardDeliveryScopeDay, #cardDeliveryScopeWeek, #cardDeliveryScopeMonth')) {
+          return;
+        }
+        this.mainTab = 'dashboard';
+        this.updateDockState('dashboard');
+        if (window.location.hash !== '#dashboard') {
+          window.history.pushState(null, '', '#dashboard');
+        }
+        this.renderMainContent();
+        setTimeout(() => {
+          const el = document.getElementById('dashboardClassDeliverySection');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      });
+    }
   }
 
   // --- Faculty Highlights Single Card Controller ---
@@ -1344,65 +1522,230 @@ class AdminDashboardController {
     const btnMonth = document.getElementById('cardFacultyScopeMonth');
 
     const updateScopeButtons = () => {
+      const activeScope = this.facultyHighlightScope || this.deliveryScope || this.dashboardScope || 'month';
       [btnDay, btnWeek, btnMonth].forEach(b => {
         if (!b) return;
         b.className = 'px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent';
       });
       let activeBtn = btnMonth;
-      if (this.facultyHighlightScope === 'day') activeBtn = btnDay;
-      if (this.facultyHighlightScope === 'week') activeBtn = btnWeek;
+      if (activeScope === 'day') activeBtn = btnDay;
+      if (activeScope === 'week') activeBtn = btnWeek;
       if (activeBtn) {
         activeBtn.className = 'px-2 py-0.5 rounded btn-3d-primary font-bold text-white cursor-pointer border-none';
       }
     };
 
-    btnDay?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.facultyHighlightScope = 'day';
+    const handleScopeChange = (scope) => {
+      this.facultyHighlightScope = scope;
+      this.deliveryScope = scope;
       if (this.mainTab === 'dashboard') {
-        this.dashboardScope = 'day';
-        this.batchGraphGranularity = 'day';
+        this.dashboardScope = scope;
+        this.batchGraphGranularity = scope;
       }
       updateScopeButtons();
+      this.updateDeliveryCardScopeButtons?.();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       if (this.mainTab === 'dashboard') {
         this.renderDashboardView();
       }
+    };
+
+    btnDay?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleScopeChange('day');
     });
 
     btnWeek?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.facultyHighlightScope = 'week';
-      if (this.mainTab === 'dashboard') {
-        this.dashboardScope = 'week';
-        this.batchGraphGranularity = 'week';
-      }
-      updateScopeButtons();
-      this.renderFacultyHighlightsCard();
-      if (this.mainTab === 'dashboard') {
-        this.renderDashboardView();
-      }
+      handleScopeChange('week');
     });
 
     btnMonth?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.facultyHighlightScope = 'month';
-      if (this.mainTab === 'dashboard') {
-        this.dashboardScope = 'month';
-        this.batchGraphGranularity = 'month';
-      }
-      updateScopeButtons();
-      this.renderFacultyHighlightsCard();
-      if (this.mainTab === 'dashboard') {
-        this.renderDashboardView();
-      }
+      handleScopeChange('month');
     });
 
-    card?.addEventListener('click', () => {
+    card?.addEventListener('click', (e) => {
+      if (e.target.closest('#cardFacultyScopeDay, #cardFacultyScopeWeek, #cardFacultyScopeMonth')) return;
       this.openFacultyHighlightsModal();
     });
 
     this.updateFacultyCardScopeButtons = updateScopeButtons;
+  }
+
+  // --- Delivery Status Single Card Controller ---
+  setupDeliveryCardScopeButtons() {
+    const btnDay = document.getElementById('cardDeliveryScopeDay');
+    const btnWeek = document.getElementById('cardDeliveryScopeWeek');
+    const btnMonth = document.getElementById('cardDeliveryScopeMonth');
+
+    const updateScopeButtons = () => {
+      const activeScope = this.deliveryScope || this.facultyHighlightScope || this.dashboardScope || 'month';
+      [btnDay, btnWeek, btnMonth].forEach(b => {
+        if (!b) return;
+        b.className = 'px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent';
+      });
+      let activeBtn = btnMonth;
+      if (activeScope === 'day') activeBtn = btnDay;
+      if (activeScope === 'week') activeBtn = btnWeek;
+      if (activeBtn) {
+        activeBtn.className = 'px-2 py-0.5 rounded btn-3d-primary font-bold text-white cursor-pointer border-none';
+      }
+    };
+
+    const handleScopeChange = (scope) => {
+      this.deliveryScope = scope;
+      this.facultyHighlightScope = scope;
+      if (this.mainTab === 'dashboard') {
+        this.dashboardScope = scope;
+        this.batchGraphGranularity = scope;
+      }
+      updateScopeButtons();
+      this.updateFacultyCardScopeButtons?.();
+      this.renderDeliveryStatusCard();
+      this.renderFacultyHighlightsCard();
+      if (this.mainTab === 'dashboard') {
+        this.renderDashboardView();
+      }
+    };
+
+    btnDay?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleScopeChange('day');
+    });
+
+    btnWeek?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleScopeChange('week');
+    });
+
+    btnMonth?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleScopeChange('month');
+    });
+
+    this.updateDeliveryCardScopeButtons = updateScopeButtons;
+  }
+
+  renderDeliveryStatusCard() {
+    this.updateDeliveryCardScopeButtons?.();
+
+    const isCalendar = (this.mainTab === 'calendar' || !this.mainTab);
+    const scope = this.deliveryScope || this.facultyHighlightScope || this.dashboardScope || 'month';
+    this.deliveryScope = scope;
+
+    const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allEvents.filter(e => e.eventType === 'class');
+
+    let filtered = [];
+    let scopeBadgeText = '';
+
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    let targetYear, targetMonth, targetWeekStart, targetDayIso;
+
+    if (isCalendar) {
+      targetYear = this.currentYear !== undefined ? this.currentYear : 2026;
+      targetMonth = this.currentMonth !== undefined ? this.currentMonth : (this.dashboardMonth !== undefined ? this.dashboardMonth : 9);
+      if (this.currentWeekStart) {
+        targetWeekStart = this.currentWeekStart;
+      } else {
+        targetWeekStart = startOfWeek(new Date(targetYear, targetMonth, 1));
+      }
+      const monthPrefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+      if (this.selectedDayIso && this.selectedDayIso.startsWith(monthPrefix)) {
+        targetDayIso = this.selectedDayIso;
+      } else {
+        targetDayIso = `${monthPrefix}-01`;
+      }
+    } else {
+      targetYear = this.dashboardYear !== undefined ? this.dashboardYear : (this.currentYear || 2026);
+      targetMonth = this.dashboardMonth !== undefined ? this.dashboardMonth : (this.currentMonth !== undefined ? this.currentMonth : 9);
+      targetWeekStart = this.dashboardWeekStart || this.currentWeekStart || new Date(targetYear, targetMonth, 1);
+      targetDayIso = this.dashboardDayIso || this.selectedDayIso || todayIso();
+    }
+
+    if (scope === 'day') {
+      filtered = classes.filter(e => e.isoDate === targetDayIso);
+      const d = parseIso(targetDayIso) || new Date();
+      const isToday = targetDayIso === todayIso();
+      scopeBadgeText = `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}${isToday ? ' (Today)' : ''}`;
+    } else if (scope === 'week') {
+      const sunday = startOfWeek(targetWeekStart);
+      const saturday = endOfWeek(targetWeekStart);
+      const sundayIso = toLocalIso(sunday);
+      const saturdayIso = toLocalIso(saturday);
+
+      filtered = classes.filter(e => e.isoDate && e.isoDate >= sundayIso && e.isoDate <= saturdayIso);
+
+      const d = new Date(Date.UTC(sunday.getFullYear(), sunday.getMonth(), sunday.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+
+      scopeBadgeText = `Week ${weekNo} • ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()}-${saturday.getDate()}`;
+    } else {
+      filtered = classes.filter(e => {
+        if (!e.isoDate) return false;
+        const [y, m] = e.isoDate.split('-').map(Number);
+        return y === targetYear && m === (targetMonth + 1);
+      });
+      scopeBadgeText = `${monthsShort[targetMonth]} '${String(targetYear).slice(-2)}`;
+    }
+
+    let conductedCount = 0;
+    let cancelledCount = 0;
+    let rescheduledCount = 0;
+    let scheduledCount = 0;
+
+    filtered.forEach(e => {
+      const st = getLectureStatus(e);
+      if (st.isConducted) conductedCount++;
+      else if (st.isCancelled) cancelledCount++;
+      else if (st.isRescheduled) rescheduledCount++;
+      else scheduledCount++;
+    });
+
+    const condEl = document.getElementById('cardConductedCount');
+    if (condEl) condEl.textContent = conductedCount;
+
+    const cancEl = document.getElementById('cardCancelledCount');
+    if (cancEl) cancEl.textContent = cancelledCount;
+
+    const totEl = document.getElementById('cardDeliveryTotalText');
+    if (totEl) totEl.textContent = `${filtered.length} Total`;
+
+    const scopeBadge = document.getElementById('cardDeliveryScopeBadge');
+    if (scopeBadge) scopeBadge.textContent = scopeBadgeText;
+
+    const condChip = document.getElementById('cardConductedChip');
+    if (condChip) condChip.textContent = `${conductedCount} Done`;
+
+    const cancChip = document.getElementById('cardCancelledChip');
+    if (cancChip) cancChip.textContent = `${cancelledCount} Cancelled`;
+
+    const schedChip = document.getElementById('cardScheduledChip');
+    if (schedChip) schedChip.textContent = `${scheduledCount} Planned`;
+
+    const totalTarget = Math.max(1, filtered.length);
+    const condPct = Math.round((conductedCount / totalTarget) * 100);
+    const reschedPct = Math.round((rescheduledCount / totalTarget) * 100);
+    const cancPct = Math.round((cancelledCount / totalTarget) * 100);
+    const schedPct = Math.max(0, 100 - condPct - reschedPct - cancPct);
+
+    const condBar = document.getElementById('cardDeliveryConductedBar');
+    if (condBar) condBar.style.width = filtered.length > 0 ? `${condPct}%` : '0%';
+
+    const reschedBar = document.getElementById('cardDeliveryRescheduledBar');
+    if (reschedBar) reschedBar.style.width = filtered.length > 0 ? `${reschedPct}%` : '0%';
+
+    const schedBar = document.getElementById('cardDeliveryScheduledBar');
+    if (schedBar) schedBar.style.width = filtered.length > 0 ? `${schedPct}%` : '0%';
+
+    const cancBar = document.getElementById('cardDeliveryCancelledBar');
+    if (cancBar) cancBar.style.width = filtered.length > 0 ? `${cancPct}%` : '0%';
   }
 
   renderFacultyHighlightsCard() {
@@ -2696,10 +3039,15 @@ class AdminDashboardController {
         const iso = box.getAttribute('data-cell-iso');
         if (iso) {
           this.selectedDayIso = iso;
+          this.dashboardDayIso = iso;
           this.facultyHighlightScope = 'day';
+          this.deliveryScope = 'day';
+          this.updateFacultyCardScopeButtons?.();
+          this.updateDeliveryCardScopeButtons?.();
           this.renderFacultyHighlightsCard();
+          this.renderDeliveryStatusCard();
           const d = new Date(iso + 'T00:00:00');
-          this.showToast(`Selected ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} highlights`);
+          this.showToast(`Selected ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} highlights & delivery`);
         }
       });
     });
@@ -3140,7 +3488,14 @@ class AdminDashboardController {
       this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
       this.currentYear = this.currentWeekStart.getFullYear();
       this.currentMonth = this.currentWeekStart.getMonth();
+      this.facultyHighlightScope = 'week';
+      this.deliveryScope = 'week';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
+      this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderWeekView();
     });
 
@@ -3149,7 +3504,14 @@ class AdminDashboardController {
       this.currentWeekStart = new Date(now);
       this.currentYear = now.getFullYear();
       this.currentMonth = now.getMonth();
+      this.facultyHighlightScope = 'week';
+      this.deliveryScope = 'week';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
+      this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderWeekView();
       setTimeout(() => {
         const todayCol = container.querySelector('#weekTodayColumn');
@@ -3163,7 +3525,14 @@ class AdminDashboardController {
       this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
       this.currentYear = this.currentWeekStart.getFullYear();
       this.currentMonth = this.currentWeekStart.getMonth();
+      this.facultyHighlightScope = 'week';
+      this.deliveryScope = 'week';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
+      this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderWeekView();
     });
 
@@ -3584,11 +3953,15 @@ class AdminDashboardController {
     if (!this.dashboardDayIso) this.dashboardDayIso = this.selectedDayIso || todayIso();
 
     this.facultyHighlightScope = this.dashboardScope;
+    this.deliveryScope = this.dashboardScope;
     this.batchGraphGranularity = this.dashboardScope;
     if (!this.batchGraphCohort || this.batchGraphCohort === 'all') {
       this.batchGraphCohort = this.currentBatchId || 'all';
     }
+    this.updateFacultyCardScopeButtons?.();
+    this.updateDeliveryCardScopeButtons?.();
     this.renderFacultyHighlightsCard();
+    this.renderDeliveryStatusCard();
 
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     let classes = allEvents.filter(e => e.eventType === 'class');
@@ -4189,6 +4562,11 @@ class AdminDashboardController {
         </div>
         ` : ''}
 
+        <!-- Class Delivery & Execution Status View (Conducted, Cancelled, Rescheduled, Scheduled) -->
+        <div id="dashboardClassDeliverySection" class="panel-3d rounded-2xl p-6 bg-white space-y-6">
+          ${this.buildClassDeliveryStatusSectionHtml(filtered, periodText)}
+        </div>
+
         <!-- Batch-Level Lecture View (Day-Wise, Weekly, Monthly) -->
         <div id="batchLectureGraphCard">
           ${this.buildBatchLectureGraphHtml()}
@@ -4220,24 +4598,36 @@ class AdminDashboardController {
     container.querySelector('#dashScopeMonthBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'month';
       this.facultyHighlightScope = 'month';
+      this.deliveryScope = 'month';
       this.batchGraphGranularity = 'month';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
     });
 
     container.querySelector('#dashScopeWeekBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'week';
       this.facultyHighlightScope = 'week';
+      this.deliveryScope = 'week';
       this.batchGraphGranularity = 'week';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
     });
 
     container.querySelector('#dashScopeDayBtn')?.addEventListener('click', () => {
       this.dashboardScope = 'day';
       this.facultyHighlightScope = 'day';
+      this.deliveryScope = 'day';
       this.batchGraphGranularity = 'day';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
     });
 
@@ -4256,6 +4646,9 @@ class AdminDashboardController {
         d.setDate(d.getDate() - 1);
         this.dashboardDayIso = toLocalIso(d);
       }
+      this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
     });
 
@@ -4273,6 +4666,9 @@ class AdminDashboardController {
         d.setDate(d.getDate() + 1);
         this.dashboardDayIso = toLocalIso(d);
       }
+      this.updateSummaryCards();
+      this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
     });
 
@@ -4286,7 +4682,13 @@ class AdminDashboardController {
       this.currentMonth = now.getMonth();
       this.currentWeekStart = startOfWeek(now);
       this.selectedDayIso = todayIso();
+      this.facultyHighlightScope = this.dashboardScope || 'month';
+      this.deliveryScope = this.dashboardScope || 'month';
+      this.updateFacultyCardScopeButtons?.();
+      this.updateDeliveryCardScopeButtons?.();
+      this.updateSummaryCards();
       this.renderFacultyHighlightsCard();
+      this.renderDeliveryStatusCard();
       this.renderDashboardView();
       this.showToast(`Navigated to Today (${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`);
     });
@@ -4375,6 +4777,259 @@ class AdminDashboardController {
         }
       });
     });
+
+  }
+
+  // --- 9c. Class Delivery Status Dashboard View (Conducted, Cancelled, Rescheduled, Scheduled) ---
+  buildClassDeliveryStatusSectionHtml(filtered, periodText) {
+    let condCount = 0;
+    let condHours = 0;
+    let cancCount = 0;
+    let cancHours = 0;
+    let reschedCount = 0;
+    let reschedHours = 0;
+    let schedCount = 0;
+    let schedHours = 0;
+    let totalHours = 0;
+
+    filtered.forEach(ev => {
+      const durMatch = (ev.duration || '').match(/(\d+(?:\.\d+)?)/);
+      const evHours = durMatch ? parseFloat(durMatch[1]) : 2;
+      totalHours += evHours;
+      const st = getLectureStatus(ev);
+      if (st.isConducted) {
+        condCount++;
+        condHours += evHours;
+      } else if (st.isCancelled) {
+        cancCount++;
+        cancHours += evHours;
+      } else if (st.isRescheduled) {
+        reschedCount++;
+        reschedHours += evHours;
+      } else {
+        schedCount++;
+        schedHours += evHours;
+      }
+    });
+
+    const totalClasses = filtered.length;
+    const condPct = totalClasses ? Math.round((condCount / totalClasses) * 100) : 0;
+    const cancPct = totalClasses ? Math.round((cancCount / totalClasses) * 100) : 0;
+    const reschedPct = totalClasses ? Math.round((reschedCount / totalClasses) * 100) : 0;
+    const schedPct = totalClasses ? Math.max(0, 100 - condPct - cancPct - reschedPct) : 0;
+
+    return `
+      <!-- Section Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e5dfd5]">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3b6347] to-[#2d5f39] text-white flex items-center justify-center shadow-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-headline font-bold text-lg text-[#2c332d]">Class Delivery &amp; Execution Status</h3>
+              <span class="text-[11px] font-bold text-[#3b6347] bg-[#eef4f0] px-2.5 py-0.5 rounded-full border border-[#cde0d3]">
+                ${periodText}
+              </span>
+            </div>
+            <p class="text-xs text-[#68736a] mt-0.5">Curriculum delivery metrics across conducted, cancelled, rescheduled &amp; planned sessions</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-[#576058] bg-[#f4efe6] px-3 py-1.5 rounded-xl border border-[#ded5c6]">
+            ${totalClasses} Total Classes
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI Status Cards Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <!-- Conducted Card -->
+        <div class="p-4 rounded-xl bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7]/60 border border-[#bbf7d0] shadow-xs relative overflow-hidden group hover:shadow-md transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-[#15803d] uppercase tracking-wider">Conducted</span>
+            <div class="w-7 h-7 rounded-lg bg-[#dcfce7] text-[#16a34a] flex items-center justify-center font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-headline font-extrabold text-[#14532d]">${condCount}</span>
+            <span class="text-xs font-semibold text-[#16a34a]">${condPct}%</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px] text-[#15803d]">
+            <span>${condHours.toFixed(1)} hrs taught</span>
+            <span class="font-bold">Completed</span>
+          </div>
+        </div>
+
+        <!-- Cancelled Card -->
+        <div class="p-4 rounded-xl bg-gradient-to-br from-[#fef2f2] to-[#fee2e2]/60 border border-[#fecaca] shadow-xs relative overflow-hidden group hover:shadow-md transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-[#b91c1c] uppercase tracking-wider">Cancelled</span>
+            <div class="w-7 h-7 rounded-lg bg-[#fee2e2] text-[#dc2626] flex items-center justify-center font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-headline font-extrabold text-[#991b1b]">${cancCount}</span>
+            <span class="text-xs font-semibold text-[#dc2626]">${cancPct}%</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px] text-[#b91c1c]">
+            <span>${cancHours.toFixed(1)} hrs dropped</span>
+            <span class="font-bold">Needs Review</span>
+          </div>
+        </div>
+
+        <!-- Rescheduled Card -->
+        <div class="p-4 rounded-xl bg-gradient-to-br from-[#fffbeb] to-[#fef3c7]/60 border border-[#fde68a] shadow-xs relative overflow-hidden group hover:shadow-md transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-[#b45309] uppercase tracking-wider">Rescheduled</span>
+            <div class="w-7 h-7 rounded-lg bg-[#fef3c7] text-[#d97706] flex items-center justify-center font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-headline font-extrabold text-[#92400e]">${reschedCount}</span>
+            <span class="text-xs font-semibold text-[#d97706]">${reschedPct}%</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px] text-[#b45309]">
+            <span>${reschedHours.toFixed(1)} hrs shifted</span>
+            <span class="font-bold">Adjusted</span>
+          </div>
+        </div>
+
+        <!-- Scheduled Card -->
+        <div class="p-4 rounded-xl bg-gradient-to-br from-[#f0f9ff] to-[#e0f2fe]/60 border border-[#bae6fd] shadow-xs relative overflow-hidden group hover:shadow-md transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-[#0369a1] uppercase tracking-wider">Scheduled (Upcoming)</span>
+            <div class="w-7 h-7 rounded-lg bg-[#e0f2fe] text-[#0284c7] flex items-center justify-center font-bold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-2xl font-headline font-extrabold text-[#075985]">${schedCount}</span>
+            <span class="text-xs font-semibold text-[#0284c7]">${schedPct}%</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px] text-[#0369a1]">
+            <span>${schedHours.toFixed(1)} hrs planned</span>
+            <span class="font-bold">In Pipeline</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Progress Strip -->
+      <div class="p-3.5 rounded-xl bg-[#fbf9f5] border border-[#e5dfd5] space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-[#2c332d]">Curriculum Execution Health</span>
+          <span class="text-[#68736a]">${condCount} of ${totalClasses} Classes Delivered (${condPct}%)</span>
+        </div>
+        <div class="w-full h-3 bg-[#e5dfd5] rounded-full overflow-hidden flex shadow-inner">
+          <div class="h-full bg-[#16a34a] transition-all duration-500" style="width: ${condPct}%" title="Conducted: ${condCount} (${condPct}%)"></div>
+          <div class="h-full bg-[#d97706] transition-all duration-500" style="width: ${reschedPct}%" title="Rescheduled: ${reschedCount} (${reschedPct}%)"></div>
+          <div class="h-full bg-[#0284c7] transition-all duration-500" style="width: ${schedPct}%" title="Scheduled: ${schedCount} (${schedPct}%)"></div>
+          <div class="h-full bg-[#dc2626] transition-all duration-500" style="width: ${cancPct}%" title="Cancelled: ${cancCount} (${cancPct}%)"></div>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 text-[11px] text-[#576058] pt-1">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#16a34a]"></span>Conducted (${condCount})</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>Rescheduled (${reschedCount})</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>Scheduled (${schedCount})</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#dc2626]"></span>Cancelled (${cancCount})</span>
+        </div>
+      </div>
+    `;
+  }
+
+  updateEventStatus(evId, newStatus) {
+    if (!evId) return;
+    let found = false;
+
+    for (const b of this.batchManager.getBatches()) {
+      if (b && Array.isArray(b.events)) {
+        const ev = b.events.find(e => String(e.id) === String(evId));
+        if (ev) {
+          found = true;
+          if (newStatus === 'conducted') {
+            ev.isConducted = true;
+            ev.isCancelled = false;
+            ev.isRescheduled = false;
+            ev.sheetStatus = 'Conducted';
+          } else if (newStatus === 'cancelled') {
+            ev.isConducted = false;
+            ev.isCancelled = true;
+            ev.isRescheduled = false;
+            ev.sheetStatus = 'Cancelled';
+          } else if (newStatus === 'rescheduled') {
+            ev.isConducted = false;
+            ev.isCancelled = false;
+            ev.isRescheduled = true;
+            ev.sheetStatus = 'Rescheduled';
+          } else {
+            ev.isConducted = false;
+            ev.isCancelled = false;
+            ev.isRescheduled = false;
+            ev.sheetStatus = 'Scheduled';
+          }
+          break;
+        }
+      }
+    }
+
+    if (found) {
+      this.batchManager.saveToStorage(true);
+      this.batchManager.broadcastBatchesUpdated(true);
+      this.updateSummaryCards();
+      this.renderDashboardView();
+    }
+  }
+
+  jumpToCalendarDate(isoDate) {
+    if (!isoDate) return;
+    const parts = isoDate.split('-').map(Number);
+    if (parts.length >= 2) {
+      this.currentYear = parts[0];
+      this.currentMonth = parts[1] - 1;
+    }
+    this.selectedDayIso = isoDate;
+    this.mainTab = 'calendar';
+    this.calendarSubView = 'month';
+    window.location.hash = '#calendar';
+    this.updateDockState('calendar');
+    this.renderAll();
+    setTimeout(() => {
+      const cell = document.querySelector(`[data-day-iso="${isoDate}"]`);
+      if (cell) {
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cell.classList.add('ring-4', 'ring-[#4a7c59]', 'transition-all', 'duration-500');
+        setTimeout(() => cell.classList.remove('ring-4', 'ring-[#4a7c59]'), 2000);
+      }
+    }, 200);
+  }
+
+  formatDisplayDate(isoDate) {
+    if (!isoDate) return 'Date TBD';
+    try {
+      const parts = isoDate.split('-').map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}`;
+      }
+    } catch (_) {}
+    return isoDate;
+  }
+
+  escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // --- 9b. Batch-Level Lecture Volume & Schedule Trajectory Graph ---

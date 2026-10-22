@@ -253,7 +253,7 @@
 
     <!-- ESSENTIAL SUMMARY BAR -->
     <div id="adminSummaryCardsContainer" class="mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 lg:gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 lg:gap-4">
         
         <!-- Card 1: Schedule Overview -->
         <div id="cardScheduleOverviewBtn" class="card-3d flex items-center gap-3 p-3.5 rounded-xl cursor-pointer" title="Click to view Month Calendar">
@@ -342,6 +342,55 @@
           <span id="cardCurriculumPaceBadge" class="hidden">NMC Aligned</span>
         </div>
 
+        <!-- Card 4: Class Delivery & Execution Status (Conducted, Cancelled, Rescheduled) -->
+        <div id="cardClassDeliveryStatusBtn" class="card-3d flex flex-col justify-between p-3.5 rounded-xl cursor-pointer transition-all hover:border-[#4a7c59]" title="Click to view Conducted, Cancelled & Rescheduled Classes on Dashboard">
+          <!-- Top Row: Title + Scope Pill Switcher (Day / Week / Month) -->
+          <div class="flex items-center justify-between gap-1.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#dcfce7] to-[#bbf7d0] text-[#15803d] flex items-center justify-center shrink-0 border border-[#86efac] shadow-xs">
+                <span class="material-symbols-outlined text-[17px]">fact_check</span>
+              </div>
+              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Delivery Status</span>
+            </div>
+            <!-- Mini Scope Switcher -->
+            <div class="track-3d flex items-center p-0.5 rounded-lg text-[10px] font-bold shrink-0" onclick="event.stopPropagation()">
+              <button id="cardDeliveryScopeDay" type="button" class="px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent" title="Delivery status for selected day">Day</button>
+              <button id="cardDeliveryScopeWeek" type="button" class="px-2 py-0.5 rounded text-[#576058] hover:text-[#2c332d] transition-colors cursor-pointer border-none bg-transparent" title="Delivery status for active week">Week</button>
+              <button id="cardDeliveryScopeMonth" type="button" class="px-2 py-0.5 rounded btn-3d-primary font-bold text-white cursor-pointer border-none" title="Delivery status for active month">Month</button>
+            </div>
+          </div>
+
+          <!-- Middle Row: Metrics & Scope Badge -->
+          <div class="flex items-baseline justify-between gap-2 mt-2">
+            <div class="flex items-baseline gap-1.5 min-w-0">
+              <span class="font-headline text-[19px] font-bold text-[#15803d] leading-tight" id="cardConductedCount">0</span>
+              <span class="text-xs font-semibold text-[#15803d]">Done</span>
+              <span class="text-[#a0a8a1] text-xs">•</span>
+              <span class="font-headline text-[19px] font-bold text-[#b91c1c] leading-tight" id="cardCancelledCount">0</span>
+              <span class="text-xs font-semibold text-[#b91c1c]">Cancelled</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span id="cardDeliveryScopeBadge" class="text-[9.5px] font-bold text-[#15803d] bg-[#dcfce7] px-2 py-0.5 rounded-md border border-[#86efac] badge-3d truncate max-w-[120px]">October 2026</span>
+              <span class="text-[10px] font-bold text-[#68736a]" id="cardDeliveryTotalText">0 Total</span>
+            </div>
+          </div>
+
+          <!-- Multi-color Segmented Progress Bar -->
+          <div class="w-full bg-[#e8e2d8] rounded-full h-1.5 mt-2 flex overflow-hidden shadow-inner">
+            <div id="cardDeliveryConductedBar" class="bg-[#16a34a] h-full transition-all" style="width: 0%" title="Conducted"></div>
+            <div id="cardDeliveryRescheduledBar" class="bg-[#d97706] h-full transition-all" style="width: 0%" title="Rescheduled"></div>
+            <div id="cardDeliveryScheduledBar" class="bg-[#0284c7] h-full transition-all" style="width: 0%" title="Scheduled"></div>
+            <div id="cardDeliveryCancelledBar" class="bg-[#dc2626] h-full transition-all" style="width: 0%" title="Cancelled"></div>
+          </div>
+
+          <!-- Bottom Row: Mini Status Chips -->
+          <div class="flex items-center gap-2 mt-2 text-[10px] font-semibold text-[#68736a] justify-between">
+            <span class="flex items-center gap-1 text-[#15803d]"><span class="w-1.5 h-1.5 rounded-full bg-[#16a34a]"></span><span id="cardConductedChip">0 Done</span></span>
+            <span class="flex items-center gap-1 text-[#b91c1c]"><span class="w-1.5 h-1.5 rounded-full bg-[#dc2626]"></span><span id="cardCancelledChip">0 Cancelled</span></span>
+            <span class="flex items-center gap-1 text-[#576058]"><span class="w-1.5 h-1.5 rounded-full bg-[#8b958c]"></span><span id="cardScheduledChip">0 Planned</span></span>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -356,8 +405,33 @@
           </h2>
         </div>
 
-        <!-- Right: Filters (Teacher Filter, Date Navigation & View Mode Switcher) -->
+        <!-- Right: Filters (Teacher Filter, Status Filter, Date Navigation & View Mode Switcher) -->
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap ml-auto">
+          <!-- Class Delivery Status Filter Dropdown Pill -->
+          <div class="relative">
+            <button
+              id="calActionStatusBtn"
+              type="button"
+              class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-3 py-1.5 cursor-pointer text-[#2c332d] select-none transition-all shadow-xs"
+              title="Filter by Class Status (Conducted, Cancelled, Rescheduled)"
+            >
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">fact_check</span>
+              <span class="text-[10.5px] uppercase tracking-wider text-[#68736a] font-bold">Status:</span>
+              <span class="font-bold text-xs truncate max-w-[115px] sm:max-w-[145px]" id="calActionStatusLabel">All Classes</span>
+              <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
+            </button>
+            <!-- Dropdown Menu for Status -->
+            <div id="calActionStatusDropdown" class="hidden absolute top-full mt-1.5 right-0 sm:right-auto sm:left-0 w-64 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-2 z-50 modal-3d text-xs">
+              <div class="px-2 py-1.5 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between mb-1.5">
+                <span>Filter by Class Status</span>
+                <span id="calActionStatusTotalBadge" class="text-[#4a7c59] font-bold">All</span>
+              </div>
+              <div id="calActionStatusList" class="space-y-1">
+                <!-- Injected dynamically by adminApp.js -->
+              </div>
+            </div>
+          </div>
+
           <!-- Teacher / Faculty Filter Dropdown Pill -->
           <div class="relative">
             <button

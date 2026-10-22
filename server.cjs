@@ -126,24 +126,22 @@ async function resolveSheetGid(sheetId, requestedSheetName) {
   }
 }
 
-async function fetchSheet(res, q) {
-  let sheetId = q.sheetId;
-  let gid = q.gid;
-  if (!sheetId && q.url) {
-    const match = q.url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+async function fetchSheetRaw(sheetIdOrUrl, sheet = 'Lecture Planner', gidParam = null) {
+  let sheetId = sheetIdOrUrl;
+  let gid = gidParam;
+  if (sheetIdOrUrl && sheetIdOrUrl.includes('/spreadsheets/d/')) {
+    const match = sheetIdOrUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (match) sheetId = match[1];
-    const gidMatch = q.url.match(/[#&]gid=([0-9]+)/);
+    const gidMatch = sheetIdOrUrl.match(/[#&]gid=([0-9]+)/);
     if (!gid && gidMatch) gid = gidMatch[1];
   }
-  const sheet = q.sheet || 'Lecture Planner';
-  if (!sheetId) return json(res, 400, { error: 'Missing sheetId' });
+  if (!sheetId) throw new Error('Missing sheetId');
 
   const resolvedGid = await resolveSheetGid(sheetId, sheet);
   const targetGid = resolvedGid || gid;
 
   const timestamp = Date.now();
   const tries = [];
-  // Prioritize authentic spreadsheet CSV export (preserves uncorrupted row 1 batch name and row 2 medium)
   if (targetGid != null) {
     tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${targetGid}&_t=${timestamp}`);
     tries.push(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${targetGid}&_t=${timestamp}`);
@@ -166,17 +164,29 @@ async function fetchSheet(res, q) {
       });
       const text = await r.text();
       if (text && text.trim().length > 50 && !/^"?Completion %/.test(text)) {
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        return res.end(text);
+        return text;
       }
     } catch (_) { /* try next */ }
   }
-  return json(res, 404, { error: `Could not find a valid lecture tab for "${sheet}".` });
+  throw new Error(`Could not find a valid lecture tab for "${sheet}".`);
+}
+
+async function fetchSheet(res, q) {
+  const sheetIdOrUrl = q.sheetId || q.url;
+  const sheet = q.sheet || 'Lecture Planner';
+  if (!sheetIdOrUrl) return json(res, 400, { error: 'Missing sheetId or url' });
+  try {
+    const text = await fetchSheetRaw(sheetIdOrUrl, sheet, q.gid);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.end(text);
+  } catch (err) {
+    return json(res, 404, { error: err.message });
+  }
 }
 
 const ONBOARDING_JSON_FILE = path.join(ROOT, 'data_faculty_onboarding.json');
@@ -712,6 +722,778 @@ function handleSyncStateApi(req, res) {
   });
 }
 
+const crypto = require('crypto');
+function computeHash(content) {
+  return crypto.createHash('md5').update(content || '').digest('hex');
+}
+
+const SENT_REMINDERS_FILE = path.join(ROOT, 'data_sent_reminders.json');
+const NOTIFICATIONS_FILE = path.join(ROOT, 'data_notifications.json');
+
+let nodemailer = null;
+try {
+  nodemailer = require('nodemailer');
+} catch (_) {}
+
+function readSentReminders() {
+  try {
+    if (fs.existsSync(SENT_REMINDERS_FILE)) {
+      return JSON.parse(fs.readFileSync(SENT_REMINDERS_FILE, 'utf-8')) || {};
+    }
+  } catch (_) {}
+  return {};
+}
+
+function writeSentReminders(map) {
+  try {
+    fs.writeFileSync(SENT_REMINDERS_FILE, JSON.stringify(map, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Reminder Engine] Failed to write sent reminders:', err.message);
+  }
+}
+
+function readNotifications() {
+  try {
+    if (fs.existsSync(NOTIFICATIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf-8')) || [];
+    }
+  } catch (_) {}
+  return [];
+}
+
+function writeNotifications(list) {
+  try {
+    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(list.slice(0, 300), null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Reminder Engine] Failed to write notifications:', err.message);
+  }
+}
+
+function resolveFacultyEmail(facultyName) {
+  if (!facultyName) return null;
+  const clean = String(facultyName).trim().toLowerCase();
+  try {
+    if (fs.existsSync(ONBOARDING_JSON_FILE)) {
+      const list = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8')) || [];
+      // 1. Exact match
+      let match = list.find(f => (f.name || '').trim().toLowerCase() === clean);
+      // 2. Loose match
+      if (!match) {
+        match = list.find(f => {
+          const fn = (f.name || '').trim().toLowerCase();
+          return fn && (clean.includes(fn) || fn.includes(clean));
+        });
+      }
+      if (match && (match.email || match.secondaryEmail)) {
+        return {
+          name: match.name || facultyName,
+          email: match.email || match.secondaryEmail,
+          phone: match.phone || '',
+          dept: match.dept || ''
+        };
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+function generateReminderHtml({ facultyName, topic, chapter, batchName, dateStr, timings, leadText }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f1ede4;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:620px;margin:24px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 12px 32px rgba(45,77,55,0.12);border:1px solid #e5dfd5;">
+    <div style="background:linear-gradient(135deg, #1b3524 0%, #2d4d37 100%);color:#ffffff;padding:32px 28px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:8px;">🩺</div>
+      <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;">PW MedEd Academic Directorate</h1>
+      <p style="margin:8px 0 0;font-size:13px;opacity:0.9;letter-spacing:0.04em;text-transform:uppercase;font-weight:600;">Class Reminder • ${leadText} Prior</p>
+    </div>
+    <div style="padding:32px 28px;color:#2c332d;">
+      <p style="font-size:16px;margin:0 0 16px;color:#1b3524;">Dear <strong>${facultyName}</strong>,</p>
+      <p style="font-size:14px;line-height:1.6;color:#526054;margin:0 0 24px;">
+        This is an automated academic notification that your upcoming scheduled lecture commences in <strong>${leadText}</strong>. Please ensure your digital whiteboard and lecture hall are ready.
+      </p>
+      <div style="background:#faf7f2;border:1px solid #ede7dc;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr>
+            <td style="padding:8px 0;color:#7a6d59;font-weight:600;width:35%;">Batch / Cohort:</td>
+            <td style="padding:8px 0;color:#1b3524;font-weight:700;">${batchName || 'PW MedEd Academic Cohort'}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#7a6d59;font-weight:600;">Topic:</td>
+            <td style="padding:8px 0;color:#1b3524;font-weight:700;">${topic || chapter || 'Scheduled Lecture'}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#7a6d59;font-weight:600;">Date:</td>
+            <td style="padding:8px 0;color:#1b3524;">${dateStr}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#7a6d59;font-weight:600;">Scheduled Slot:</td>
+            <td style="padding:8px 0;color:#2d4d37;font-weight:700;">${timings}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="text-align:center;margin:28px 0 16px;">
+        <a href="http://localhost:${PORT}/faculty" style="display:inline-block;background:#2d4d37;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:8px;box-shadow:0 4px 14px rgba(45,77,55,0.25);">
+          Open Faculty Portal &rarr;
+        </a>
+      </div>
+      <p style="font-size:12px;color:#8a8070;text-align:center;margin:24px 0 0;line-height:1.5;">
+        Automated reminder delivered via PW MedEd Faculty Calendar Engine.<br/>
+        For slot swaps or emergencies, use the Request Reschedule toggle in the faculty portal.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+async function sendEmailInternal({ to, recipientName, subject, html, senderName, senderEmail, scriptUrl, token }) {
+  if (!to) return { success: false, error: 'Recipient email is required' };
+
+  // 1. Try direct SMTP if configured via environment or settings
+  let smtpConfig = null;
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    smtpConfig = {
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+      secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+      from: process.env.SMTP_FROM || senderEmail || process.env.SMTP_USER
+    };
+  } else {
+    try {
+      if (fs.existsSync(SETTINGS_JSON_FILE)) {
+        const cfg = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
+        const em = typeof cfg.meded_email_settings === 'string' ? JSON.parse(cfg.meded_email_settings) : (cfg.meded_email_settings || {});
+        if (em.smtp && em.smtp.host && em.smtp.user && em.smtp.pass) {
+          smtpConfig = em.smtp;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (smtpConfig && nodemailer) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: smtpConfig.host,
+        port: Number(smtpConfig.port) || 587,
+        secure: smtpConfig.secure || Number(smtpConfig.port) === 465,
+        auth: {
+          user: smtpConfig.user,
+          pass: smtpConfig.pass
+        }
+      });
+
+      const info = await transporter.sendMail({
+        from: `"${senderName || 'PW MedEd Class Reminder'}" <${smtpConfig.from || smtpConfig.user}>`,
+        to: to,
+        subject: subject,
+        html: html
+      });
+
+      return {
+        success: true,
+        delivered: true,
+        via: `SMTP (${smtpConfig.host})`,
+        recipient: to,
+        messageId: info.messageId
+      };
+    } catch (smtpErr) {
+      console.warn('[Email Dispatch] SMTP attempt failed:', smtpErr.message);
+    }
+  }
+
+  // 2. Try Google Apps Script Web App
+  if (!scriptUrl) {
+    try {
+      if (fs.existsSync(SETTINGS_JSON_FILE)) {
+        const cfg = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
+        const em = typeof cfg.meded_email_settings === 'string' ? JSON.parse(cfg.meded_email_settings) : (cfg.meded_email_settings || {});
+        scriptUrl = em.appsScriptUrl || cfg.appsScriptUrl || '';
+      }
+    } catch (_) {}
+  }
+
+  if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
+    try {
+      const resp = await fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'send_email',
+          token: token || 'pw-meded-token-2026',
+          email: {
+            to,
+            subject,
+            htmlBody: html,
+            name: senderName || 'PW MedEd Class Reminder',
+            senderName: senderName || 'PW MedEd Class Reminder',
+            senderEmail: senderEmail || 'academic-reminders@pwmeded.edu.in',
+            from: senderEmail || 'academic-reminders@pwmeded.edu.in',
+            replyTo: senderEmail || 'academic-reminders@pwmeded.edu.in'
+          }
+        })
+      });
+
+      const scriptRes = await resp.json().catch(() => ({ ok: true }));
+      if (scriptRes && scriptRes.ok === false) {
+        const isUnknownAction = String(scriptRes.error || '').includes('Unknown action');
+        return {
+          success: false,
+          delivered: false,
+          via: 'Google Apps Script (MailApp)',
+          error: scriptRes.error,
+          scriptResponse: scriptRes,
+          note: isUnknownAction
+            ? "Google Apps Script needs redeployment: copy apps-script/Code.gs into Apps Script editor and deploy as a new version to activate 'send_email'."
+            : scriptRes.error
+        };
+      }
+
+      return {
+        success: true,
+        delivered: true,
+        via: 'Google Apps Script (MailApp)',
+        recipient: to,
+        scriptResponse: scriptRes
+      };
+    } catch (scriptErr) {
+      return {
+        success: false,
+        delivered: false,
+        error: 'Apps Script dispatch failed: ' + scriptErr.message
+      };
+    }
+  }
+
+  return {
+    success: true,
+    delivered: false,
+    note: 'Apps Script or SMTP not connected. Alert recorded in institutional portal notifications.'
+  };
+}
+
+class AutomatedReminderEngine {
+  constructor() {
+    this.timer = null;
+    this.isRunning = false;
+    this.lastCheckedAt = null;
+    this.lastDispatched = [];
+    this.scanStats = { totalEvents: 0, upcomingEvents: 0, sentCount: 0 };
+  }
+
+  start(intervalMs = 30000) {
+    if (this.timer) clearInterval(this.timer);
+    this.isRunning = true;
+    console.log(`[Reminder Engine] 🕒 Automated calendar scheduler started (interval: ${Math.round(intervalMs / 1000)}s)`);
+    
+    // Initial check after 3 seconds
+    setTimeout(() => {
+      this.checkUpcomingClasses().catch(err => {
+        console.error('[Reminder Engine] Initial check error:', err.message);
+      });
+    }, 3000);
+
+    // Periodic check
+    this.timer = setInterval(() => {
+      this.checkUpcomingClasses().catch(err => {
+        console.error('[Reminder Engine] Periodic check error:', err.message);
+      });
+    }, intervalMs);
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.isRunning = false;
+  }
+
+  getStatus() {
+    const sentMap = readSentReminders();
+    return {
+      running: this.isRunning,
+      lastCheckedAt: this.lastCheckedAt,
+      stats: {
+        ...this.scanStats,
+        totalSentSaved: Object.keys(sentMap).length
+      },
+      recentDispatches: this.lastDispatched.slice(0, 10)
+    };
+  }
+
+  async checkUpcomingClasses(force = false) {
+    this.lastCheckedAt = new Date().toISOString();
+
+    // 1. Load settings
+    let emailSettings = {
+      isEnabled: true,
+      leadDurationMinutes: 45,
+      senderEmail: 'academic-reminders@pwmeded.edu.in',
+      senderName: 'PW MedEd Academic Directorate',
+      replyTo: 'dean.office@pwmeded.edu.in'
+    };
+
+    if (fs.existsSync(SETTINGS_JSON_FILE)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
+        if (raw.meded_email_settings) {
+          const parsed = typeof raw.meded_email_settings === 'string' ? JSON.parse(raw.meded_email_settings) : raw.meded_email_settings;
+          emailSettings = { ...emailSettings, ...parsed };
+        }
+      } catch (_) {}
+    }
+
+    if (!emailSettings.isEnabled && !force) {
+      return { ok: true, skipped: 'Automated email reminders disabled in settings' };
+    }
+
+    let leadMinutes = Number(emailSettings.leadDurationMinutes || 45);
+    if (emailSettings.leadDurationValue !== undefined && emailSettings.leadDurationUnit) {
+      const val = parseInt(emailSettings.leadDurationValue, 10) || 45;
+      leadMinutes = emailSettings.leadDurationUnit === 'hours' ? val * 60 : (emailSettings.leadDurationUnit === 'days' ? val * 1440 : val);
+    }
+    const maxDiffMinutes = leadMinutes + 5; // 5m forward leeway
+    const minDiffMinutes = -15;             // 15m grace window for classes just starting
+    const now = new Date();
+
+    // 2. Load batches and events
+    let batches = [];
+    if (fs.existsSync(BATCHES_JSON_FILE)) {
+      try {
+        batches = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')) || [];
+      } catch (_) {}
+    }
+
+    const sentMap = readSentReminders();
+    const notifications = readNotifications();
+    const newlyDispatched = [];
+    let scannedTotal = 0;
+    let upcomingCount = 0;
+
+    for (const b of batches) {
+      const events = Array.isArray(b.events) ? b.events : [];
+      for (const ev of events) {
+        scannedTotal++;
+        if (ev.eventType !== 'class' || !ev.isoDate || !ev.faculty) continue;
+        if (ev.faculty.toLowerCase().includes('cool off') || ev.isCancelled) continue;
+
+        // Parse class start time
+        let startH = 19;
+        let startM = 0;
+        const timingSource = ev.startTime || ev.timings || '';
+        if (timingSource) {
+          const tm = timingSource.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+          if (tm) {
+            let h = parseInt(tm[1], 10);
+            const m = parseInt(tm[2] || '0', 10);
+            const ampm = (tm[3] || '').toUpperCase();
+            if (ampm === 'PM' && h < 12) h += 12;
+            if (ampm === 'AM' && h === 12) h = 0;
+            startH = h;
+            startM = m;
+          }
+        } else if (typeof ev.startHour === 'number' && !isNaN(ev.startHour)) {
+          startH = Math.floor(ev.startHour);
+          startM = Math.round((ev.startHour - startH) * 60);
+        }
+
+        const [y, m, d] = ev.isoDate.split('-').map(Number);
+        const classStartTime = new Date(y, m - 1, d, startH, startM);
+        const diffMs = classStartTime.getTime() - now.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+
+        // Check if class falls into upcoming window
+        if (diffMinutes >= minDiffMinutes && diffMinutes <= maxDiffMinutes) {
+          upcomingCount++;
+          const baseKey = ev.id || `${ev.isoDate}_${ev.faculty}_${ev.timings || ''}`;
+          const emailKey = `${baseKey}_email_${leadMinutes}`;
+
+          if (sentMap[emailKey] && !force) {
+            continue; // Already sent for this lead interval
+          }
+
+          // Resolve faculty contact details
+          const facInfo = resolveFacultyEmail(ev.faculty);
+          const recipientEmail = facInfo?.email || 'dean.notifications@pwmeded.edu.in';
+          const recipientName = facInfo?.name || ev.faculty;
+          const leadText = leadMinutes >= 60 ? `${Math.round(leadMinutes / 60)} Hour(s)` : `${leadMinutes} Minutes`;
+          const subject = `[PW MedEd] Class Reminder: ${ev.topic || ev.chapter || 'Lecture'} (${leadText} Prior)`;
+
+          const htmlBody = generateReminderHtml({
+            facultyName: recipientName,
+            topic: ev.topic,
+            chapter: ev.chapter,
+            batchName: ev.batchName || b.name,
+            dateStr: ev.dateRaw || ev.isoDate,
+            timings: ev.timings || `${startH}:${startM < 10 ? '0' + startM : startM}`,
+            leadText
+          });
+
+          // Dispatch email
+          const dispatchRes = await sendEmailInternal({
+            to: recipientEmail,
+            recipientName,
+            subject,
+            html: htmlBody,
+            senderName: emailSettings.senderName,
+            senderEmail: emailSettings.senderEmail
+          });
+
+          // Record in sent log
+          sentMap[emailKey] = {
+            sentAt: now.toISOString(),
+            faculty: recipientName,
+            recipient: recipientEmail,
+            topic: ev.topic || ev.chapter,
+            batch: ev.batchName || b.name,
+            diffMinutes,
+            leadMinutes,
+            delivered: dispatchRes.delivered,
+            via: dispatchRes.via || 'System Alert'
+          };
+          sentMap[baseKey] = sentMap[emailKey];
+
+          // Create dual notification
+          const reminderId = `rem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          notifications.unshift({
+            id: `admin-${reminderId}`,
+            type: 'email_reminder_sent',
+            role: 'admin',
+            title: `Automated Class Reminder Sent to ${recipientName}`,
+            body: `Automated ${leadText} reminder dispatched to ${recipientEmail} for "${ev.topic || ev.chapter || 'Lecture'}" (${diffMinutes > 0 ? diffMinutes + 'm prior' : 'in progress'}).`,
+            recipientEmail,
+            facultyName: recipientName,
+            subject,
+            topic: ev.topic || ev.chapter,
+            timings: ev.timings || `${startH}:${startM < 10 ? '0' + startM : startM}`,
+            date: ev.isoDate,
+            timestamp: now.toISOString(),
+            delivered: dispatchRes.delivered,
+            via: dispatchRes.via
+          });
+
+          notifications.unshift({
+            id: `fac-${reminderId}`,
+            type: 'email_reminder_received',
+            role: 'faculty',
+            title: `Class Reminder: ${ev.topic || ev.chapter || 'Upcoming Lecture'}`,
+            body: `Lecture starting in ${leadText}. Reminder dispatched to ${recipientEmail}.`,
+            recipientEmail,
+            facultyName: recipientName,
+            subject,
+            topic: ev.topic || ev.chapter,
+            timings: ev.timings || `${startH}:${startM < 10 ? '0' + startM : startM}`,
+            date: ev.isoDate,
+            timestamp: now.toISOString(),
+            delivered: dispatchRes.delivered
+          });
+
+          newlyDispatched.push({
+            faculty: recipientName,
+            email: recipientEmail,
+            topic: ev.topic || ev.chapter,
+            batch: ev.batchName || b.name,
+            diffMinutes,
+            leadMinutes,
+            delivered: dispatchRes.delivered,
+            via: dispatchRes.via,
+            note: dispatchRes.note || dispatchRes.error
+          });
+
+          console.log(`[Reminder Engine] 📧 Dispatched reminder to ${recipientName} (${recipientEmail}) for "${ev.topic || ev.chapter}" (starts in ${diffMinutes}m) [via: ${dispatchRes.via || 'Portal Alert'}]`);
+        }
+      }
+    }
+
+    if (newlyDispatched.length > 0) {
+      writeSentReminders(sentMap);
+      writeNotifications(notifications);
+      this.lastDispatched.unshift(...newlyDispatched);
+    }
+
+    this.scanStats = {
+      totalEvents: scannedTotal,
+      upcomingEvents: upcomingCount,
+      sentCount: Object.keys(sentMap).length
+    };
+
+    return {
+      ok: true,
+      scannedTotal,
+      upcomingCount,
+      dispatchedCount: newlyDispatched.length,
+      dispatched: newlyDispatched
+    };
+  }
+}
+
+const reminderEngine = new AutomatedReminderEngine();
+
+const HASHES_FILE = path.join(ROOT, 'data_sheet_hashes.json');
+
+function readSheetHashes() {
+  try {
+    if (fs.existsSync(HASHES_FILE)) {
+      return JSON.parse(fs.readFileSync(HASHES_FILE, 'utf-8')) || {};
+    }
+  } catch (_) {}
+  return {};
+}
+
+function writeSheetHashes(map) {
+  try {
+    fs.writeFileSync(HASHES_FILE, JSON.stringify(map, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[Sheet Sync Engine] Failed to save hashes:', err.message);
+  }
+}
+
+class SheetSyncEngine {
+  constructor() {
+    this.intervalId = null;
+    this.isSyncing = false;
+    this.hashes = readSheetHashes();
+    this.lastSyncTime = null;
+    this.lastChangeTime = null;
+    this.syncHistory = [];
+    this.stats = {
+      totalChecks: 0,
+      totalChangesDetected: 0,
+      lastStatus: 'idle'
+    };
+  }
+
+  getStatus() {
+    return {
+      isSyncing: this.isSyncing,
+      lastSyncTime: this.lastSyncTime,
+      lastChangeTime: this.lastChangeTime,
+      hashes: this.hashes,
+      stats: this.stats,
+      history: this.syncHistory.slice(0, 10)
+    };
+  }
+
+  async syncAll(force = false) {
+    if (this.isSyncing) return { inProgress: true };
+    this.isSyncing = true;
+    this.stats.lastStatus = 'syncing';
+    this.stats.totalChecks++;
+
+    const changedBatches = [];
+    let batches = [];
+    try {
+      if (fs.existsSync(BATCHES_JSON_FILE)) {
+        batches = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')) || [];
+      }
+    } catch (err) {
+      this.isSyncing = false;
+      return { ok: false, error: 'Could not read batches file' };
+    }
+
+    if (!Array.isArray(batches) || batches.length === 0) {
+      this.isSyncing = false;
+      this.stats.lastStatus = 'idle';
+      return { ok: true, changedCount: 0 };
+    }
+
+    let sheetConnectorModule = null;
+    try {
+      sheetConnectorModule = await import('./js/sheetConnector.js');
+    } catch (err) {
+      console.error('[Sheet Sync Engine] Failed to import sheetConnector.js:', err.message);
+      this.isSyncing = false;
+      return { ok: false, error: err.message };
+    }
+
+    const { processRawCSVToBatch } = sheetConnectorModule;
+
+    for (let i = 0; i < batches.length; i++) {
+      const b = batches[i];
+      if (!b.sourceUrl || !b.sourceUrl.includes('/spreadsheets/d/')) continue;
+
+      const tabName = b.sheetTabName || 'Lecture Planner';
+      try {
+        const csv = await fetchSheetRaw(b.sourceUrl, tabName);
+        if (!csv || csv.trim().length < 50) continue;
+
+        const currentHash = computeHash(csv);
+        const stored = this.hashes[b.id] || {};
+        const previousHash = stored.hash;
+
+        this.hashes[b.id] = {
+          hash: currentHash,
+          lastChecked: new Date().toISOString(),
+          lastChanged: (currentHash !== previousHash) ? new Date().toISOString() : (stored.lastChanged || new Date().toISOString()),
+          batchName: b.name,
+          tabName: tabName,
+          eventCount: b.eventCount
+        };
+
+        if (force || currentHash !== previousHash) {
+          console.log(`[Sheet Sync Engine] 🔄 Detected update for batch "${b.name}" (${b.id}) [Hash: ${currentHash.substring(0, 8)}]`);
+          
+          const processed = processRawCSVToBatch(csv, b.id, b.sourceUrl, tabName, b.name);
+          
+          // Preserve batch flags and custom overrides
+          processed.active = b.active !== false;
+          processed.fromRegistry = Boolean(b.fromRegistry);
+          if (b.publishedAt) processed.publishedAt = b.publishedAt;
+
+          // Merge local event status if sheet status is blank
+          if (Array.isArray(b.events) && Array.isArray(processed.events)) {
+            const oldMap = new Map();
+            b.events.forEach(ev => { if (ev.id) oldMap.set(ev.id, ev); });
+            processed.events.forEach(ev => {
+              const old = oldMap.get(ev.id);
+              if (old && !ev.sheetStatus && old.sheetStatus) {
+                ev.sheetStatus = old.sheetStatus;
+                ev.isConducted = old.isConducted;
+                ev.isCancelled = old.isCancelled;
+                ev.isRescheduled = old.isRescheduled;
+                ev.rescheduledDate = old.rescheduledDate;
+                ev.rescheduledTime = old.rescheduledTime;
+                ev.rescheduledDuration = old.rescheduledDuration;
+                ev.statusUpdatedAt = old.statusUpdatedAt;
+              }
+            });
+          }
+
+          batches[i] = processed;
+          this.hashes[b.id].eventCount = processed.eventCount;
+          changedBatches.push(processed);
+        }
+      } catch (err) {
+        // Individual sheet fetch issue (e.g. transient network or missing tab)
+      }
+    }
+
+    this.lastSyncTime = new Date().toISOString();
+    writeSheetHashes(this.hashes);
+
+    if (changedBatches.length > 0) {
+      this.lastChangeTime = new Date().toISOString();
+      this.stats.totalChangesDetected += changedBatches.length;
+
+      // Save updated batches to data_batches.json
+      try {
+        fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(batches, null, 2), 'utf-8');
+        console.log(`[Sheet Sync Engine] ✅ Successfully synchronized ${changedBatches.length} batch(es) to ${BATCHES_JSON_FILE}`);
+      } catch (err) {
+        console.error('[Sheet Sync Engine] Failed to write data_batches.json:', err.message);
+      }
+
+      // Also update defaultData.js for default batches
+      try {
+        const defaultBatchIds = ['batch-prarambh-2026', 'batch-sushruta-2026', 'batch-inicet-essentials-2026', 'batch-fmge-express-2026'];
+        const newDefaults = batches.filter(b => defaultBatchIds.includes(b.id));
+        if (newDefaults.length > 0) {
+          const defaultDataPath = path.join(ROOT, 'js', 'defaultData.js');
+          const fileContent = `export const DEFAULT_BATCHES = ${JSON.stringify(newDefaults, null, 2)};\n`;
+          fs.writeFileSync(defaultDataPath, fileContent, 'utf-8');
+        }
+      } catch (_) {}
+
+      // Add system notification
+      try {
+        const notifs = readNotifications();
+        const batchNames = changedBatches.map(b => b.name).join(', ');
+        notifs.unshift({
+          id: `sync_${Date.now()}`,
+          type: 'sheet_synced',
+          title: 'Sheet Data Auto-Synchronized',
+          message: `Live data refreshed for: ${batchNames}`,
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+        writeNotifications(notifs);
+      } catch (_) {}
+
+      // Trigger immediate scan in reminder engine so upcoming events get timely emails
+      try {
+        if (reminderEngine && typeof reminderEngine.checkUpcomingClasses === 'function') {
+          reminderEngine.checkUpcomingClasses(false).catch(() => {});
+        }
+      } catch (_) {}
+
+      this.syncHistory.unshift({
+        time: this.lastChangeTime,
+        changedBatches: changedBatches.map(b => ({ id: b.id, name: b.name, events: b.eventCount }))
+      });
+      if (this.syncHistory.length > 50) this.syncHistory.pop();
+    }
+
+    this.isSyncing = false;
+    this.stats.lastStatus = 'idle';
+    return {
+      ok: true,
+      changedCount: changedBatches.length,
+      changed: changedBatches.map(b => ({ id: b.id, name: b.name, events: b.eventCount }))
+    };
+  }
+
+  start(intervalMs = 30000) {
+    if (this.intervalId) clearInterval(this.intervalId);
+    console.log(`[Sheet Sync Engine] 🚀 Auto-sync active (polling every ${Math.round(intervalMs / 1000)}s)`);
+    // Run an initial sync check
+    setTimeout(() => {
+      this.syncAll(false).catch(err => {
+        console.error('[Sheet Sync Engine] Initial sync error:', err.message);
+      });
+    }, 2000);
+
+    this.intervalId = setInterval(() => {
+      this.syncAll(false).catch(err => {
+        console.error('[Sheet Sync Engine] Interval sync error:', err.message);
+      });
+    }, intervalMs);
+  }
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+  }
+}
+
+const sheetSyncEngine = new SheetSyncEngine();
+
+function handleSheetsWebhookApi(req, res) {
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        console.log(`[Sheet Webhook] 🔔 Received webhook trigger from Google Sheets:`, payload.sheetName || payload.sheetId || 'Spreadsheet edit');
+        // Trigger immediate sync
+        const result = await sheetSyncEngine.syncAll(true);
+        return json(res, 200, { success: true, message: 'Sync executed via webhook', result });
+      } catch (err) {
+        return json(res, 400, { success: false, error: err.message });
+      }
+    });
+    return;
+  }
+  return json(res, 405, { error: 'Method not allowed' });
+}
+
+async function handleSheetsSyncNowApi(req, res) {
+  try {
+    const result = await sheetSyncEngine.syncAll(true);
+    return json(res, 200, { success: true, result });
+  } catch (err) {
+    return json(res, 500, { success: false, error: err.message });
+  }
+}
+
+function handleSheetsSyncStatusApi(req, res) {
+  return json(res, 200, { success: true, status: sheetSyncEngine.getStatus() });
+}
+
 async function handleEmailApi(req, res) {
   if (req.method === 'POST') {
     let body = '';
@@ -724,76 +1506,77 @@ async function handleEmailApi(req, res) {
         const html = data.html || data.emailHtml || data.htmlBody || '';
         const senderEmail = data.from || data.senderEmail || '';
         const senderName = data.name || data.senderName || 'PW MedEd Class Reminder';
-        let scriptUrl = (data.scriptUrl || data.endpoint || '').trim();
+        const scriptUrl = (data.scriptUrl || data.endpoint || '').trim();
         const token = (data.token || 'pw-meded-token-2026').trim();
 
         if (!to) return json(res, 400, { error: 'Recipient email is required' });
 
-        // If an Apps Script URL is not explicitly passed, resolve from saved settings
-        if (!scriptUrl) {
-          try {
-            if (fs.existsSync(SETTINGS_JSON_FILE)) {
-              const cfg = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8'));
-              if (cfg.meded_email_settings) {
-                try {
-                  const emObj = typeof cfg.meded_email_settings === 'string' ? JSON.parse(cfg.meded_email_settings) : cfg.meded_email_settings;
-                  scriptUrl = emObj.appsScriptUrl || '';
-                } catch (_) {}
-              }
-              if (!scriptUrl) {
-                scriptUrl = cfg.appsScriptUrl || cfg.pw_faculty_script_url || cfg.meded_sheet_writer_url || '';
-              }
-              if (!scriptUrl && cfg.meded_sheet_writeback_config_v1) {
-                try {
-                  const parsedWb = typeof cfg.meded_sheet_writeback_config_v1 === 'string' ? JSON.parse(cfg.meded_sheet_writeback_config_v1) : cfg.meded_sheet_writeback_config_v1;
-                  scriptUrl = parsedWb.endpoint || '';
-                } catch (_) {}
-              }
-            }
-          } catch (_) {}
-        }
-
-        if (scriptUrl && scriptUrl.includes('script.google.com/macros/s/')) {
-          try {
-            const resp = await fetch(scriptUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({
-                action: 'send_email',
-                token: token,
-                email: {
-                  to,
-                  subject,
-                  htmlBody: html,
-                  name: senderName,
-                  senderName,
-                  senderEmail,
-                  from: senderEmail,
-                  replyTo: senderEmail
-                }
-              })
-            });
-            const scriptRes = await resp.json().catch(() => ({ ok: true }));
-            return json(res, 200, {
-              success: true,
-              delivered: true,
-              via: 'Google Apps Script (MailApp)',
-              recipient: to,
-              scriptResponse: scriptRes
-            });
-          } catch (scriptErr) {
-            return json(res, 500, {
-              success: false,
-              error: 'Apps Script dispatch failed: ' + scriptErr.message
-            });
-          }
-        }
-
-        return json(res, 200, {
-          success: true,
-          delivered: false,
-          note: 'Apps Script URL not set. Connect Google Apps Script Web App URL to dispatch directly to external inboxes.'
+        const result = await sendEmailInternal({
+          to,
+          recipientName: data.recipientName || '',
+          subject,
+          html,
+          senderName,
+          senderEmail,
+          scriptUrl,
+          token
         });
+
+        return json(res, result.success ? 200 : 502, result);
+      } catch (err) {
+        return json(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+  return json(res, 405, { error: 'Method not allowed' });
+}
+
+function handleRemindersStatusApi(req, res) {
+  return json(res, 200, {
+    success: true,
+    engine: reminderEngine.getStatus()
+  });
+}
+
+async function handleRemindersCheckNowApi(req, res) {
+  try {
+    const result = await reminderEngine.checkUpcomingClasses(true);
+    return json(res, 200, { success: true, result });
+  } catch (err) {
+    return json(res, 500, { success: false, error: err.message });
+  }
+}
+
+function handleSentRemindersApi(req, res) {
+  if (req.method === 'GET') {
+    return json(res, 200, { success: true, sent: readSentReminders() });
+  }
+  return json(res, 405, { error: 'Method not allowed' });
+}
+
+function handleNotificationsApi(req, res, pathname) {
+  if (req.method === 'GET') {
+    const list = readNotifications();
+    return json(res, 200, { success: true, notifications: list });
+  }
+
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const list = readNotifications();
+        if (Array.isArray(data.notifications)) {
+          list.unshift(...data.notifications);
+        } else if (data.notification) {
+          list.unshift(data.notification);
+        } else if (data.markAllRead) {
+          list.forEach(n => { n.read = true; });
+        }
+        writeNotifications(list);
+        return json(res, 200, { success: true, count: list.length });
       } catch (err) {
         return json(res, 400, { error: err.message });
       }
@@ -814,7 +1597,14 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith('/api/requests')) return handleRequestsApi(req, res, pathname);
   if (pathname.startsWith('/api/settings')) return handleSettingsApi(req, res, pathname);
   if (pathname.startsWith('/api/send-email') || pathname.startsWith('/api/email')) return handleEmailApi(req, res);
+  if (pathname.startsWith('/api/reminders/status')) return handleRemindersStatusApi(req, res);
+  if (pathname.startsWith('/api/reminders/check-now')) return handleRemindersCheckNowApi(req, res);
+  if (pathname.startsWith('/api/sent-reminders')) return handleSentRemindersApi(req, res);
+  if (pathname.startsWith('/api/notifications')) return handleNotificationsApi(req, res, pathname);
   if (pathname.startsWith('/api/whatsapp')) return handleWhatsAppApi(req, res, pathname);
+  if (pathname.startsWith('/api/sheets/webhook')) return handleSheetsWebhookApi(req, res);
+  if (pathname.startsWith('/api/sheets/sync-now')) return handleSheetsSyncNowApi(req, res);
+  if (pathname.startsWith('/api/sheets/sync-status')) return handleSheetsSyncStatusApi(req, res);
   if (pathname.startsWith('/api/sync-state')) return handleSyncStateApi(req, res);
 
   if (ROUTES[pathname]) pathname = ROUTES[pathname];
@@ -861,4 +1651,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`  Login     http://localhost:${PORT}/login`);
   console.log(`\n  WhatsApp Gateway & Sheets proxy active on /api/*`);
   console.log(`  Ctrl+C to stop\n`);
+
+  // Start Server-Side Automated Reminder Engine (checks calendar every 30s)
+  reminderEngine.start(30000);
+
+  // Start Server-Side Sheet Auto-Sync Engine (checks sheets every 30s)
+  sheetSyncEngine.start(30000);
 });
+

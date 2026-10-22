@@ -32,3 +32,9 @@ fetch_all_tabs.mjs
 inspect_workload_sheet.mjs
 scratch_inspect_scripts.mjs
 
+# Runtime server data files
+data_notifications.json
+data_sent_reminders.json
+data_sheet_hashes.json
+.whatsapp_auth/
+
