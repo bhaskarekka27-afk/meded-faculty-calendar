@@ -8,14 +8,14 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:23.127Z",
+    "lastSynced": "2026-10-23T12:56:18.009Z",
     "eventCount": 35,
     "events": [
       {
         "id": "batch-prarambh-2026_ev_1",
         "batchId": "batch-prarambh-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -1317,7 +1317,7 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:25.771Z",
+    "lastSynced": "2026-10-23T12:56:21.029Z",
     "eventCount": 31,
     "events": [
       {
@@ -2478,7 +2478,7 @@
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:27.182Z",
+    "lastSynced": "2026-10-23T12:56:22.717Z",
     "eventCount": 22,
     "events": [
       {
@@ -3306,7 +3306,7 @@
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:28.657Z",
+    "lastSynced": "2026-10-23T12:56:24.164Z",
     "eventCount": 27,
     "events": [
       {
@@ -4319,7 +4319,7 @@
     "platform": "youtube",
     "isYoutube": true,
     "isApp": false,
-    "lastSynced": "2026-10-22T13:06:29.973Z",
+    "lastSynced": "2026-10-23T12:56:25.947Z",
     "eventCount": 8,
     "events": [
       {
@@ -4629,7 +4629,7 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:31.456Z",
+    "lastSynced": "2026-10-23T12:56:27.896Z",
     "eventCount": 40,
     "events": [
       {
@@ -4894,8 +4894,8 @@
       {
         "id": "batch-1791357236534_ev_11",
         "batchId": "batch-1791357236534",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -6123,7 +6123,7 @@
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:33.069Z",
+    "lastSynced": "2026-10-23T12:56:29.807Z",
     "eventCount": 8,
     "events": [
       {
@@ -6433,7 +6433,7 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:34.510Z",
+    "lastSynced": "2026-10-23T12:56:31.594Z",
     "eventCount": 19,
     "events": [
       {
@@ -6772,8 +6772,8 @@
       {
         "id": "batch-1791293586018_ev_13",
         "batchId": "batch-1791293586018",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -7150,14 +7150,14 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:36.032Z",
+    "lastSynced": "2026-10-23T12:56:33.056Z",
     "eventCount": 36,
     "events": [
       {
         "id": "batch-1791454816769_ev_4",
         "batchId": "batch-1791454816769",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -8496,7 +8496,7 @@
     "platform": "youtube",
     "isYoutube": true,
     "isApp": false,
-    "lastSynced": "2026-10-22T13:06:37.955Z",
+    "lastSynced": "2026-10-23T12:56:34.719Z",
     "eventCount": 19,
     "events": [
       {
@@ -8687,8 +8687,8 @@
       {
         "id": "batch-1791794508379_ev_11",
         "batchId": "batch-1791794508379",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -8724,8 +8724,8 @@
       {
         "id": "batch-1791794508379_ev_12",
         "batchId": "batch-1791794508379",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -9213,7 +9213,7 @@
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-22T13:06:39.514Z",
+    "lastSynced": "2026-10-23T10:32:56.597Z",
     "eventCount": 23,
     "events": [
       {
@@ -10067,6 +10067,8 @@
         "isYoutube": false,
         "isApp": true
       }
-    ]
+    ],
+    "active": true,
+    "fromRegistry": true
   }
 ]
