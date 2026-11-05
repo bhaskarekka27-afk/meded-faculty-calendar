@@ -364,7 +364,9 @@
           },
           error_callback: (error) => {
             console.warn('Google TokenClient error callback:', error);
-            openInPageOAuth();
+            if (error && (error.type === 'popup_closed' || error.type === 'popup_failed_to_open')) {
+              window.launchGoogleDirectRedirect();
+            }
           }
         });
       } catch (e) {
@@ -378,7 +380,7 @@
       setTimeout(initGoogleServices, 800);
     });
 
-    // --- HYBRID GOOGLE AUTH: TOKEN CLIENT / IN-APP MODAL / DIRECT REDIRECT ---
+    // --- HYBRID GOOGLE AUTH: TOKEN CLIENT / DIRECT REDIRECT ---
     window.launchGoogleDirectRedirect = function() {
       const redirectUri = window.location.origin + window.location.pathname;
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}&prompt=select_account`;
@@ -388,28 +390,23 @@
     window.triggerGoogleOAuth = function() {
       window.setLockState('neutral');
       
-      const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || 
-                              window.matchMedia('(display-mode: fullscreen)').matches || 
-                              window.navigator.standalone === true;
-
-      // In installed PWA or mobile web app, open the seamless in-app Google Sign-In modal directly
-      if (isStandalonePWA) {
-        window.openInPageOAuth();
-        return;
+      // Ensure GIS is initialized
+      if (!tokenClient && typeof google !== 'undefined' && google.accounts) {
+        initGoogleServices();
       }
 
-      // In browser, try Google Identity Services tokenClient
+      // 1. Try official Google Identity Services Token Client (exact same as web version)
       if (tokenClient && typeof tokenClient.requestAccessToken === 'function') {
         try {
           tokenClient.requestAccessToken({ prompt: 'select_account' });
           return;
         } catch (e) {
-          console.warn('GIS TokenClient request failed, opening in-page modal:', e);
+          console.warn('GIS TokenClient request failed, redirecting to Google OAuth:', e);
         }
       }
 
-      // Fallback to in-app Google modal
-      window.openInPageOAuth();
+      // 2. Direct official Google OAuth redirection (same as web version)
+      window.launchGoogleDirectRedirect();
     };
 
     // --- HANDLE GOOGLE AUTHENTICATION RESULT ---

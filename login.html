@@ -486,7 +486,9 @@
           },
           error_callback: (error) => {
             console.warn('Google TokenClient error callback:', error);
-            openInPageOAuth();
+            if (error && (error.type === 'popup_closed' || error.type === 'popup_failed_to_open')) {
+              window.launchGoogleDirectRedirect();
+            }
           }
         });
       } catch (e) {
@@ -509,29 +511,24 @@
     window.triggerGoogleOAuth = function(portal) {
       currentPortal = portal || currentPortal || 'admin';
       window.setLockState(currentPortal, 'neutral');
-      
-      const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || 
-                              window.matchMedia('(display-mode: fullscreen)').matches || 
-                              window.navigator.standalone === true;
 
-      // In installed PWA or mobile web app, open the seamless in-app Google Sign-In modal directly
-      if (isStandalonePWA) {
-        window.openInPageOAuth();
-        return;
+      // Ensure GIS is initialized
+      if (!tokenClient && typeof google !== 'undefined' && google.accounts) {
+        initGoogleServices();
       }
 
-      // In browser, try Google Identity Services tokenClient
+      // 1. Try official Google Identity Services Token Client (exact same as web version)
       if (tokenClient && typeof tokenClient.requestAccessToken === 'function') {
         try {
           tokenClient.requestAccessToken({ prompt: 'select_account' });
           return;
         } catch (e) {
-          console.warn('GIS TokenClient request failed, opening in-page modal:', e);
+          console.warn('GIS TokenClient request failed, redirecting to Google OAuth:', e);
         }
       }
 
-      // Fallback to in-app Google modal
-      window.openInPageOAuth();
+      // 2. Direct official Google OAuth redirection (same as web version)
+      window.launchGoogleDirectRedirect();
     };
 
     // --- HANDLE GOOGLE AUTHENTICATION RESULT ---

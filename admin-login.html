@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -18,44 +19,90 @@
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet">
   <!-- Official Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  
+
   <style>
     @layer base {
-      html, body { margin: 0; padding: 0; }
-      body { overscroll-behavior: none; }
-      main > :first-child { margin-top: 0 !important; }
-      main > :last-child { margin-bottom: 0 !important; }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        overscroll-behavior: none;
+      }
+
+      main> :first-child {
+        margin-top: 0 !important;
+      }
+
+      main> :last-child {
+        margin-bottom: 0 !important;
+      }
     }
-    ::-webkit-scrollbar { display: none; }
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
 
     /* Lock Shackle & Body Animation Styles */
     .lock-shackle {
       transform-origin: 22px 14px;
       transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+
     .lock-unlocked .lock-shackle {
       transform: translateY(-5px) rotate(-34deg);
     }
 
     @keyframes shakeAnimation {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-6px); }
-      40%, 80% { transform: translateX(6px); }
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-6px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(6px);
+      }
     }
+
     .animate-shake {
       animation: shakeAnimation 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
 
     @keyframes pulseGlowSuccess {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.35); }
-      50% { box-shadow: 0 0 0 10px rgba(74, 124, 89, 0); }
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.35);
+      }
+
+      50% {
+        box-shadow: 0 0 0 10px rgba(74, 124, 89, 0);
+      }
     }
+
     .glow-success {
       animation: pulseGlowSuccess 1.8s infinite;
     }
@@ -137,18 +184,22 @@
     };
   </script>
 </head>
-<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col justify-between antialiased selection:bg-primary-container selection:text-on-primary-container">
+
+<body
+  class="bg-surface font-body text-on-surface min-h-screen flex flex-col justify-between antialiased selection:bg-primary-container selection:text-on-primary-container">
 
   <!-- Header -->
   <header class="w-full py-4 sm:py-6 flex-shrink-0">
     <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo" class="w-10 h-10 object-contain rounded-xl shadow-[0_4px_16px_rgba(74,124,89,0.20)]">
+        <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
+          class="w-10 h-10 object-contain rounded-xl shadow-[0_4px_16px_rgba(74,124,89,0.20)]">
         <div class="flex flex-col">
           <span class="font-headline text-lg font-bold tracking-tight text-on-surface leading-tight">PW MedEd</span>
         </div>
       </div>
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold tracking-wide">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold tracking-wide">
         <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
         Academic Suite
       </div>
@@ -158,15 +209,18 @@
   <!-- Main Content Container -->
   <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 w-full">
     <div class="w-full max-w-xl mx-auto my-auto py-2 px-2 flex justify-center items-center">
-      
+
       <!-- ADMIN LOGIN CARD -->
-      <div id="adminLoginCard" class="w-full max-w-md bg-white rounded-2xl shadow-[0_4px_24px_rgba(46,50,48,0.06)] border-t-4 border-[#4a7c59] p-7 sm:p-9 relative overflow-hidden flex flex-col items-center transition-all duration-300">
-        
-        <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo" class="w-16 h-16 object-contain rounded-2xl shadow-sm mb-3.5">
+      <div id="adminLoginCard"
+        class="w-full max-w-md bg-white rounded-2xl shadow-[0_4px_24px_rgba(46,50,48,0.06)] border-t-4 border-[#4a7c59] p-7 sm:p-9 relative overflow-hidden flex flex-col items-center transition-all duration-300">
+
+        <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
+          class="w-16 h-16 object-contain rounded-2xl shadow-sm mb-3.5">
 
         <div class="flex flex-col items-center text-center w-full mb-6">
           <h1 class="text-2xl font-bold tracking-tight text-neutral-900 mb-1.5 font-headline">PW MedEd</h1>
-          <div class="inline-flex items-center px-3 py-0.5 rounded-full bg-[#f4efe6] text-[#4a7c59] text-[11px] font-semibold tracking-wider uppercase mb-1.5">
+          <div
+            class="inline-flex items-center px-3 py-0.5 rounded-full bg-[#f4efe6] text-[#4a7c59] text-[11px] font-semibold tracking-wider uppercase mb-1.5">
             ADMIN PORTAL
           </div>
           <p class="text-xs sm:text-sm text-neutral-500 max-w-xs mx-auto leading-relaxed">
@@ -176,41 +230,57 @@
 
         <!-- Dynamic Animated Lock Container -->
         <div class="w-full flex flex-col items-center mb-6">
-          <div class="w-12 h-12 rounded-full bg-[#f4efe6] border border-[#e5e0d8] text-neutral-600 flex items-center justify-center transition-all duration-300 relative shadow-sm" id="adminLockIconContainer">
+          <div
+            class="w-12 h-12 rounded-full bg-[#f4efe6] border border-[#e5e0d8] text-neutral-600 flex items-center justify-center transition-all duration-300 relative shadow-sm"
+            id="adminLockIconContainer">
             <!-- Lock SVG with dynamic shackle -->
             <svg class="w-6 h-6 transition-all duration-300" fill="none" id="adminLockSvg" viewBox="0 0 32 32">
-              <path class="lock-shackle" d="M11 14V9.5C11 6.74 13.24 4.5 16 4.5C18.76 4.5 21 6.74 21 9.5V14" id="adminLockShackle" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
+              <path class="lock-shackle" d="M11 14V9.5C11 6.74 13.24 4.5 16 4.5C18.76 4.5 21 6.74 21 9.5V14"
+                id="adminLockShackle" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
               <rect fill="currentColor" height="13.5" opacity="0.18" rx="3.5" width="18" x="7" y="14"></rect>
               <rect height="13.5" rx="3.5" stroke="currentColor" stroke-width="2.2" width="18" x="7" y="14"></rect>
               <circle cx="16" cy="20.5" fill="currentColor" r="1.5"></circle>
               <path d="M16 22V24.5" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"></path>
             </svg>
             <!-- Checkmark overlay indicator -->
-            <div class="absolute -top-1 -right-1 w-4 h-4 bg-[#4a7c59] text-white rounded-full flex items-center justify-center text-[10px] transition-all duration-300 shadow scale-0 opacity-0" id="adminLockCheckmark">
+            <div
+              class="absolute -top-1 -right-1 w-4 h-4 bg-[#4a7c59] text-white rounded-full flex items-center justify-center text-[10px] transition-all duration-300 shadow scale-0 opacity-0"
+              id="adminLockCheckmark">
               <span class="material-symbols-outlined text-[12px] font-bold">check</span>
             </div>
           </div>
         </div>
 
         <div class="w-full flex flex-col items-center">
-          <button class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-white hover:bg-[#f6faf7] text-neutral-900 font-semibold text-sm transition-all duration-300 shadow-sm hover:shadow-md border-2 border-[#4a7c59] active:scale-[0.99] focus:outline-none ring-2 ring-[#4a7c59]/25 cursor-pointer" id="google-admin-signin" type="button" onclick="triggerGoogleOAuth()">
+          <button
+            class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-white hover:bg-[#f6faf7] text-neutral-900 font-semibold text-sm transition-all duration-300 shadow-sm hover:shadow-md border-2 border-[#4a7c59] active:scale-[0.99] focus:outline-none ring-2 ring-[#4a7c59]/25 cursor-pointer"
+            id="google-admin-signin" type="button" onclick="triggerGoogleOAuth()">
             <svg aria-hidden="true" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
-              <path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" fill="#4285F4"></path>
-              <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.37 7.33 24 12 24z" fill="#34A853"></path>
-              <path d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z" fill="#FBBC05"></path>
-              <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z" fill="#EA4335"></path>
+              <path
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                fill="#4285F4"></path>
+              <path
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.37 7.33 24 12 24z"
+                fill="#34A853"></path>
+              <path
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
+                fill="#FBBC05"></path>
+              <path
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                fill="#EA4335"></path>
             </svg>
             <span id="adminSignInBtnText">Sign in with Google</span>
           </button>
-          
+
           <div class="flex items-center gap-1.5 mt-2.5 text-xs text-neutral-400">
             <span class="material-symbols-outlined text-[13px]">lock</span>
             <span>Single Sign-On protected by Google Workspace</span>
           </div>
 
           <div class="w-full border-t border-[#e8e2d8] my-5"></div>
-          
-          <a href="/faculty-login.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4a7c59] hover:underline transition-colors cursor-pointer">
+
+          <a href="/faculty-login.html"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4a7c59] hover:underline transition-colors cursor-pointer">
             <span>Switch to Faculty Portal</span>
             <span class="material-symbols-outlined text-sm">arrow_forward</span>
           </a>
@@ -221,20 +291,25 @@
   </main>
 
   <!-- Access Restricted UI Modal -->
-  <div id="accessRestrictedModal" class="fixed inset-0 z-50 bg-black/45 backdrop-blur-xs hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-[#ded5c6] shadow-2xl w-full max-w-[420px] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6 flex flex-col items-center text-center">
-      <div class="w-12 h-12 rounded-full bg-[#ffdad8] border-2 border-[#b83230] text-[#b83230] flex items-center justify-center mb-3.5 shadow-xs">
+  <div id="accessRestrictedModal"
+    class="fixed inset-0 z-50 bg-black/45 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div
+      class="bg-white rounded-2xl border border-[#ded5c6] shadow-2xl w-full max-w-[420px] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6 flex flex-col items-center text-center">
+      <div
+        class="w-12 h-12 rounded-full bg-[#ffdad8] border-2 border-[#b83230] text-[#b83230] flex items-center justify-center mb-3.5 shadow-xs">
         <span class="material-symbols-outlined text-2xl font-bold">gpp_maybe</span>
       </div>
-      
+
       <h3 class="text-lg font-bold text-neutral-900 mb-2 font-headline" id="accessModalTitle">Access Restricted</h3>
-      
+
       <div class="text-xs text-neutral-600 space-y-2 mb-6 leading-relaxed" id="accessModalBody">
         <p id="accessModalMsg1">The Google account is not authorized for administrative access.</p>
-        <p id="accessModalMsg2" class="font-medium text-neutral-700">Only authorized institutional administrator accounts (@pwmeded.edu.in, @pw.live) can access this portal.</p>
+        <p id="accessModalMsg2" class="font-medium text-neutral-700">Only authorized institutional administrator
+          accounts (@pwmeded.edu.in, @pw.live) can access this portal.</p>
       </div>
-      
-      <button onclick="closeAccessRestrictedModal()" type="button" class="w-full py-2.5 px-6 rounded-xl bg-[#4a7c59] hover:bg-[#3c6749] text-white font-bold text-xs transition-all shadow-md cursor-pointer">
+
+      <button onclick="closeAccessRestrictedModal()" type="button"
+        class="w-full py-2.5 px-6 rounded-xl bg-[#4a7c59] hover:bg-[#3c6749] text-white font-bold text-xs transition-all shadow-md cursor-pointer">
         OK
       </button>
     </div>
@@ -242,15 +317,22 @@
 
   <!-- Footer -->
   <footer class="w-full py-4 sm:py-6 mt-auto flex-shrink-0">
-    <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
+    <div
+      class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
       <div class="flex items-center gap-2">
         <span class="material-symbols-outlined text-sm text-[#4a7c59]">verified_user</span>
         <span>256-bit TLS Encryption • CBME 2026 Compliant • NMC Verified</span>
       </div>
       <nav class="flex items-center gap-6">
-        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)" onclick="alert('PW MedEd Academic Integrity: All schedules, attendance, and NMC curriculum logs are strictly synchronized and cryptographically audited.')">Academic Integrity</a>
-        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)" onclick="alert('Faculty Helpdesk: For technical assistance or onboarding support, email it-support@pwmeded.edu.in or call Ext: 4401.')">Faculty Helpdesk</a>
-        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)" onclick="alert('Terms of Access: Authorized institutional personnel only. Unauthorized access attempts are monitored and recorded.')">Terms of Access</a>
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
+          onclick="alert('PW MedEd Academic Integrity: All schedules, attendance, and NMC curriculum logs are strictly synchronized and cryptographically audited.')">Academic
+          Integrity</a>
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
+          onclick="alert('Faculty Helpdesk: For technical assistance or onboarding support, email it-support@pwmeded.edu.in or call Ext: 4401.')">Faculty
+          Helpdesk</a>
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
+          onclick="alert('Terms of Access: Authorized institutional personnel only. Unauthorized access attempts are monitored and recorded.')">Terms
+          of Access</a>
       </nav>
     </div>
   </footer>
@@ -261,7 +343,7 @@
     import { syncFacultyFromGoogleSheet, FACULTY_SHEET_URL_KEY } from './js/facultyOnboardingData.js';
 
     // Set dynamic lock visual state: 'neutral', 'success', or 'error'
-    window.setLockState = function(state) {
+    window.setLockState = function (state) {
       const container = document.getElementById('adminLockIconContainer');
       const svg = document.getElementById('adminLockSvg');
       const checkmark = document.getElementById('adminLockCheckmark');
@@ -287,7 +369,7 @@
     };
 
     // --- ACCESS RESTRICTED UI MODAL HANDLERS ---
-    window.showAccessRestrictedModal = function(reason = 'not_found', email = '', name = '') {
+    window.showAccessRestrictedModal = function (reason = 'not_found', email = '', name = '') {
       const modal = document.getElementById('accessRestrictedModal');
       const titleEl = document.getElementById('accessModalTitle');
       const msg1El = document.getElementById('accessModalMsg1');
@@ -318,7 +400,7 @@
       }
     };
 
-    window.closeAccessRestrictedModal = function() {
+    window.closeAccessRestrictedModal = function () {
       const modal = document.getElementById('accessRestrictedModal');
       if (modal) {
         modal.classList.add('hidden');
@@ -384,7 +466,9 @@
           },
           error_callback: (error) => {
             console.warn('Google TokenClient error callback:', error);
-            openInPageOAuth();
+            if (error && (error.type === 'popup_closed' || error.type === 'popup_failed_to_open')) {
+              window.launchGoogleDirectRedirect();
+            }
           }
         });
       } catch (e) {
@@ -398,59 +482,54 @@
       setTimeout(initGoogleServices, 800);
     });
 
-    // --- HYBRID GOOGLE AUTH: TOKEN CLIENT / IN-APP MODAL / DIRECT REDIRECT ---
-    window.launchGoogleDirectRedirect = function() {
+    // --- HYBRID GOOGLE AUTH: TOKEN CLIENT / DIRECT REDIRECT ---
+    window.launchGoogleDirectRedirect = function () {
       const redirectUri = window.location.origin + window.location.pathname;
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}&prompt=select_account`;
       window.location.href = authUrl;
     };
 
-    window.triggerGoogleOAuth = function() {
+    window.triggerGoogleOAuth = function () {
       window.setLockState('neutral');
-      
-      const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || 
-                              window.matchMedia('(display-mode: fullscreen)').matches || 
-                              window.navigator.standalone === true;
 
-      // In installed PWA or mobile web app, open the seamless in-app Google Sign-In modal directly
-      if (isStandalonePWA) {
-        window.openInPageOAuth();
-        return;
+      // Ensure GIS is initialized
+      if (!tokenClient && typeof google !== 'undefined' && google.accounts) {
+        initGoogleServices();
       }
 
-      // In browser, try Google Identity Services tokenClient
+      // 1. Try official Google Identity Services Token Client (exact same as web version)
       if (tokenClient && typeof tokenClient.requestAccessToken === 'function') {
         try {
           tokenClient.requestAccessToken({ prompt: 'select_account' });
           return;
         } catch (e) {
-          console.warn('GIS TokenClient request failed, opening in-page modal:', e);
+          console.warn('GIS TokenClient request failed, redirecting to Google OAuth:', e);
         }
       }
 
-      // Fallback to in-app Google modal
-      window.openInPageOAuth();
+      // 2. Direct official Google OAuth redirection (same as web version)
+      window.launchGoogleDirectRedirect();
     };
 
     // --- IN-PAGE MODAL CONTROLLER ---
-    window.openInPageOAuth = function() {
+    window.openInPageOAuth = function () {
       const modal = document.getElementById('inPageOAuthModal');
       if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        
+
         // Reset steps
         document.getElementById('inPageEmailStep')?.classList.remove('hidden');
         document.getElementById('inPagePasswordStep')?.classList.add('hidden');
         document.getElementById('inPagePasswordError')?.classList.add('hidden');
-        
+
         setTimeout(() => {
           document.getElementById('inPageEmailInput')?.focus();
         }, 100);
       }
     };
 
-    window.closeInPageOAuth = function() {
+    window.closeInPageOAuth = function () {
       const modal = document.getElementById('inPageOAuthModal');
       if (modal) {
         modal.classList.add('hidden');
@@ -458,7 +537,7 @@
       }
     };
 
-    window.selectQuickEmail = function(email) {
+    window.selectQuickEmail = function (email) {
       const emailInput = document.getElementById('inPageEmailInput');
       if (emailInput) emailInput.value = email;
       window.handleInPageEmailSubmit();
@@ -466,7 +545,7 @@
       if (pwInput) pwInput.value = 'MedEd@2026';
     };
 
-    window.handleInPageEmailSubmit = function() {
+    window.handleInPageEmailSubmit = function () {
       const email = (document.getElementById('inPageEmailInput')?.value || '').trim();
       if (!email) return;
       document.getElementById('inPageEmailStep')?.classList.add('hidden');
@@ -478,10 +557,10 @@
       }, 100);
     };
 
-    window.handleInPagePasswordSubmit = function() {
+    window.handleInPagePasswordSubmit = function () {
       const email = (document.getElementById('inPageEmailInput')?.value || '').trim();
       const pwd = (document.getElementById('inPagePasswordInput')?.value || '').trim();
-      
+
       if (!pwd) {
         const err = document.getElementById('inPagePasswordError');
         if (err) {
@@ -505,7 +584,7 @@
         }
         return;
       }
-      
+
       closeInPageOAuth();
       handleGoogleAuthCallback(email);
     };
@@ -544,7 +623,7 @@
               user = reminderEmailService.findFacultyByEmail(cleanEmail);
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const btnText = document.getElementById('adminSignInBtnText');
@@ -610,7 +689,7 @@
         const params = new URLSearchParams(hash);
         const idToken = params.get('id_token');
         const accessToken = params.get('access_token');
-        
+
         if (idToken) {
           const payload = parseJwt(idToken);
           if (payload && payload.email) {
@@ -622,12 +701,12 @@
           fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` }
           })
-          .then(r => r.json())
-          .then(profile => {
-            if (profile && profile.email) {
-              handleGoogleAuthCallback(profile.email, profile.name);
-            }
-          });
+            .then(r => r.json())
+            .then(profile => {
+              if (profile && profile.email) {
+                handleGoogleAuthCallback(profile.email, profile.name);
+              }
+            });
         }
       }
     });
@@ -642,21 +721,32 @@
   </script>
 
   <!-- Fallback In-Page Google Modal -->
-  <div id="inPageOAuthModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-[#dadce0] shadow-2xl w-full max-w-[420px] p-6 sm:p-7 relative animate-in fade-in zoom-in-95 duration-200">
-      
+  <div id="inPageOAuthModal"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div
+      class="bg-white rounded-2xl border border-[#dadce0] shadow-2xl w-full max-w-[420px] p-6 sm:p-7 relative animate-in fade-in zoom-in-95 duration-200">
+
       <!-- Modal Close Button -->
-      <button type="button" onclick="closeInPageOAuth()" class="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 p-1 rounded-full cursor-pointer">
+      <button type="button" onclick="closeInPageOAuth()"
+        class="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 p-1 rounded-full cursor-pointer">
         <span class="material-symbols-outlined text-lg">close</span>
       </button>
 
       <!-- Google Brand Header -->
       <div class="flex items-center gap-2.5 mb-4">
         <svg aria-hidden="true" class="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24">
-          <path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" fill="#4285F4"></path>
-          <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.37 7.33 24 12 24z" fill="#34A853"></path>
-          <path d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z" fill="#FBBC05"></path>
-          <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z" fill="#EA4335"></path>
+          <path
+            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+            fill="#4285F4"></path>
+          <path
+            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.37 7.33 24 12 24z"
+            fill="#34A853"></path>
+          <path
+            d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
+            fill="#FBBC05"></path>
+          <path
+            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+            fill="#EA4335"></path>
         </svg>
         <span class="text-sm font-semibold text-neutral-800">PW MedEd Admin Sign-In</span>
       </div>
@@ -665,31 +755,38 @@
       <div id="inPageEmailStep">
         <h3 class="text-xl font-bold text-[#202124] mb-1 font-headline">Sign in</h3>
         <p class="text-xs text-[#5f6368] mb-4">to continue to PW MedEd Academic Directorate</p>
-        
+
         <label class="block text-[11px] font-semibold text-neutral-600 mb-1">Institutional Email or Username</label>
-        <input id="inPageEmailInput" type="email" placeholder="name@pw.live or name@pwmeded.edu.in" class="w-full h-12 px-3 border border-[#dadce0] rounded-xl text-sm mb-3 focus:outline-none focus:border-[#4a7c59] focus:ring-2 focus:ring-[#4a7c59]/20 transition-all">
+        <input id="inPageEmailInput" type="email" placeholder="name@pw.live or name@pwmeded.edu.in"
+          class="w-full h-12 px-3 border border-[#dadce0] rounded-xl text-sm mb-3 focus:outline-none focus:border-[#4a7c59] focus:ring-2 focus:ring-[#4a7c59]/20 transition-all">
 
         <!-- Quick 1-Tap Accounts for Mobile/Web App -->
         <div class="mb-4 pt-3 border-t border-neutral-100 flex flex-col gap-1.5">
-          <span class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Quick Sign In (Verified Administrators)</span>
+          <span class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Quick Sign In (Verified
+            Administrators)</span>
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="selectQuickEmail('bhaskar.ekka@pw.live')" class="px-2.5 py-1 rounded-lg bg-[#eef4f0] hover:bg-[#d8e8dc] text-[#2d4d37] text-[11px] font-semibold border border-[#d2e2d6] transition-colors cursor-pointer">
+            <button type="button" onclick="selectQuickEmail('bhaskar.ekka@pw.live')"
+              class="px-2.5 py-1 rounded-lg bg-[#eef4f0] hover:bg-[#d8e8dc] text-[#2d4d37] text-[11px] font-semibold border border-[#d2e2d6] transition-colors cursor-pointer">
               bhaskar.ekka@pw.live (Admin / Lead)
             </button>
-            <button type="button" onclick="selectQuickEmail('kanchan.gupta1@pw.live')" class="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-semibold border border-neutral-200 transition-colors cursor-pointer">
+            <button type="button" onclick="selectQuickEmail('kanchan.gupta1@pw.live')"
+              class="px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-semibold border border-neutral-200 transition-colors cursor-pointer">
               kanchan.gupta1@pw.live (Admin)
             </button>
           </div>
         </div>
 
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-neutral-100">
-          <button type="button" onclick="launchGoogleDirectRedirect()" class="text-[11px] font-semibold text-[#4a7c59] hover:underline flex items-center gap-1 cursor-pointer">
+          <button type="button" onclick="launchGoogleDirectRedirect()"
+            class="text-[11px] font-semibold text-[#4a7c59] hover:underline flex items-center gap-1 cursor-pointer">
             <span class="material-symbols-outlined text-[13px]">open_in_new</span>
             <span>Browser OAuth</span>
           </button>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="closeInPageOAuth()" class="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer">Cancel</button>
-            <button type="button" onclick="handleInPageEmailSubmit()" class="px-5 py-2.5 bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">Next</button>
+            <button type="button" onclick="closeInPageOAuth()"
+              class="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer">Cancel</button>
+            <button type="button" onclick="handleInPageEmailSubmit()"
+              class="px-5 py-2.5 bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">Next</button>
           </div>
         </div>
       </div>
@@ -700,19 +797,26 @@
           <span class="material-symbols-outlined text-sm text-[#4a7c59]">account_circle</span>
           <div id="inPageSelectedEmailDisplay" class="text-xs font-bold text-[#202124] truncate"></div>
         </div>
-        
+
         <label class="block text-[11px] font-semibold text-neutral-600 mb-1">Enter your password</label>
-        <input id="inPagePasswordInput" type="password" placeholder="Enter password (e.g. MedEd@2026)" class="w-full h-12 px-3 border border-[#dadce0] rounded-xl text-sm mb-2 focus:outline-none focus:border-[#4a7c59] focus:ring-2 focus:ring-[#4a7c59]/20 transition-all">
-        <div id="inPagePasswordError" class="text-xs text-[#b83230] font-medium hidden mb-3">Wrong password. Try again or enter your institutional password.</div>
-        
+        <input id="inPagePasswordInput" type="password" placeholder="Enter password (e.g. MedEd@2026)"
+          class="w-full h-12 px-3 border border-[#dadce0] rounded-xl text-sm mb-2 focus:outline-none focus:border-[#4a7c59] focus:ring-2 focus:ring-[#4a7c59]/20 transition-all">
+        <div id="inPagePasswordError" class="text-xs text-[#b83230] font-medium hidden mb-3">Wrong password. Try again
+          or enter your institutional password.</div>
+
         <div class="flex items-center justify-between gap-2 pt-3 border-t border-neutral-100">
-          <button type="button" onclick="document.getElementById('inPagePasswordStep').classList.add('hidden'); document.getElementById('inPageEmailStep').classList.remove('hidden');" class="text-xs font-semibold text-neutral-600 hover:text-neutral-900 flex items-center gap-1 cursor-pointer">
+          <button type="button"
+            onclick="document.getElementById('inPagePasswordStep').classList.add('hidden'); document.getElementById('inPageEmailStep').classList.remove('hidden');"
+            class="text-xs font-semibold text-neutral-600 hover:text-neutral-900 flex items-center gap-1 cursor-pointer">
             <span class="material-symbols-outlined text-sm">arrow_back</span>
             <span>Back</span>
           </button>
           <div class="flex items-center gap-2">
-            <button type="button" onclick="closeInPageOAuth()" class="px-3.5 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer">Cancel</button>
-            <button type="button" onclick="handleInPagePasswordSubmit()" class="px-5 py-2.5 bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">Sign In</button>
+            <button type="button" onclick="closeInPageOAuth()"
+              class="px-3.5 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer">Cancel</button>
+            <button type="button" onclick="handleInPagePasswordSubmit()"
+              class="px-5 py-2.5 bg-[#4a7c59] hover:bg-[#3d6749] text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer">Sign
+              In</button>
           </div>
         </div>
       </div>
@@ -721,4 +825,5 @@
   </div>
   <script type="module" src="/js/pwaInstaller.js"></script>
 </body>
+
 </html>
