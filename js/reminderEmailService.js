@@ -47,6 +47,60 @@ export function prepareEmailHtmlForSend(html) {
   return out;
 }
 
+export function getReminderTriggerWindow(leadMinutes) {
+  let tolerance;
+  if (leadMinutes >= 720) {
+    // 12 hours to 24+ hours (e.g. 24 Hours Prior)
+    tolerance = 60; // 60 mins tolerance (e.g. 23h to 24h 5m)
+  } else if (leadMinutes >= 180) {
+    // 3 hours to 12 hours
+    tolerance = 30; // 30 mins tolerance
+  } else if (leadMinutes >= 60) {
+    // 1 hour to 3 hours (e.g. 2 Hours or 1 Hour Prior)
+    tolerance = 15; // 15 mins tolerance (e.g. 1h 45m to 2h 5m)
+  } else if (leadMinutes >= 30) {
+    // 30 to 59 minutes (e.g. 45 Mins or 30 Mins Prior)
+    tolerance = 8;  // 8 mins tolerance (e.g. 37m to 50m)
+  } else {
+    // 5 to 29 minutes (e.g. 15 Mins Prior)
+    tolerance = 5;  // 5 mins tolerance
+  }
+
+  const minDiffMinutes = Math.max(0, leadMinutes - tolerance);
+  const maxDiffMinutes = leadMinutes + 5; // 5m forward leeway
+
+  return { minDiffMinutes, maxDiffMinutes, tolerance };
+}
+
+export function parseClassTimings(timingStr) {
+  let startH = 19;
+  let startM = 0;
+  if (!timingStr) return { startH, startM };
+
+  const str = String(timingStr).trim();
+  const m = str.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2] || '0', 10);
+    let ampm = (m[3] || '').toUpperCase();
+
+    if (!ampm) {
+      if (/pm/i.test(str)) {
+        if (h < 12) ampm = 'PM';
+      } else if (/am/i.test(str)) {
+        ampm = 'AM';
+      }
+    }
+
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+
+    startH = h;
+    startM = min;
+  }
+  return { startH, startM };
+}
+
 export class ReminderEmailService {
   constructor() {
     this.SETTINGS_KEY = 'meded_email_settings';
@@ -268,6 +322,9 @@ export class ReminderEmailService {
         localStorage.setItem('pw_meded_email_settings', JSON.stringify({
           senderEmail: updated.senderEmail,
           leadDuration: `${updated.leadDurationValue || 30} ${updated.leadDurationUnit || 'minutes'}`,
+          leadDurationMinutes: updated.leadDurationMinutes,
+          leadDurationValue: updated.leadDurationValue,
+          leadDurationUnit: updated.leadDurationUnit,
           enabled: updated.isEnabled !== false,
           updatedAt: updated.lastConfiguredAt
         }));
@@ -721,8 +778,7 @@ export class ReminderEmailService {
       topic: event.topic || event.chapter,
       leadMinutes: leadDurationMinutes
     };
-    sentMap[baseKey] = sentMap[emailKey];
-    if (event.id) sentMap[event.id] = sentMap[emailKey];
+    // Do NOT blanket-block sentMap[baseKey] or sentMap[event.id] so other defined intervals can trigger
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.SENT_KEY, JSON.stringify(sentMap));
     }
@@ -1420,11 +1476,9 @@ export class ReminderEmailService {
     const leadMinutes = settings.leadDurationMinutes || 30;
     const now = new Date();
 
-    // Trigger window:
-    // Any upcoming class starting between now (with 15m grace window for classes just starting)
-    // and leadMinutes ahead (with 5m forward leeway for timer jitter).
-    const minDiffMinutes = -15;
-    const maxDiffMinutes = leadMinutes + 5;
+    // Exact trigger window:
+    // Calculates narrow interval tolerance around leadMinutes (never triggers hours early or late)
+    const { minDiffMinutes, maxDiffMinutes, tolerance } = getReminderTriggerWindow(leadMinutes);
     
     events.forEach(ev => {
       if (ev.eventType !== 'class' || !ev.isoDate || !ev.faculty) return;
@@ -1433,27 +1487,13 @@ export class ReminderEmailService {
       const baseKey = ev.id || `${ev.isoDate}_${ev.faculty}_${ev.timings || ''}`;
       const emailKey = `${baseKey}_email_${leadMinutes}`;
       const waKey = `${baseKey}_whatsapp_${leadMinutes}`;
-      const emailSent = sentMap[emailKey] || sentMap[baseKey] || (ev.id && sentMap[ev.id]);
-      const waSent = sentMap[waKey] || sentMap[`${baseKey}_whatsapp`] || (ev.id && sentMap[`${ev.id}_whatsapp`]);
+      // Strictly check interval-scoped key so other defined intervals can trigger
+      const emailSent = Boolean(sentMap[emailKey]);
+      const waSent = Boolean(sentMap[waKey]);
 
       const classDateStr = ev.isoDate;
-      let startHours = 19;
-      let startMins = 0;
-
-      // Robust timing parser: supports "5:00 PM", "5 PM", "10:30 AM", "6pm to 8pm", etc.
-      const timingSource = ev.startTime || ev.timings || '';
-      if (timingSource) {
-        const timeMatch = timingSource.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-        if (timeMatch) {
-          let h = parseInt(timeMatch[1], 10);
-          const m = parseInt(timeMatch[2] || '0', 10);
-          const ampm = (timeMatch[3] || '').toUpperCase();
-          if (ampm === 'PM' && h < 12) h += 12;
-          if (ampm === 'AM' && h === 12) h = 0;
-          startHours = h;
-          startMins = m;
-        }
-      } else if (typeof ev.startHour === 'number' && !isNaN(ev.startHour)) {
+      let { startH: startHours, startM: startMins } = parseClassTimings(ev.startTime || ev.timings || '');
+      if (typeof ev.startHour === 'number' && !isNaN(ev.startHour)) {
         startHours = Math.floor(ev.startHour);
         startMins = Math.round((ev.startHour - startHours) * 60);
       }

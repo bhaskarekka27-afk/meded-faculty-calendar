@@ -404,7 +404,7 @@
 
       // Check email-specific passwords
       const cleanEmail = (email || '').toLowerCase().trim();
-      if (cleanEmail === 'bhaskarekka27@gmail.com' && cleanPw === 'Bhaskar@2026') return true;
+      if ((cleanEmail === 'bhaskarekka27@gmail.com' || cleanEmail === 'bhaskar.ekka@pw.live') && cleanPw === 'Bhaskar@2026') return true;
       if (cleanEmail === 'kanchan.gupta1@pw.live' && cleanPw === 'Kanchan@2026') return true;
 
       // Check any custom saved password for this email in storage

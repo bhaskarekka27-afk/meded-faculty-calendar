@@ -256,16 +256,25 @@ export function renderLectureStatusBadge(ev, options = {}) {
   const { isConducted, isCancelled, isRescheduled } = getLectureStatus(ev);
 
   if (isConducted) {
+    if (options.iconOnly) {
+      return `<span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#dcfce7] text-[#15803d] border border-[#86efac] shadow-2xs shrink-0" title="Lecture Conducted"><svg class="w-3 h-3 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></span>`;
+    }
     const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
     return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#dcfce7] text-[#15803d] border border-[#86efac] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Conducted"><svg class="w-2.5 h-2.5 text-[#16a34a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>Conducted</span>`;
   }
 
   if (isCancelled) {
+    if (options.iconOnly) {
+      return `<span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#fee2e2] text-[#b91c1c] border border-[#fca5a5] shadow-2xs shrink-0" title="Lecture Cancelled"><svg class="w-3 h-3 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></span>`;
+    }
     const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
     return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#fee2e2] text-[#b91c1c] border border-[#fca5a5] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Cancelled"><svg class="w-2.5 h-2.5 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>Cancelled</span>`;
   }
 
   if (isRescheduled) {
+    if (options.iconOnly) {
+      return `<span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#fef3c7] text-[#b45309] border border-[#fcd34d] shadow-2xs shrink-0" title="Lecture Rescheduled"><span class="w-2 h-2 rounded-full bg-[#d97706]"></span></span>`;
+    }
     const compactClass = options.compact ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[9.5px] px-2 py-0.5';
     return `<span class="inline-flex items-center gap-1 font-extrabold rounded-md bg-[#fef3c7] text-[#b45309] border border-[#fcd34d] shadow-xs shrink-0 tracking-wide ${compactClass}" title="Lecture Rescheduled"><span class="w-1.5 h-1.5 rounded-full bg-[#d97706]"></span>Rescheduled</span>`;
   }

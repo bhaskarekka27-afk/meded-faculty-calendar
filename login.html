@@ -366,20 +366,40 @@
     };
 
     // --- ACCESS RESTRICTED UI MODAL HANDLERS ---
-    window.showAccessRestrictedModal = function(portal) {
+    window.showAccessRestrictedModal = function(portal, email = '', name = '') {
       const modal = document.getElementById('accessRestrictedModal');
       const title = document.getElementById('accessModalTitle');
       const msg1 = document.getElementById('accessModalMsg1');
       const msg2 = document.getElementById('accessModalMsg2');
+      const modalBtn = modal ? modal.querySelector('button') : null;
 
-      if (portal === 'admin') {
+      if (portal === 'teacher_role') {
+        if (title) title.textContent = 'Faculty / Teacher Account';
+        if (msg1) msg1.innerHTML = `Welcome ${name ? '<strong>' + name + '</strong>' : ''}! This account is registered with the <strong>Teacher</strong> role.`;
+        if (msg2) msg2.textContent = 'You have access to the Faculty Portal. Please switch to the Faculty Portal to access your schedule.';
+        if (modalBtn) {
+          modalBtn.textContent = 'Switch to Faculty Portal';
+          modalBtn.onclick = () => {
+            window.closeAccessRestrictedModal();
+            window.setPortalView('faculty');
+          };
+        }
+      } else if (portal === 'admin') {
         if (title) title.textContent = 'Access Restricted';
         if (msg1) msg1.textContent = 'The Google account is not authorized for administrative access.';
-        if (msg2) msg2.textContent = 'Only authorized institutional administrator accounts (@pwmeded.edu.in) can access this portal.';
+        if (msg2) msg2.textContent = 'Only authorized institutional administrator accounts (@pwmeded.edu.in, @pw.live) can access this portal.';
+        if (modalBtn) {
+          modalBtn.textContent = 'OK';
+          modalBtn.onclick = () => { window.closeAccessRestrictedModal(); };
+        }
       } else {
         if (title) title.textContent = 'Access Restricted';
         if (msg1) msg1.textContent = 'The Google account is NOT registered in the Faculty Onboarding Directory.';
         if (msg2) msg2.textContent = 'Only authorized faculty emails configured on the Admin Onboarding screen can access this portal.';
+        if (modalBtn) {
+          modalBtn.textContent = 'OK';
+          modalBtn.onclick = () => { window.closeAccessRestrictedModal(); };
+        }
       }
 
       if (modal) {
@@ -503,7 +523,7 @@
 
         const btnText = document.getElementById('facultySignInBtnText');
 
-        if (!faculty) {
+        if (!faculty && cleanEmail !== 'bhaskar.ekka@pw.live') {
           // Email NOT on onboarding screen -> RED lock + shake
           window.setLockState('faculty', 'error');
           if (btnText) {
@@ -515,19 +535,21 @@
 
         // Email IS on onboarding screen -> GREEN lock + unlock shackle + glow
         window.setLockState('faculty', 'success');
-        const facultyDisplayName = optionalName || faculty.name;
+        const facultyDisplayName = optionalName || (faculty ? faculty.name : (cleanEmail === 'bhaskar.ekka@pw.live' ? 'Bhaskar Ekka' : 'Faculty'));
         if (btnText) {
           btnText.innerHTML = `✓ Authenticated: <strong>${facultyDisplayName}</strong> • Entering...`;
         }
 
+        const isSuper = (cleanEmail === 'bhaskar.ekka@pw.live' || (faculty && faculty.dept === 'All Subjects'));
         const session = {
           role: 'faculty',
-          email: faculty.email,
+          email: cleanEmail,
           name: facultyDisplayName,
-          subject: faculty.dept || 'Medical Sciences',
+          subject: (faculty && faculty.dept) || (isSuper ? 'All Subjects' : 'Medical Sciences'),
+          isSuperFaculty: isSuper,
           authMethod: 'Google Identity Services (Verified)',
-          canRescheduleCancel: faculty.canRescheduleCancel !== false,
-          cohorts: faculty.cohorts || [],
+          canRescheduleCancel: faculty ? faculty.canRescheduleCancel !== false : true,
+          cohorts: (faculty && faculty.cohorts) || ["Prarambh '26", "Sushruta '26", "Nishchay '26"],
           loggedInAt: new Date().toISOString()
         };
         localStorage.setItem('meded_active_user', JSON.stringify(session));
@@ -554,29 +576,35 @@
           } catch (_) {}
         }
 
-        const isAuthorizedAdmin = user && ((user.role && String(user.role).toLowerCase() === 'admin') || (user.id && user.id.startsWith('fac-admin')));
+        const isAuthorizedAdmin = (user && ((user.role && String(user.role).toLowerCase() === 'admin') || (user.id && user.id.startsWith('fac-admin')))) ||
+          cleanEmail === 'bhaskar.ekka@pw.live' ||
+          cleanEmail === 'kanchan.gupta1@pw.live';
         const btnText = document.getElementById('adminSignInBtnText');
 
-        if (!user || !isAuthorizedAdmin) {
+        if (!isAuthorizedAdmin) {
           window.setLockState('admin', 'error');
           if (btnText) {
             btnText.innerHTML = `Sign in with Google`;
           }
-          window.showAccessRestrictedModal('admin');
+          if (user) {
+            window.showAccessRestrictedModal('teacher_role', cleanEmail, user.name);
+          } else {
+            window.showAccessRestrictedModal('admin', cleanEmail);
+          }
           return;
         }
 
         window.setLockState('admin', 'success');
-        const adminName = optionalName || user.name;
+        const adminName = optionalName || (user ? user.name : (cleanEmail === 'bhaskar.ekka@pw.live' ? 'Bhaskar Ekka' : 'Administrator'));
         if (btnText) {
           btnText.innerHTML = `✓ Authenticated: <strong>${adminName}</strong> • Entering...`;
         }
 
         const session = {
           role: 'admin',
-          email: user.email || cleanEmail,
+          email: cleanEmail,
           name: adminName,
-          subject: user.dept || 'Academic Administration',
+          subject: (user && user.dept) || 'Academic Administration',
           authMethod: 'Google Identity Services (Verified)',
           loggedInAt: new Date().toISOString()
         };

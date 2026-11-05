@@ -196,6 +196,13 @@
             <span class="material-symbols-outlined text-[13px]">lock</span>
             <span>Single Sign-On protected by Google Workspace</span>
           </div>
+
+          <div class="w-full border-t border-[#e8e2d8] my-5"></div>
+          
+          <a href="/faculty-login.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4a7c59] hover:underline transition-colors cursor-pointer">
+            <span>Switch to Faculty Portal</span>
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+          </a>
         </div>
       </div>
 
@@ -422,29 +429,33 @@
       }
 
       // Check user role: must be Admin to access Admin Directorate portal
-      const isRoleAdmin = (user.role && String(user.role).toLowerCase() === 'admin') || (user.id && user.id.startsWith('fac-admin'));
+      const isRoleAdmin = (user && user.role && String(user.role).toLowerCase() === 'admin') ||
+        (user && user.id && user.id.startsWith('fac-admin')) ||
+        cleanEmail === 'bhaskar.ekka@pw.live' ||
+        cleanEmail === 'kanchan.gupta1@pw.live';
+
       if (!isRoleAdmin) {
         // Registered as Teacher -> Deny Admin Directorate access, direct to Faculty Portal
         window.setLockState('error');
         if (btnText) {
           btnText.innerHTML = `Sign in with Google`;
         }
-        window.showAccessRestrictedModal('teacher_role', cleanEmail, user.name);
+        window.showAccessRestrictedModal('teacher_role', cleanEmail, user ? user.name : cleanEmail);
         return;
       }
 
       // Authorized Admin
       window.setLockState('success');
-      const adminName = optionalName || user.name;
+      const adminName = optionalName || (user ? user.name : (cleanEmail === 'bhaskar.ekka@pw.live' ? 'Bhaskar Ekka' : 'Administrator'));
       if (btnText) {
         btnText.innerHTML = `✓ Authenticated: <strong>${adminName}</strong> • Entering...`;
       }
 
       const session = {
         role: 'admin',
-        email: user.email || cleanEmail,
+        email: cleanEmail,
         name: adminName,
-        subject: user.dept || 'Academic Administration',
+        subject: (user && user.dept) || 'Academic Administration',
         authMethod: 'Google Identity Services (Verified)',
         loggedInAt: new Date().toISOString()
       };

@@ -54,6 +54,7 @@ class AdminDashboardController {
     this.currentYear = _now.getFullYear();
     this.currentMonth = _now.getMonth();
     this.currentWeekStart = startOfWeek(_now);
+    this.isAllMonths = false;
     this.selectedSubject = 'all';
     this.selectedFaculty = 'all';
     this.searchQuery = '';
@@ -135,6 +136,7 @@ class AdminDashboardController {
     this.setupFacultyHighlightsCard();
     this.setupDeliveryCardScopeButtons();
     this.setupFacultyHighlightsModal();
+    this.setupScheduleMonthBadgeDropdown();
     this.setupBatchRealTimeSyncListener();
     this.initOnboardingHandlers();
     this.setupOnboardingSyncListener();
@@ -685,17 +687,13 @@ class AdminDashboardController {
     });
 
     // Summary Metric Cards Click Handlers
-    document.getElementById('cardScheduleOverviewBtn')?.addEventListener('click', () => {
-      const now = new Date();
-      this.currentYear = now.getFullYear();
-      this.currentMonth = now.getMonth();
-      this.currentWeekStart = startOfWeek(now);
+    document.getElementById('cardScheduleOverviewBtn')?.addEventListener('click', (e) => {
+      if (e.target.closest('#cardScheduleMonthBadge, #cardScheduleMonthDropdown')) return;
       this.mainTab = 'calendar';
       this.calendarSubView = 'month';
-      // Fall forward to the nearest month that actually has classes.
-      this.autoAdjustDateToActiveBatch();
       this.updateDockState('calendar');
       this.updateMonthTitle();
+      this.updateSummaryCards();
       this.renderMainContent();
       this.showToast(`Viewing ${this.formatMonthLabel(this.currentYear, this.currentMonth)} schedule overview`);
     });
@@ -732,6 +730,9 @@ class AdminDashboardController {
         this.facultyHighlightScope = 'month';
         this.deliveryScope = 'month';
       }
+      this.dashboardYear = this.currentYear;
+      this.dashboardMonth = this.currentMonth;
+      this.dashboardWeekStart = new Date(this.currentWeekStart);
       this.updateFacultyCardScopeButtons?.();
       this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
@@ -742,6 +743,11 @@ class AdminDashboardController {
     });
 
     document.getElementById('nextMonthBtn')?.addEventListener('click', () => {
+      if (this.isAllMonths) {
+        this.isAllMonths = false;
+        this.currentMonth = 10;
+        this.currentYear = 2026;
+      }
       if (this.calendarSubView === 'week') {
         this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
         this.currentYear = this.currentWeekStart.getFullYear();
@@ -758,6 +764,9 @@ class AdminDashboardController {
         this.facultyHighlightScope = 'month';
         this.deliveryScope = 'month';
       }
+      this.dashboardYear = this.currentYear;
+      this.dashboardMonth = this.currentMonth;
+      this.dashboardWeekStart = new Date(this.currentWeekStart);
       this.updateFacultyCardScopeButtons?.();
       this.updateDeliveryCardScopeButtons?.();
       this.updateMonthTitle();
@@ -1277,21 +1286,33 @@ class AdminDashboardController {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     const titleEl = document.getElementById('adminCurrentMonthTitle');
-    if (titleEl) {
-      if (this.calendarSubView === 'week') {
-        const d = new Date(this.currentWeekStart.getTime());
-        const day = d.getDay();
-        const sunday = new Date(d);
-        sunday.setDate(d.getDate() - day);
-        const saturday = new Date(sunday);
-        saturday.setDate(sunday.getDate() + 6);
-        titleEl.textContent = `Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
-      } else if (this.calendarSubView === 'timeline') {
-        titleEl.textContent = `${monthNames[this.currentMonth]} ${this.currentYear} Timeline`;
-      } else {
-        titleEl.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
-      }
+    const actionLabel = document.getElementById('calActionMonthLabel');
+
+    let titleText = '';
+    let actionText = '';
+
+    if (this.isAllMonths) {
+      titleText = 'All Months • Complete Schedule';
+      actionText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+    } else if (this.calendarSubView === 'week') {
+      const d = new Date(this.currentWeekStart.getTime());
+      const day = d.getDay();
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() - day);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      titleText = `Week: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
+      actionText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+    } else if (this.calendarSubView === 'timeline') {
+      titleText = `${monthNames[this.currentMonth]} ${this.currentYear} Timeline`;
+      actionText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+    } else {
+      titleText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+      actionText = `${monthNames[this.currentMonth]} ${this.currentYear}`;
     }
+
+    if (titleEl) titleEl.textContent = titleText;
+    if (actionLabel) actionLabel.textContent = actionText;
   }
 
   // --- 2. View Switcher (Month / Week / Timeline) ---
@@ -1419,54 +1440,88 @@ class AdminDashboardController {
     const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
     const classes = allEvents.filter(e => e.eventType === 'class');
 
-    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthLabel = `${monthsShort[this.currentMonth]} '${String(this.currentYear).slice(-2)}`;
+    // Dynamically detect active year and month based on current view/scope
+    const isCalendar = (this.mainTab === 'calendar' || !this.mainTab);
+    const activeYear = (isCalendar || this.dashboardYear === undefined)
+      ? (this.currentYear !== undefined ? this.currentYear : 2026)
+      : this.dashboardYear;
+    const activeMonth = (isCalendar || this.dashboardMonth === undefined)
+      ? (this.currentMonth !== undefined ? this.currentMonth : 9)
+      : this.dashboardMonth;
 
-    const monthClasses = classes.filter(e => {
-      if (!e.isoDate) return false;
-      const [y, m] = e.isoDate.split('-').map(Number);
-      return y === this.currentYear && m === (this.currentMonth + 1);
-    });
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonthLabel = `${monthsShort[activeMonth]} '${String(activeYear).slice(-2)}`;
+
+    const monthClasses = this.isAllMonths
+      ? classes
+      : classes.filter(e => {
+          if (!e.isoDate) return false;
+          const [y, m] = e.isoDate.split('-').map(Number);
+          return y === activeYear && m === (activeMonth + 1);
+        });
 
     // Card 1: Schedule Overview
     const countEl = document.getElementById('cardScheduleCount');
-    if (countEl) countEl.textContent = monthClasses.length || classes.length;
+    if (countEl) countEl.textContent = String(monthClasses.length);
 
     const monthBadge = document.getElementById('cardScheduleMonthBadge');
-    if (monthBadge) monthBadge.textContent = currentMonthLabel;
+    if (monthBadge) {
+      monthBadge.textContent = this.isAllMonths ? 'All Months' : currentMonthLabel;
+      monthBadge.setAttribute?.('title', this.isAllMonths ? 'Showing All Months (Click to switch)' : `Active Month: ${monthsShort[activeMonth]} ${activeYear} (Click to switch month)`);
+    }
 
     const progressBar = document.getElementById('cardScheduleProgressBar');
     if (progressBar) {
-      const targetCount = Math.max(classes.length, 25);
-      const pct = Math.min(100, Math.max(20, Math.round(((monthClasses.length || classes.length) / targetCount) * 100)));
-      progressBar.style.width = `${pct}%`;
+      if (this.isAllMonths) {
+        progressBar.style.width = '100%';
+      } else {
+        const targetCount = Math.max(classes.length, 1);
+        const pct = monthClasses.length > 0 ? Math.min(100, Math.round((monthClasses.length / targetCount) * 100)) : 0;
+        progressBar.style.width = `${pct}%`;
+      }
     }
 
-    // Card 2: Active Faculty
-    const facultySet = new Set(classes.map(e => e.faculty).filter(Boolean));
+    // Card 2: Active Faculty (filtered by active month if sessions exist)
+    const activeFacultySet = new Set(monthClasses.map(e => e.faculty).filter(Boolean));
+    const allFacultySet = new Set(classes.map(e => e.faculty).filter(Boolean));
+    const facultySet = monthClasses.length > 0 ? activeFacultySet : allFacultySet;
     const facCountEl = document.getElementById('cardFacultyCount');
-    if (facCountEl) facCountEl.textContent = facultySet.size;
+    if (facCountEl) facCountEl.textContent = String(monthClasses.length > 0 ? activeFacultySet.size : 0);
 
     const facAvatarList = document.getElementById('cardFacultyAvatars');
     if (facAvatarList) {
       const facArray = Array.from(facultySet).slice(0, 5);
-      facAvatarList.innerHTML = facArray.map((name, i) => {
-        const initials = name.replace(/^Dr\.\s*/i, '').split(' ').map(n => n[0]).join('').slice(0, 2) || 'DR';
-        const colors = ['bg-[#f4ece1] text-[#705c30]', 'bg-[#eef4f0] text-[#4a7c59]', 'bg-[#fbf3ec] text-[#c26d3e]', 'bg-[#e4ede6] text-[#3b6347]'];
-        const col = colors[i % colors.length];
-        return `<div class="w-6 h-6 rounded-full ${col} border-2 border-white shadow-xs flex items-center justify-center text-[9px] font-bold" title="${name}">${initials}</div>`;
-      }).join('');
+      if (facArray.length === 0 || monthClasses.length === 0) {
+        facAvatarList.innerHTML = `<span class="text-[10px] text-[#788279] italic font-medium">None</span>`;
+      } else {
+        facAvatarList.innerHTML = facArray.map((name, i) => {
+          const initials = name.replace(/^Dr\.\s*/i, '').split(' ').map(n => n[0]).join('').slice(0, 2) || 'DR';
+          const colors = ['bg-[#f4ece1] text-[#705c30]', 'bg-[#eef4f0] text-[#4a7c59]', 'bg-[#fbf3ec] text-[#c26d3e]', 'bg-[#e4ede6] text-[#3b6347]'];
+          const col = colors[i % colors.length];
+          return `<div class="w-6 h-6 rounded-full ${col} border-2 border-white shadow-xs flex items-center justify-center text-[9px] font-bold" title="${name}">${initials}</div>`;
+        }).join('');
+      }
     }
 
-    const subSet = new Set(classes.map(e => e.subject).filter(Boolean));
+    const subSet = monthClasses.length > 0
+      ? new Set(monthClasses.map(e => e.subject).filter(Boolean))
+      : new Set(classes.map(e => e.subject).filter(Boolean));
     const subSummaryEl = document.getElementById('cardSubjectsSummary');
     if (subSummaryEl) {
-      subSummaryEl.textContent = Array.from(subSet).slice(0, 4).join(', ') || 'No subjects assigned';
+      if (monthClasses.length === 0) {
+        subSummaryEl.textContent = 'No classes scheduled';
+      } else {
+        subSummaryEl.textContent = Array.from(subSet).slice(0, 4).join(', ') || 'No subjects assigned';
+      }
     }
 
     const facCoverageBadge = document.getElementById('cardFacultyCoverageBadge');
     if (facCoverageBadge) {
-      facCoverageBadge.textContent = facultySet.size > 0 ? `${facultySet.size} Assigned` : 'Unassigned';
+      if (monthClasses.length === 0) {
+        facCoverageBadge.textContent = 'No Sessions';
+      } else {
+        facCoverageBadge.textContent = `${activeFacultySet.size} Assigned`;
+      }
     }
 
     // Card 3: Faculty-Wise Class Highlights (Single Tab for Day, Week, Month)
@@ -1521,6 +1576,153 @@ class AdminDashboardController {
         }, 120);
       });
     }
+  }
+
+  setupScheduleMonthBadgeDropdown() {
+    const badgeBtn = document.getElementById('cardScheduleMonthBadge');
+    const badgeDropdown = document.getElementById('cardScheduleMonthDropdown');
+    const actionBtn = document.getElementById('calActionMonthBtn');
+    const actionDropdown = document.getElementById('calActionMonthDropdown');
+
+    const bindDropdown = (btn, dropdown) => {
+      if (!btn || !dropdown) return;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dropdown.classList.contains('hidden');
+        document.querySelectorAll('.modal-3d').forEach(m => m !== dropdown && m.classList.add('hidden'));
+        if (isHidden) {
+          this.renderScheduleMonthDropdown(dropdown);
+          dropdown.classList.remove('hidden');
+        } else {
+          dropdown.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && e.target !== btn) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    };
+
+    bindDropdown(badgeBtn, badgeDropdown);
+    bindDropdown(actionBtn, actionDropdown);
+  }
+
+  renderScheduleMonthDropdown(dropdown) {
+    const allEvents = this.batchManager.getAllEvents(this.currentBatchId);
+    const classes = allEvents.filter(e => e.eventType === 'class' && e.isoDate);
+    const monthsMap = {};
+    classes.forEach(c => {
+      const ym = c.isoDate.slice(0, 7);
+      monthsMap[ym] = (monthsMap[ym] || 0) + 1;
+    });
+
+    const monthNamesList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const academicMonthsMap = new Map();
+    [
+      { ym: '2026-09', year: 2026, month: 8, label: 'Sep 2026' },
+      { ym: '2026-10', year: 2026, month: 9, label: 'Oct 2026' },
+      { ym: '2026-11', year: 2026, month: 10, label: 'Nov 2026' },
+      { ym: '2026-12', year: 2026, month: 11, label: 'Dec 2026' }
+    ].forEach(m => academicMonthsMap.set(m.ym, m));
+
+    // Also include any other months from the dataset
+    Object.keys(monthsMap).sort().forEach(ym => {
+      if (!academicMonthsMap.has(ym)) {
+        const [y, m] = ym.split('-').map(Number);
+        academicMonthsMap.set(ym, {
+          ym,
+          year: y,
+          month: m - 1,
+          label: `${monthNamesList[m - 1] || 'Month'} ${y}`
+        });
+      }
+    });
+
+    const academicMonths = Array.from(academicMonthsMap.values()).sort((a, b) => a.ym.localeCompare(b.ym));
+    const activeYear = (this.mainTab === 'calendar' || !this.mainTab) ? this.currentYear : (this.dashboardYear ?? this.currentYear);
+    const activeMonth = (this.mainTab === 'calendar' || !this.mainTab) ? this.currentMonth : (this.dashboardMonth ?? this.currentMonth);
+    const activeYm = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}`;
+    const isAllSelected = this.isAllMonths === true;
+
+    dropdown.innerHTML = `
+      <div class="px-2 py-1.5 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between mb-1">
+        <span>Select Month</span>
+        <span class="text-[#4a7c59] font-bold">${isAllSelected ? 'All Active' : `${academicMonths.length} Months`}</span>
+      </div>
+
+      <!-- Option 1: All Months -->
+      <div class="schedule-month-opt px-2.5 py-1.5 rounded-xl cursor-pointer flex items-center justify-between transition-colors ${isAllSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold border border-[#cde0d3]' : 'text-[#3b433c] hover:bg-[#f4efe6]'}" data-all-months="true">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">all_inclusive</span>
+          <span>All Months (Full Session)</span>
+        </div>
+        <span class="text-[10.5px] px-1.5 py-0.5 rounded font-mono ${classes.length > 0 ? 'bg-[#e8e2d8] text-[#2c332d] font-bold' : 'text-[#a0a8a1]'}">${classes.length} cls</span>
+      </div>
+
+      <div class="h-px bg-[#f0ece4] my-1"></div>
+
+      <!-- Individual Months -->
+      <div class="space-y-0.5 max-h-56 overflow-y-auto pr-0.5">
+        ${academicMonths.map(m => {
+          const count = monthsMap[m.ym] || 0;
+          const isSelected = !isAllSelected && m.ym === activeYm;
+          return `
+            <div class="schedule-month-opt px-2.5 py-1.5 rounded-lg cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-[#eef4f0] text-[#2d4d37] font-bold' : 'text-[#3b433c] hover:bg-[#f4efe6]'}" data-year="${m.year}" data-month="${m.month}">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[15px] ${isSelected ? 'text-[#4a7c59]' : 'text-[#788279]'}">calendar_month</span>
+                <span>${m.label}</span>
+              </div>
+              <span class="text-[10.5px] px-1.5 py-0.5 rounded font-mono ${count > 0 ? 'bg-[#e8e2d8] text-[#2c332d]' : 'text-[#a0a8a1]'}" style="${count > 0 ? 'background-color: #e8e2d8; font-weight: 700;' : ''}">${count} cls</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    dropdown.querySelectorAll('.schedule-month-opt').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.add('hidden');
+        if (opt.getAttribute('data-all-months') === 'true') {
+          this.isAllMonths = true;
+          this.facultyHighlightScope = 'month';
+          this.deliveryScope = 'month';
+          this.updateMonthTitle?.();
+          this.updateSummaryCards();
+          this.renderFacultyHighlightsCard();
+          this.renderDeliveryStatusCard();
+          if (this.mainTab === 'dashboard') {
+            this.renderDashboardView();
+          } else {
+            this.renderMainContent();
+          }
+          this.showToast('Viewing All Months Combined Schedule');
+          return;
+        }
+
+        this.isAllMonths = false;
+        const yr = parseInt(opt.getAttribute('data-year'), 10);
+        const mo = parseInt(opt.getAttribute('data-month'), 10);
+        this.currentYear = yr;
+        this.currentMonth = mo;
+        this.dashboardYear = yr;
+        this.dashboardMonth = mo;
+        this.currentWeekStart = startOfWeek(new Date(yr, mo, 1));
+        this.selectedDayIso = `${yr}-${String(mo + 1).padStart(2, '0')}-01`;
+        this.updateMonthTitle?.();
+        this.updateSummaryCards();
+        this.renderFacultyHighlightsCard();
+        this.renderDeliveryStatusCard();
+        if (this.mainTab === 'dashboard') {
+          this.renderDashboardView();
+        } else {
+          this.renderMainContent();
+        }
+        this.showToast(`Switched Schedule to ${this.formatMonthLabel(yr, mo)}`);
+      });
+    });
   }
 
   // --- Faculty Highlights Single Card Controller ---
@@ -1695,6 +1897,9 @@ class AdminDashboardController {
       const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 
       scopeBadgeText = `Week ${weekNo} • ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()}-${saturday.getDate()}`;
+    } else if (this.isAllMonths) {
+      filtered = classes;
+      scopeBadgeText = 'All Months';
     } else {
       filtered = classes.filter(e => {
         if (!e.isoDate) return false;
@@ -1825,6 +2030,9 @@ class AdminDashboardController {
       const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 
       scopeBadgeText = `Week ${weekNo} • ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()}-${saturday.getDate()}`;
+    } else if (this.isAllMonths) {
+      filtered = classes;
+      scopeBadgeText = 'All Months';
     } else {
       filtered = classes.filter(e => {
         if (!e.isoDate) return false;
@@ -2864,18 +3072,89 @@ class AdminDashboardController {
       eventsByDate[e.isoDate].push(e);
     });
 
-    const year = this.currentYear;
-    const month = this.currentMonth;
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+    if (this.isAllMonths) {
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const monthsSet = new Set();
+      Object.keys(eventsByDate).forEach(iso => {
+        if (iso.length >= 7) monthsSet.add(iso.slice(0, 7));
+      });
+      ['2026-09', '2026-10', '2026-11', '2026-12'].forEach(ym => {
+        if (events.some(e => e.eventType === 'class' && e.isoDate && e.isoDate.startsWith(ym))) {
+          monthsSet.add(ym);
+        }
+      });
+      if (monthsSet.size === 0) {
+        ['2026-09', '2026-10', '2026-11', '2026-12'].forEach(ym => monthsSet.add(ym));
+      }
+      const sortedYm = Array.from(monthsSet).sort();
+
+      let fullHtml = '';
+      sortedYm.forEach((ym, idx) => {
+        const [yr, moNum] = ym.split('-').map(Number);
+        const mo = moNum - 1;
+        const monthClassesCount = events.filter(e => e.eventType === 'class' && e.isoDate && e.isoDate.startsWith(ym)).length;
+
+        fullHtml += `
+          <div class="col-span-7 bg-[#fbf9f5] border-y border-[#ded5c6] px-4 py-2.5 flex items-center justify-between sticky top-0 z-10 shadow-xs ${idx > 0 ? 'mt-4' : ''}">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[#4a7c59] text-[20px]">calendar_month</span>
+              <h3 class="font-headline font-bold text-base text-[#2c332d] tracking-tight">${monthNames[mo]} ${yr}</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3]">${monthClassesCount} Classes</span>
+            </div>
+          </div>
+        `;
+        fullHtml += this.buildSingleMonthGridHtml(yr, mo, eventsByDate, todayIso);
+      });
+      gridContainer.innerHTML = fullHtml;
+    } else {
+      gridContainer.innerHTML = this.buildSingleMonthGridHtml(this.currentYear, this.currentMonth, eventsByDate, todayIso);
+    }
+
+    // Attach click listeners to day cells
+    gridContainer.querySelectorAll('.calendar-day-box').forEach(box => {
+      box.addEventListener('click', (e) => {
+        if (e.target.closest('.class-card-clickable')) return;
+        const iso = box.getAttribute('data-cell-iso');
+        if (iso) {
+          this.selectedDayIso = iso;
+          this.dashboardDayIso = iso;
+          this.facultyHighlightScope = 'day';
+          this.deliveryScope = 'day';
+          this.updateFacultyCardScopeButtons?.();
+          this.updateDeliveryCardScopeButtons?.();
+          this.renderFacultyHighlightsCard();
+          this.renderDeliveryStatusCard();
+          const d = new Date(iso + 'T00:00:00');
+          this.showToast(`Selected ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} highlights & delivery`);
+        }
+      });
+    });
+
+    // Attach click listeners to cards
+    gridContainer.querySelectorAll('.class-card-clickable').forEach(card => {
+      card.addEventListener('click', () => {
+        const evId = card.getAttribute('data-event-id');
+        const ev = events.find(e => e.id === evId);
+        if (ev) this.openEventDetail(ev);
+      });
+    });
+  }
+
+  buildSingleMonthGridHtml(year, month, eventsByDate, todayIso) {
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
     const totalDays = lastDayOfMonth.getDate();
 
     const startDayOfWeek = firstDayOfMonth.getDay(); // 0 is Sun
     const prevMonthLastDay = new Date(year, month, 0).getDate();
-
-    const today = new Date();
-    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const calendarCells = [];
 
@@ -2930,7 +3209,7 @@ class AdminDashboardController {
       html += `<div class="grid grid-cols-7 col-span-7 divide-x divide-[#ece5d8] min-h-[180px]">`;
 
       row.forEach((cell) => {
-        const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class'); // a Sunday with a scheduled class is a normal class day
+        const isSunday = cell.dayOfWeek === 0 && !cell.events.some(e => e.eventType === 'class');
 
         if (!cell.isCurrentMonth) {
           html += `
@@ -3046,37 +3325,9 @@ class AdminDashboardController {
       html += `</div>`;
     }
 
-    gridContainer.innerHTML = html;
-
-    // Attach click listeners to day cells
-    gridContainer.querySelectorAll('.calendar-day-box').forEach(box => {
-      box.addEventListener('click', (e) => {
-        if (e.target.closest('.class-card-clickable')) return;
-        const iso = box.getAttribute('data-cell-iso');
-        if (iso) {
-          this.selectedDayIso = iso;
-          this.dashboardDayIso = iso;
-          this.facultyHighlightScope = 'day';
-          this.deliveryScope = 'day';
-          this.updateFacultyCardScopeButtons?.();
-          this.updateDeliveryCardScopeButtons?.();
-          this.renderFacultyHighlightsCard();
-          this.renderDeliveryStatusCard();
-          const d = new Date(iso + 'T00:00:00');
-          this.showToast(`Selected ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} highlights & delivery`);
-        }
-      });
-    });
-
-    // Attach click listeners to cards
-    gridContainer.querySelectorAll('.class-card-clickable').forEach(card => {
-      card.addEventListener('click', () => {
-        const evId = card.getAttribute('data-event-id');
-        const ev = events.find(e => e.id === evId);
-        if (ev) this.openEventDetail(ev);
-      });
-    });
+    return html;
   }
+
 
   // Helper for subject color pills
   getSubjectColorStyles(subject = '') {
@@ -4018,12 +4269,17 @@ class AdminDashboardController {
       periodText = `Week ${weekNo}: ${sunday.toLocaleString('en-US', { month: 'short' })} ${sunday.getDate()} – ${saturday.toLocaleString('en-US', { month: 'short' })} ${saturday.getDate()}, ${saturday.getFullYear()}`;
     } else {
       // Month mode
-      filtered = classes.filter(e => {
-        if (!e.isoDate) return false;
-        const [y, m] = e.isoDate.split('-').map(Number);
-        return y === this.dashboardYear && m === (this.dashboardMonth + 1);
-      });
-      periodText = `${monthNames[this.dashboardMonth]} ${this.dashboardYear}`;
+      if (this.isAllMonths) {
+        filtered = classes;
+        periodText = 'All Months (Full Session)';
+      } else {
+        filtered = classes.filter(e => {
+          if (!e.isoDate) return false;
+          const [y, m] = e.isoDate.split('-').map(Number);
+          return y === this.dashboardYear && m === (this.dashboardMonth + 1);
+        });
+        periodText = `${monthNames[this.dashboardMonth]} ${this.dashboardYear}`;
+      }
     }
 
     // Group by faculty and calculate total hours
@@ -4379,11 +4635,22 @@ class AdminDashboardController {
 
             <!-- Right Controls: Period Indicator, < Today > Navigation, and Week/Month Switcher -->
             <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
-              <!-- Period Display Badge -->
-              <span class="text-xs font-bold text-[#2c332d] px-3 py-1.5 rounded-xl bg-[#f7f4ed] border border-[#ded5c6] flex items-center gap-1.5 shadow-2xs select-none">
-                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">calendar_today</span>
-                <span id="dashPeriodTitleDisplay">${periodText}</span>
-              </span>
+              <!-- Period Display Dropdown Filter (Screenshot 2) -->
+              <div class="relative">
+                <button
+                  id="dashPeriodTitleBtn"
+                  type="button"
+                  class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#2c332d] select-none transition-all shadow-xs"
+                  title="Click to select Academic Month or All Months"
+                >
+                  <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">calendar_today</span>
+                  <span id="dashPeriodTitleDisplay" class="font-bold text-xs truncate max-w-[140px] sm:max-w-[180px]">${periodText}</span>
+                </button>
+                <!-- Dropdown Menu for Dashboard Month Selection -->
+                <div id="dashPeriodMonthDropdown" class="hidden absolute top-full mt-1.5 left-0 w-64 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-2 z-50 modal-3d text-xs">
+                  <!-- Populated dynamically by adminApp.js -->
+                </div>
+              </div>
 
               <!-- Date Navigation (< Today >) -->
               <div class="track-3d flex items-center rounded-xl overflow-hidden shadow-2xs">
@@ -4647,21 +4914,59 @@ class AdminDashboardController {
       this.renderDashboardView();
     });
 
+    // Bind Dashboard Month Dropdown (Screenshot 2)
+    const dashBtn = container.querySelector('#dashPeriodTitleBtn');
+    const dashDropdown = container.querySelector('#dashPeriodMonthDropdown');
+    if (dashBtn && dashDropdown) {
+      dashBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dashDropdown.classList.contains('hidden');
+        document.querySelectorAll('.modal-3d').forEach(m => m !== dashDropdown && m.classList.add('hidden'));
+        if (isHidden) {
+          this.renderScheduleMonthDropdown(dashDropdown);
+          dashDropdown.classList.remove('hidden');
+        } else {
+          dashDropdown.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dashDropdown.contains(e.target) && e.target !== dashBtn) {
+          dashDropdown.classList.add('hidden');
+        }
+      });
+    }
+
     // Attach Period Navigation (< Today >) Click Listeners
     container.querySelector('#dashPrevPeriodBtn')?.addEventListener('click', () => {
+      this.isAllMonths = false;
       if (this.dashboardScope === 'month') {
         this.dashboardMonth--;
         if (this.dashboardMonth < 0) {
           this.dashboardMonth = 11;
           this.dashboardYear--;
         }
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       } else if (this.dashboardScope === 'week') {
         this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() - (7 * 24 * 60 * 60 * 1000));
+        this.dashboardMonth = this.dashboardWeekStart.getMonth();
+        this.dashboardYear = this.dashboardWeekStart.getFullYear();
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.currentWeekStart = new Date(this.dashboardWeekStart);
       } else if (this.dashboardScope === 'day') {
         const d = parseIso(this.dashboardDayIso) || new Date();
         d.setDate(d.getDate() - 1);
         this.dashboardDayIso = toLocalIso(d);
+        this.dashboardMonth = d.getMonth();
+        this.dashboardYear = d.getFullYear();
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.selectedDayIso = this.dashboardDayIso;
       }
+      this.updateMonthTitle?.();
       this.updateSummaryCards();
       this.renderFacultyHighlightsCard();
       this.renderDeliveryStatusCard();
@@ -4669,19 +4974,34 @@ class AdminDashboardController {
     });
 
     container.querySelector('#dashNextPeriodBtn')?.addEventListener('click', () => {
+      this.isAllMonths = false;
       if (this.dashboardScope === 'month') {
         this.dashboardMonth++;
         if (this.dashboardMonth > 11) {
           this.dashboardMonth = 0;
           this.dashboardYear++;
         }
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.currentWeekStart = startOfWeek(new Date(this.currentYear, this.currentMonth, 1));
       } else if (this.dashboardScope === 'week') {
         this.dashboardWeekStart = new Date(this.dashboardWeekStart.getTime() + (7 * 24 * 60 * 60 * 1000));
+        this.dashboardMonth = this.dashboardWeekStart.getMonth();
+        this.dashboardYear = this.dashboardWeekStart.getFullYear();
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.currentWeekStart = new Date(this.dashboardWeekStart);
       } else if (this.dashboardScope === 'day') {
         const d = parseIso(this.dashboardDayIso) || new Date();
         d.setDate(d.getDate() + 1);
         this.dashboardDayIso = toLocalIso(d);
+        this.dashboardMonth = d.getMonth();
+        this.dashboardYear = d.getFullYear();
+        this.currentMonth = this.dashboardMonth;
+        this.currentYear = this.dashboardYear;
+        this.selectedDayIso = this.dashboardDayIso;
       }
+      this.updateMonthTitle?.();
       this.updateSummaryCards();
       this.renderFacultyHighlightsCard();
       this.renderDeliveryStatusCard();
@@ -4689,6 +5009,7 @@ class AdminDashboardController {
     });
 
     container.querySelector('#dashTodayPeriodBtn')?.addEventListener('click', () => {
+      this.isAllMonths = false;
       const now = new Date();
       this.dashboardYear = now.getFullYear();
       this.dashboardMonth = now.getMonth();
@@ -9733,3 +10054,4 @@ if (document.readyState === 'loading') {
 }
 
 export { AdminDashboardController };
+

@@ -261,9 +261,12 @@
             <span class="material-symbols-outlined text-[22px]">calendar_today</span>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between gap-1">
+            <div class="flex items-center justify-between gap-1 relative">
               <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Schedule Overview</span>
-              <span id="cardScheduleMonthBadge" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Oct '26</span>
+              <div class="relative">
+                <button id="cardScheduleMonthBadge" type="button" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] hover:bg-[#d8e8dc] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d cursor-pointer transition-colors" title="Click to choose academic month">Oct '26</button>
+                <div id="cardScheduleMonthDropdown" class="hidden absolute top-full right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-[#ded5c6] p-1.5 z-50 modal-3d text-xs space-y-0.5"></div>
+              </div>
             </div>
             <div class="flex items-baseline gap-1.5 mt-0.5">
               <span class="font-headline text-[20px] font-bold text-[#2c332d] leading-tight" id="cardScheduleCount">12</span>
@@ -457,6 +460,23 @@
               <div id="calActionFacultyList" class="space-y-1 max-h-60 overflow-y-auto pr-1">
                 <!-- Injected dynamically by adminApp.js -->
               </div>
+            </div>
+          </div>
+
+          <!-- Month Selector Pill [ 📅 November 2026 ] (Matches Screenshot 2) -->
+          <div class="relative">
+            <button
+              id="calActionMonthBtn"
+              type="button"
+              class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#2c332d] select-none transition-all shadow-xs"
+              title="Change Academic Month"
+            >
+              <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">calendar_today</span>
+              <span class="font-bold text-xs truncate" id="calActionMonthLabel">November 2026</span>
+            </button>
+            <!-- Dropdown Menu for Month Selection -->
+            <div id="calActionMonthDropdown" class="hidden absolute top-full mt-1.5 right-0 sm:right-auto sm:left-0 w-64 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-2 z-50 modal-3d text-xs">
+              <!-- Injected dynamically by adminApp.js -->
             </div>
           </div>
 

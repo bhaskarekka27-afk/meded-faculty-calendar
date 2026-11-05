@@ -103,6 +103,34 @@ body {
   border: 1px solid #ded5c6;
 }
 
+.track-3d button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1.25 !important;
+}
+
+#btnViewPyqPdf {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  vertical-align: middle !important;
+}
+
+#btnViewPyqPdf .material-symbols-outlined,
+#headerPyqQuickBtn .material-symbols-outlined {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  width: 15px !important;
+  height: 15px !important;
+  vertical-align: middle !important;
+}
+
 /* Floating 3D Navigation Dock */
 .dock-3d {
   background: rgba(247, 244, 237, 0.96) !important;

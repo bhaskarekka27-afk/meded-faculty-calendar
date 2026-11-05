@@ -323,19 +323,22 @@ export const DEFAULT_FACULTY_ONBOARDING = [
     "name": "Bhaskar Ekka",
     "email": "bhaskar.ekka@pw.live",
     "secondaryEmail": "bhaskarekka27@gmail.com",
-    "phone": "98765 43210",
-    "dept": "Medical Sciences",
-    "role": "Admin",
-    "designation": "Lead Academic Faculty",
+    "phone": "8587860991",
+    "dept": "All Subjects",
+    "role": "Teacher",
+    "designation": "Lead Academic Directorate • All Subjects",
     "status": "Verified",
-    "canRescheduleCancel": false,
+    "canRescheduleCancel": true,
     "cohorts": [
       "Prarambh '26",
       "Sushruta '26",
+      "Nishchay '26",
       "INI-CET '26",
-      "FMGE '26"
+      "FMGE '26",
+      "RadioLink '26",
+      "BDS Survival '26"
     ],
-    "lastUpdated": "2026-09-24T12:00:00.000Z"
+    "lastUpdated": "2026-10-30T12:46:01.405Z"
   },
   {
     "id": "fac-admin-1",
@@ -886,7 +889,9 @@ export function parseFacultyCSV(csvText) {
     }
 
     // Explicit ID or admin email check fallback
-    if (id.startsWith('fac-admin') || email === 'bhaskar.ekka@pw.live' || email === 'kanchan.gupta1@pw.live') {
+    if (email === 'bhaskar.ekka@pw.live') {
+      role = 'Teacher';
+    } else if (id.startsWith('fac-admin') || email === 'kanchan.gupta1@pw.live') {
       role = 'Admin';
     }
 

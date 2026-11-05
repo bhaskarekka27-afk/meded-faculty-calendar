@@ -1521,17 +1521,27 @@ function checkAndSendScheduledReminders_() {
     return { ok: true, skipped: 'Automated reminders currently disabled in Portal Settings.' };
   }
 
-  var leadMinutes = Number(settingsMap.leadDurationMinutes || 1440);
-  if (settingsMap.leadDurationValue && settingsMap.leadDurationUnit) {
+  var leadMinutes = 1440;
+  if (typeof settingsMap.leadDurationMinutes === 'number' && settingsMap.leadDurationMinutes > 0) {
+    leadMinutes = settingsMap.leadDurationMinutes;
+  } else if (settingsMap.leadDurationValue && settingsMap.leadDurationUnit) {
     var val = parseInt(settingsMap.leadDurationValue, 10) || 24;
-    leadMinutes = settingsMap.leadDurationUnit === 'hours' ? val * 60 : val;
+    var u = String(settingsMap.leadDurationUnit).toLowerCase();
+    leadMinutes = u.indexOf('day') >= 0 ? val * 1440 : (u.indexOf('hour') >= 0 ? val * 60 : val);
+  } else if (typeof settingsMap.leadDuration === 'string') {
+    var m = settingsMap.leadDuration.match(/(\d+)\s*(min|hour|hr|day)/i);
+    if (m) {
+      var val = parseInt(m[1], 10);
+      var u = m[2].toLowerCase();
+      leadMinutes = u.indexOf('day') >= 0 ? val * 1440 : (u.indexOf('hour') >= 0 || u.indexOf('hr') >= 0 ? val * 60 : val);
+    }
   }
 
   var senderEmail = String(settingsMap.senderEmail || 'academic-reminders@pwmeded.edu.in').trim();
   var senderName = String(settingsMap.senderName || 'PW MedEd Academic Directorate').trim();
 
   // Tolerance window: prevent triggering at random times
-  var toleranceMinutes = leadMinutes >= 720 ? 60 : (leadMinutes >= 120 ? 30 : 15);
+  var toleranceMinutes = leadMinutes >= 720 ? 60 : (leadMinutes >= 180 ? 30 : (leadMinutes >= 60 ? 15 : (leadMinutes >= 30 ? 8 : 5)));
   var minDiffMinutes = Math.max(0, leadMinutes - toleranceMinutes);
   var maxDiffMinutes = leadMinutes + 10;
 
@@ -1608,6 +1618,10 @@ function checkAndSendScheduledReminders_() {
         var h = parseInt(tm[1], 10);
         var m = parseInt(tm[2] || '0', 10);
         var ampm = (tm[3] || '').toUpperCase();
+        if (!ampm) {
+          if (/pm/i.test(rawTime) && h < 12) ampm = 'PM';
+          else if (/am/i.test(rawTime)) ampm = 'AM';
+        }
         if (ampm === 'PM' && h < 12) h += 12;
         if (ampm === 'AM' && h === 12) h = 0;
         startH = h;

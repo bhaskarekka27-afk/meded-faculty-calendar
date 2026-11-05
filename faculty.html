@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html class="light" lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
   <title>PW MedEd - Faculty Academic Calendar</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,300..900;1,300..900&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet">
+
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script id="tailwind-config">
     tailwind.config = {
@@ -110,6 +116,7 @@
       -ms-overflow-style: none !important;
       scrollbar-width: none !important;
     }
+
     html::-webkit-scrollbar,
     body::-webkit-scrollbar,
     #web-faculty-view::-webkit-scrollbar,
@@ -123,7 +130,10 @@
       -webkit-appearance: none !important;
     }
 
-    .pb-safe { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 20px)); }
+    .pb-safe {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom, 20px));
+    }
+
     .tab-active-glow {
       border-color: #4a7c59 !important;
       box-shadow: 0 4px 16px -2px rgba(74, 124, 89, 0.25), 0 2px 6px -1px rgba(74, 124, 89, 0.15) !important;
@@ -133,12 +143,14 @@
     #web-faculty-view {
       display: flex !important;
     }
+
     #faculty-mobile-view {
       display: none !important;
     }
 
     /* Mobile View Font & Container Isolation */
-    #faculty-mobile-view, #faculty-mobile-view * {
+    #faculty-mobile-view,
+    #faculty-mobile-view * {
       font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     }
 
@@ -146,13 +158,16 @@
     /* AUTOMATIC RESPONSIVE SWITCHING: MOBILE DEVICE VIEW                        */
     /* Triggers on: screen width <= 768px, or coarse pointer touch devices       */
     /* ========================================================================= */
-    @media (max-width: 768px), ((max-width: 1024px) and (pointer: coarse)) {
+    @media (max-width: 768px),
+    ((max-width: 1024px) and (pointer: coarse)) {
       #web-faculty-view {
         display: none !important;
       }
+
       #faculty-mobile-view {
         display: flex !important;
       }
+
       body {
         background-color: #FAF7F2 !important;
         color: #242424 !important;
@@ -167,21 +182,39 @@
       #web-faculty-view {
         display: flex !important;
       }
+
       #faculty-mobile-view {
         display: none !important;
       }
+
       body {
         background-color: #fbf9f5 !important;
       }
     }
 
     /* Class overrides from automatic device detection */
+    html.is-mobile-device,
+    html.is-mobile-device body {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+      height: auto !important;
+      min-height: 100% !important;
+    }
+
     html.is-mobile-device #web-faculty-view {
       display: none !important;
     }
+
     html.is-mobile-device #faculty-mobile-view {
       display: flex !important;
+      overflow-y: visible !important;
+      overflow-x: hidden !important;
+      min-height: 100vh !important;
+      height: auto !important;
     }
+
     html.is-mobile-device body {
       background-color: #FAF7F2 !important;
       color: #242424 !important;
@@ -194,17 +227,29 @@
     html.is-desktop-device #web-faculty-view {
       display: flex !important;
     }
+
     html.is-desktop-device #faculty-mobile-view {
       display: none !important;
     }
+
     html.is-desktop-device body {
       background-color: #fbf9f5 !important;
+    }
+
+    /* Prevent background scrolling when modal is active on mobile */
+    html.modal-open-lock,
+    body.modal-open-lock {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
+      height: 100% !important;
+      touch-action: none !important;
     }
   </style>
 
   <!-- Automatic Device & Viewport Detection Script -->
   <script>
-    (function() {
+    (function () {
       function detectAndApplyDeviceView() {
         var isMobileWidth = window.innerWidth <= 768;
         var isTouchScreen = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -226,7 +271,9 @@
     })();
   </script>
 </head>
-<body class="bg-[#fbf9f5] text-[#2c332d] min-h-screen antialiased flex flex-col justify-between font-body selection:bg-[#4a7c59]/20 selection:text-[#4a7c59] overflow-x-hidden relative">
+
+<body
+  class="bg-[#fbf9f5] text-[#2c332d] min-h-screen antialiased flex flex-col justify-between font-body selection:bg-[#4a7c59]/20 selection:text-[#4a7c59] overflow-x-hidden relative">
 
   <!-- ========================================================================= -->
   <!-- 1. ORIGINAL DESKTOP WEB FACULTY VIEW (Active on >= 768px)                -->
@@ -234,731 +281,1037 @@
   <div id="web-faculty-view" class="flex flex-col justify-between min-h-screen w-full">
 
 
-  <!-- TOP HEADER (Identical to Admin Header with Faculty Badge) -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#ded5c6] px-6 py-3.5 flex items-center justify-between shadow-[0_4px_20px_-2px_rgba(44,51,45,0.08)]">
-    <div class="flex items-center gap-5">
-      <!-- Logo -->
-      <a href="/faculty.html" class="flex items-center gap-3 text-inherit no-underline cursor-pointer group" title="PW MedEd Faculty Calendar">
-        <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo" class="w-9 h-9 object-contain rounded-xl shadow-[0_4px_12px_rgba(74,124,89,0.30)] border border-[#3d6b4b]/30 group-hover:scale-105 transition-transform">
-        <div class="flex items-baseline gap-2">
-          <span class="font-headline font-bold text-[18px] tracking-tight text-[#2d4d37]">PW MedEd</span>
-          <span class="text-[11px] font-bold text-[#4a7c59] bg-[#eef4f0] border border-[#cde0d3] px-2.5 py-0.5 rounded-md uppercase tracking-wider font-body badge-3d">Faculty Portal</span>
-        </div>
-      </a>
-
-      <div class="h-4 w-[1px] bg-[#e2dad0] hidden sm:block"></div>
-
-      <!-- Batch Selector Dropdown Pill -->
-      <div class="relative">
-        <div id="facultyBatchPill" class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
-          <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">select_all</span>
-          <span class="font-semibold text-xs truncate max-w-[230px]" id="facultyBatchLabel">All Batches • Combined Schedule</span>
-          <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
-        </div>
-
-        <!-- Dropdown Menu -->
-        <div id="facultyBatchDropdown" class="hidden absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
-          <div class="px-3.5 py-2 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between">
-            <span>Select Active Batch</span>
+    <!-- TOP HEADER (Identical to Admin Header with Faculty Badge) -->
+    <header
+      class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#ded5c6] px-6 py-3.5 flex items-center justify-between shadow-[0_4px_20px_-2px_rgba(44,51,45,0.08)]">
+      <div class="flex items-center gap-5">
+        <!-- Logo -->
+        <a href="/faculty.html" class="flex items-center gap-3 text-inherit no-underline cursor-pointer group"
+          title="PW MedEd Faculty Calendar">
+          <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
+            class="w-9 h-9 object-contain rounded-xl shadow-[0_4px_12px_rgba(74,124,89,0.30)] border border-[#3d6b4b]/30 group-hover:scale-105 transition-transform">
+          <div class="flex items-baseline gap-2">
+            <span class="font-headline font-bold text-[18px] tracking-tight text-[#2d4d37]">PW MedEd</span>
+            <span
+              class="text-[11px] font-bold text-[#4a7c59] bg-[#eef4f0] border border-[#cde0d3] px-2.5 py-0.5 rounded-md uppercase tracking-wider font-body badge-3d">Faculty
+              Portal</span>
           </div>
-          <div id="facultyBatchDropdownList" class="py-1">
-            <div class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors border-b border-[#f0ece4] bg-[#eef4f0] text-[#3b6347] font-bold">
-              <div class="truncate mr-2 min-w-0">
-                <span class="block font-bold truncate text-xs">All Batches (Combined)</span>
-                <span class="text-[10px] text-[#788279] block">My complete teaching schedule across all batches</span>
-              </div>
-              <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>
+        </a>
+
+        <div class="h-4 w-[1px] bg-[#e2dad0] hidden sm:block"></div>
+
+        <!-- Batch Selector Dropdown Pill -->
+        <div class="relative">
+          <div id="facultyBatchPill"
+            class="pill-3d flex items-center gap-1.5 text-xs bg-[#f7f4ed] hover:bg-[#ede7da] transition-all border border-[#ded5c6] rounded-xl px-3.5 py-1.5 cursor-pointer text-[#3b433c] select-none">
+            <span class="material-symbols-outlined text-[#4a7c59] text-[16px]">select_all</span>
+            <span class="font-semibold text-xs truncate max-w-[230px]" id="facultyBatchLabel">All Batches • Combined
+              Schedule</span>
+            <span class="material-symbols-outlined text-[#788279] text-[15px]">expand_more</span>
+          </div>
+
+          <!-- Dropdown Menu -->
+          <div id="facultyBatchDropdown"
+            class="hidden absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#ded5c6] py-2 z-50 modal-3d text-xs">
+            <div
+              class="px-3.5 py-2 text-[10px] font-bold uppercase text-[#68736a] border-b border-[#f0ece4] flex items-center justify-between">
+              <span>Select Active Batch</span>
             </div>
-            <div class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
-              <div class="truncate mr-2 min-w-0">
-                <div class="flex items-center gap-1.5 truncate">
-                  <span class="block font-semibold truncate text-xs">Prarambh 2026 Batch for MBBS 1st Year</span>
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">App</span>
+            <div id="facultyBatchDropdownList" class="py-1">
+              <div
+                class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors border-b border-[#f0ece4] bg-[#eef4f0] text-[#3b6347] font-bold">
+                <div class="truncate mr-2 min-w-0">
+                  <span class="block font-bold truncate text-xs">All Batches (Combined)</span>
+                  <span class="text-[10px] text-[#788279] block">My complete teaching schedule across all batches</span>
                 </div>
-                <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
+                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">check</span>
               </div>
-            </div>
-            <div class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
-              <div class="truncate mr-2 min-w-0">
-                <div class="flex items-center gap-1.5 truncate">
-                  <span class="block font-semibold truncate text-xs">Sushruta 2026 Batch for MBBS 2nd Year</span>
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">App</span>
+              <div
+                class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
+                <div class="truncate mr-2 min-w-0">
+                  <div class="flex items-center gap-1.5 truncate">
+                    <span class="block font-semibold truncate text-xs">Prarambh 2026 Batch for MBBS 1st Year</span>
+                    <span
+                      class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">App</span>
+                  </div>
+                  <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
                 </div>
-                <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
               </div>
-            </div>
-            <div class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
-              <div class="truncate mr-2 min-w-0">
-                <div class="flex items-center gap-1.5 truncate">
-                  <span class="block font-semibold truncate text-xs">INI-CET Essentials Series</span>
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#fee2e2] text-[#991b1b] border border-[#fca5a5]">YouTube</span>
+              <div
+                class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
+                <div class="truncate mr-2 min-w-0">
+                  <div class="flex items-center gap-1.5 truncate">
+                    <span class="block font-semibold truncate text-xs">Sushruta 2026 Batch for MBBS 2nd Year</span>
+                    <span
+                      class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">App</span>
+                  </div>
+                  <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
                 </div>
-                <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
+              </div>
+              <div
+                class="px-3.5 py-2 text-xs font-semibold rounded-lg hover:bg-[#f4efe6] cursor-pointer flex items-center justify-between transition-colors text-[#2c332d]">
+                <div class="truncate mr-2 min-w-0">
+                  <div class="flex items-center gap-1.5 truncate">
+                    <span class="block font-semibold truncate text-xs">INI-CET Essentials Series</span>
+                    <span
+                      class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#fee2e2] text-[#991b1b] border border-[#fca5a5]">YouTube</span>
+                  </div>
+                  <span class="text-[10px] text-[#788279] block truncate">Lecture Planner</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Right Header: Search, Export .ics, Faculty Profile & Switcher -->
-    <div class="flex items-center gap-3">
-      
-      <!-- Search Input -->
-      <div class="relative hidden md:block w-56 lg:w-64">
-        <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
-        <input type="text" id="facultySearchInput" class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d" placeholder="Search my topics...">
-      </div>
+      <!-- Right Header: Search, Export .ics, Faculty Profile & Switcher -->
+      <div class="flex items-center gap-3">
 
-      <!-- Faculty Notifications Bell Button -->
-      <button class="w-9 h-9 rounded-xl btn-3d-secondary flex items-center justify-center transition-all relative cursor-pointer" id="openFacultyNotificationBtn" title="Class Reminders &amp; Notifications">
-        <span class="material-symbols-outlined text-[19px]">notifications</span>
-        <span id="facultyNotifPulse" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e] animate-ping"></span>
-        <span id="facultyNotifDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e]"></span>
-        <span id="facultyNotifBadgeCount" class="hidden absolute -top-1 -right-1 bg-[#c26d3e] text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full ring-2 ring-white">0</span>
-      </button>
+        <!-- Search Input -->
+        <div class="relative hidden md:block w-52 lg:w-60">
+          <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
+          <input type="text" id="facultySearchInput"
+            class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d"
+            placeholder="Search my topics...">
+        </div>
 
-      <!-- Logged-in Faculty Profile & Switcher Pill -->
-      <div class="relative">
-        <button id="facultyProfileBtn" class="pill-3d flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] text-xs transition-all cursor-pointer">
-          <div class="w-7 h-7 rounded-full bg-[#4a7c59] text-white flex items-center justify-center font-bold text-[11px] shadow-xs shrink-0" id="facultyHeaderAvatar">
-            RJ
-          </div>
-          <div class="text-left flex flex-col leading-tight">
-            <span class="block text-xs font-bold text-[#2c332d] leading-tight" id="facultyHeaderName">Dr. Rajesh Jambhulkar</span>
-            <span class="block text-[10px] text-[#4a7c59] font-medium" id="facultyHeaderSubject">Biochemistry</span>
-          </div>
-          <span class="material-symbols-outlined text-[#788279] text-[16px]">expand_more</span>
+        <!-- Quick PYQ Access Button -->
+        <button id="headerPyqQuickBtn" type="button"
+          class="btn-3d-secondary px-3 py-1.5 rounded-xl border border-[#cde0d3] bg-white hover:bg-[#eef4f0] text-xs font-bold text-[#2d4d37] inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
+          title="Access Subject Question Bank & PYQ PDFs">
+          <span
+            class="material-symbols-outlined text-[15px] text-[#4a7c59] leading-none shrink-0 inline-flex items-center justify-center">picture_as_pdf</span>
+          <span class="hidden xl:inline leading-none">Subject PYQs</span>
         </button>
 
-        <!-- Faculty Profile Dropdown Menu -->
-        <div id="facultyProfileDropdown" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-3 z-50 modal-3d text-xs">
-          <div class="pb-2.5 border-b border-[#f0ece4]">
-            <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In Faculty</span>
-            <p class="font-bold text-[#2c332d] text-sm mt-0.5" id="facultyDropdownCurrentName">Dr. Rajesh Jambhulkar</p>
-            <p class="text-[11px] text-[#4a7c59] font-semibold mt-0.5" id="facultyDropdownCurrentSubject">Department of Biochemistry</p>
-            <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
-              <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
-              <span>Teaching Faculty • Verified Access</span>
-            </span>
-          </div>
-          
-          <div id="facultyProfilesList" class="hidden"></div>
+        <!-- Faculty Notifications Bell Button -->
+        <button
+          class="w-9 h-9 rounded-xl btn-3d-secondary flex items-center justify-center transition-all relative cursor-pointer"
+          id="openFacultyNotificationBtn" title="Class Reminders &amp; Notifications">
+          <span class="material-symbols-outlined text-[19px]">notifications</span>
+          <span id="facultyNotifPulse"
+            class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e] animate-ping"></span>
+          <span id="facultyNotifDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#c26d3e]"></span>
+          <span id="facultyNotifBadgeCount"
+            class="hidden absolute -top-1 -right-1 bg-[#c26d3e] text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full ring-2 ring-white">0</span>
+        </button>
 
-          <div class="pt-2">
-            <a href="/faculty-login.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
-              <span class="material-symbols-outlined text-[18px]">logout</span>
-              <span>Sign Out / Logout</span>
-            </a>
+        <!-- Logged-in Faculty Profile & Switcher Pill -->
+        <div class="relative">
+          <button id="facultyProfileBtn"
+            class="pill-3d flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#f7f4ed] hover:bg-[#ede7da] border border-[#ded5c6] text-xs transition-all cursor-pointer">
+            <div
+              class="w-7 h-7 rounded-full bg-[#4a7c59] text-white flex items-center justify-center font-bold text-[11px] shadow-xs shrink-0"
+              id="facultyHeaderAvatar">
+              RJ
+            </div>
+            <div class="text-left flex flex-col leading-tight">
+              <span class="block text-xs font-bold text-[#2c332d] leading-tight" id="facultyHeaderName">Dr. Rajesh
+                Jambhulkar</span>
+              <span class="block text-[10px] text-[#4a7c59] font-medium" id="facultyHeaderSubject">Biochemistry</span>
+            </div>
+            <span class="material-symbols-outlined text-[#788279] text-[16px]">expand_more</span>
+          </button>
+
+          <!-- Faculty Profile Dropdown Menu -->
+          <div id="facultyProfileDropdown"
+            class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#ded5c6] p-3 z-50 modal-3d text-xs">
+            <div class="pb-2.5 border-b border-[#f0ece4]">
+              <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In
+                Faculty</span>
+              <p class="font-bold text-[#2c332d] text-sm mt-0.5" id="facultyDropdownCurrentName">Dr. Rajesh Jambhulkar
+              </p>
+              <p class="text-[11px] text-[#4a7c59] font-semibold mt-0.5" id="facultyDropdownCurrentSubject">Department
+                of Biochemistry</p>
+              <span
+                class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] text-[10px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#4a7c59]"></span>
+                <span>Teaching Faculty • Verified Access</span>
+              </span>
+            </div>
+
+            <div id="facultyProfilesList" class="hidden"></div>
+
+            <div class="pt-2">
+              <a href="/faculty-login.html"
+                class="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] rounded-xl transition-colors no-underline">
+                <span class="material-symbols-outlined text-[18px]">logout</span>
+                <span>Sign Out / Logout</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN VIEW CONTENT (Calendar & 3 Dynamic Tabs ONLY) -->
+    <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- 3 DYNAMIC METRIC TABS (Admin Card-3D Design & Elevation) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+
+        <!-- Tab 1: Today's Classes -->
+        <div id="tabFacultyToday"
+          class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all group"
+          title="Click to view Today's Scheduled Classes">
+          <div
+            class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#4a7c59] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
+            <span class="material-symbols-outlined text-[22px]">today</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Today's
+                Classes</span>
+              <span id="facultyTodayBadge"
+                class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Today</span>
+            </div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="facultyTodayCount"
+                class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
+              <span class="text-xs font-semibold text-[#68736a]">Classes Today</span>
+            </div>
+            <p id="facultyTodaySubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">No clinical
+              sessions today</p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Upcoming Classes (Dynamic to Month/Week/Today) -->
+        <div id="tabFacultyUpcoming"
+          class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#c26d3e] transition-all group"
+          title="Click to view Upcoming Lectures">
+          <div
+            class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fbf3ec] to-[#f4e2d2] text-[#c26d3e] flex items-center justify-center shrink-0 border border-[#eed9cc] shadow-xs">
+            <span class="material-symbols-outlined text-[22px]">event_upcoming</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Upcoming
+                Classes</span>
+              <span id="facultyUpcomingScopeBadge"
+                class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded-md border border-[#eed9cc] badge-3d">This
+                Month</span>
+            </div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="facultyUpcomingCount"
+                class="font-headline text-[22px] font-bold text-[#c26d3e] leading-tight">0</span>
+              <span class="text-xs font-semibold text-[#68736a]">Lectures Ahead</span>
+            </div>
+            <p id="facultyUpcomingSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Calculated
+              dynamically</p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Total Classes (Dynamic to Month/Week/Today) -->
+        <div id="tabFacultyTotal"
+          class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#3b6347] transition-all group tab-active-glow"
+          title="Click to view Total Scheduled Classes">
+          <div
+            class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
+            <span class="material-symbols-outlined text-[22px]">calendar_month</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Total Classes</span>
+              <span id="facultyTotalScopeBadge"
+                class="text-[10px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Period
+                Total</span>
+            </div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="facultyTotalCount"
+                class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
+              <span class="text-xs font-semibold text-[#68736a]">Classes in Scope</span>
+            </div>
+            <p id="facultyTotalSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Teaching hours
+              assigned</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ACTION CONTROLS BAR (Identical to Admin Action Controls Bar) -->
+      <div id="facultyActionControlsBar" class="mb-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-0.5 py-1">
+          <!-- Left: Month/Period Title & Active Faculty Status -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2c332d] tracking-tight">
+              <span id="facultyPeriodTitle">October 2026</span>
+            </h2>
+            <div
+              class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#ded5c6] text-xs shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>
+              <span class="text-[#68736a] font-medium">Subject:</span>
+              <strong class="text-[#2c332d]" id="facultyActiveNameBadge">Biochemistry</strong>
+            </div>
+          </div>
+
+          <!-- Right: Filters (Date Navigation & View Mode Switcher) -->
+          <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
+            <!-- Date Navigation (< Today >) -->
+            <div class="track-3d flex items-center rounded-xl overflow-hidden">
+              <button id="prevPeriodBtn"
+                class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer"
+                title="Previous">
+                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              <button id="todayPeriodBtn"
+                class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer">
+                Today
+              </button>
+              <button id="nextPeriodBtn"
+                class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer"
+                title="Next">
+                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+            </div>
+
+            <!-- View Mode Switcher Track (Month, Week, Timeline, Subject PYQs) -->
+            <div class="track-3d inline-flex items-center p-1 rounded-xl text-xs">
+              <button id="btnViewMonth"
+                class="inline-flex items-center justify-center px-3.5 py-1 rounded-lg btn-3d-primary font-bold text-white cursor-pointer border-none leading-normal transition-all">Month</button>
+              <button id="btnViewWeek"
+                class="inline-flex items-center justify-center px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent leading-normal">Week</button>
+              <button id="btnViewTimeline"
+                class="inline-flex items-center justify-center px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent leading-normal">Timeline</button>
+              <button id="btnViewPyqPdf" type="button"
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent leading-normal"
+                title="Subject Question Banks & PYQ PDFs"><span id="btnViewPyqPdfIcon"
+                  class="material-symbols-outlined text-[15px] text-[#4a7c59] leading-none shrink-0 inline-flex items-center justify-center transition-colors">picture_as_pdf</span><span
+                  class="leading-normal">Subject PYQs</span></button>
+            </div>
           </div>
         </div>
       </div>
 
-    </div>
-  </header>
+      <!-- MAIN CALENDAR GRID VIEW SECTION (Identical to Admin Calendar Grid Structure) -->
+      <div id="viewSectionCalendar" class="panel-3d rounded-2xl overflow-hidden mb-6">
+        <div class="overflow-x-auto">
+          <div class="min-w-[980px] lg:min-w-full">
+            <!-- Weekday Headers -->
+            <div id="facultyWeekdayHeaders"
+              class="grid grid-cols-7 border-b border-[#e5dfd5] bg-[#f7f4ed] text-center text-xs font-bold text-[#576058]">
+              <div class="py-3 text-[#c26d3e] font-extrabold">Sun</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Mon</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Tue</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Wed</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Thu</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Fri</div>
+              <div class="py-3 border-l border-[#e5dfd5]">Sat</div>
+            </div>
 
-  <!-- MAIN VIEW CONTENT (Calendar & 3 Dynamic Tabs ONLY) -->
-  <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-    <!-- 3 DYNAMIC METRIC TABS (Admin Card-3D Design & Elevation) -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      
-      <!-- Tab 1: Today's Classes -->
-      <div id="tabFacultyToday" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#4a7c59] transition-all group" title="Click to view Today's Scheduled Classes">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#4a7c59] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
-          <span class="material-symbols-outlined text-[22px]">today</span>
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-1">
-            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Today's Classes</span>
-            <span id="facultyTodayBadge" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Today</span>
+            <!-- Grid Body (Populated dynamically with divide-y divide-[#ece5d8]) -->
+            <div class="grid grid-cols-7 auto-rows-fr divide-y divide-[#ece5d8]" id="facultyCalendarGrid">
+              <!-- Dynamic calendar rows rendered here by facultyApp.js -->
+            </div>
           </div>
-          <div class="flex items-baseline gap-1.5 mt-0.5">
-            <span id="facultyTodayCount" class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
-            <span class="text-xs font-semibold text-[#68736a]">Classes Today</span>
-          </div>
-          <p id="facultyTodaySubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">No clinical sessions today</p>
         </div>
       </div>
 
-      <!-- Tab 2: Upcoming Classes (Dynamic to Month/Week/Today) -->
-      <div id="tabFacultyUpcoming" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#c26d3e] transition-all group" title="Click to view Upcoming Lectures">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fbf3ec] to-[#f4e2d2] text-[#c26d3e] flex items-center justify-center shrink-0 border border-[#eed9cc] shadow-xs">
-          <span class="material-symbols-outlined text-[22px]">event_upcoming</span>
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-1">
-            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Upcoming Classes</span>
-            <span id="facultyUpcomingScopeBadge" class="text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-2 py-0.5 rounded-md border border-[#eed9cc] badge-3d">This Month</span>
-          </div>
-          <div class="flex items-baseline gap-1.5 mt-0.5">
-            <span id="facultyUpcomingCount" class="font-headline text-[22px] font-bold text-[#c26d3e] leading-tight">0</span>
-            <span class="text-xs font-semibold text-[#68736a]">Lectures Ahead</span>
-          </div>
-          <p id="facultyUpcomingSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Calculated dynamically</p>
-        </div>
+      <!-- DEDICATED WEEK VIEW SECTION (Identical to Admin Weekly Timetable Matrix) -->
+      <div id="viewSectionWeek" class="hidden mb-6">
+        <div id="facultyWeekContainer"></div>
       </div>
 
-      <!-- Tab 3: Total Classes (Dynamic to Month/Week/Today) -->
-      <div id="tabFacultyTotal" class="card-3d flex items-center gap-3.5 p-3.5 rounded-xl cursor-pointer hover:border-[#3b6347] transition-all group tab-active-glow" title="Click to view Total Scheduled Classes">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#eef4f0] to-[#d8e8dc] text-[#3b6347] flex items-center justify-center shrink-0 border border-[#cde0d3] shadow-xs">
-          <span class="material-symbols-outlined text-[22px]">calendar_month</span>
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-1">
-            <span class="text-[11px] font-bold text-[#68736a] truncate uppercase tracking-wider">Total Classes</span>
-            <span id="facultyTotalScopeBadge" class="text-[10px] font-bold text-[#3b6347] bg-[#eef4f0] px-2 py-0.5 rounded-md border border-[#cde0d3] badge-3d">Period Total</span>
-          </div>
-          <div class="flex items-baseline gap-1.5 mt-0.5">
-            <span id="facultyTotalCount" class="font-headline text-[22px] font-bold text-[#2c332d] leading-tight">0</span>
-            <span class="text-xs font-semibold text-[#68736a]">Classes in Scope</span>
-          </div>
-          <p id="facultyTotalSubtitle" class="text-[10px] font-medium text-[#788279] mt-0.5 truncate">Teaching hours assigned</p>
-        </div>
+      <!-- DEDICATED TIMELINE VIEW SECTION (Identical to Admin Timeline Agenda) -->
+      <div id="viewSectionTimeline" class="hidden mb-6">
+        <div id="facultyTimelineContainer"></div>
       </div>
 
-    </div>
+      <!-- DEDICATED SUBJECT QUESTION BANK & PYQ PDF SECTION -->
+      <div id="viewSectionPyqPdf" class="hidden mb-6 space-y-5">
+        <!-- Subject Header Card -->
+        <div
+          class="panel-3d rounded-2xl p-5 bg-gradient-to-br from-[#ffffff] via-[#f9fbf9] to-[#edf4ef] border border-[#cde0d3] shadow-sm">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <div
+                class="w-12 h-12 rounded-2xl bg-[#4a7c59] text-white flex items-center justify-center shrink-0 shadow-md">
+                <span class="material-symbols-outlined text-[26px]">folder_special</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h2 class="font-headline font-bold text-xl text-[#2c332d]" id="pyqSectionHeading">Subject Question
+                    Bank & PYQ Repository</h2>
+                  <span id="pyqAccessBadge"
+                    class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">
+                    Mapped Access: Verified
+                  </span>
+                </div>
+                <p class="text-xs text-[#576058] mt-1 leading-relaxed max-w-2xl" id="pyqSectionSubtitle">
+                  Past year examination papers (NEET PG, INI-CET, FMGE) curated specifically for your mapped academic
+                  department.
+                </p>
+              </div>
+            </div>
+          </div>
 
-    <!-- ACTION CONTROLS BAR (Identical to Admin Action Controls Bar) -->
-    <div id="facultyActionControlsBar" class="mb-5 space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-3 px-0.5 py-1">
-        <!-- Left: Month/Period Title & Active Faculty Status -->
-        <div class="flex items-center gap-3 flex-wrap">
-          <h2 class="font-headline text-lg sm:text-xl font-bold text-[#2c332d] tracking-tight">
-            <span id="facultyPeriodTitle">October 2026</span>
-          </h2>
-          <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#ded5c6] text-xs shadow-xs">
-            <span class="w-2 h-2 rounded-full bg-[#4a7c59] animate-pulse"></span>
-            <span class="text-[#68736a] font-medium">Subject:</span>
-            <strong class="text-[#2c332d]" id="facultyActiveNameBadge">Biochemistry</strong>
+          <!-- Super Faculty Subject Switcher Pills (Visible only when user is mapped to 'All Subjects' e.g. Bhaskar Ekka) -->
+          <div id="pyqSuperSubjectFilterContainer" class="hidden mt-4 pt-3.5 border-t border-[#d8e6dc]">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-[#4a7c59] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[14px]">tune</span>
+                <span>All-Subject Access Switcher (Testing & Administration)</span>
+              </span>
+              <span id="pyqSuperSubjectActiveCount" class="text-[10px] font-bold text-[#68736a]">19 Subjects
+                Available</span>
+            </div>
+            <div id="pyqSuperSubjectPills" class="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+              <!-- Populated dynamically with subject pills -->
+            </div>
           </div>
         </div>
 
-        <!-- Right: Filters (Date Navigation & View Mode Switcher) -->
-        <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap ml-auto">
-          <!-- Date Navigation (< Today >) -->
-          <div class="track-3d flex items-center rounded-xl overflow-hidden">
-            <button id="prevPeriodBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Previous">
-              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        <!-- Filter & Search Toolbar -->
+        <div
+          class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#ded5c6] shadow-xs">
+          <!-- Exam Pills Filter Track -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="pyqExamFilterTrack">
+            <button type="button" data-exam="all"
+              class="pyq-exam-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#4a7c59] text-white cursor-pointer shadow-xs border-none transition-all">
+              All Exam PYQs (<span id="pyqCountAll">0</span>)
             </button>
-            <button id="todayPeriodBtn" class="px-3 py-1 text-xs font-bold text-[#2c332d] hover:bg-[#ede7db] border-x border-[#ded5c6] transition-colors cursor-pointer">
-              Today
+            <button type="button" data-exam="NEET PG PYQs"
+              class="pyq-exam-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#f4efe6] text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] cursor-pointer border-none transition-all flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#0284c7]"></span>
+              <span>NEET PG</span>
+              <span class="text-[10px] font-mono text-[#788279]" id="pyqCountNeet">0</span>
             </button>
-            <button id="nextPeriodBtn" class="w-8 h-8 flex items-center justify-center text-[#68736a] hover:text-[#2c332d] hover:bg-[#ede7db] transition-colors cursor-pointer" title="Next">
-              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            <button type="button" data-exam="INI-CET PYQs"
+              class="pyq-exam-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#f4efe6] text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] cursor-pointer border-none transition-all flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#9333ea]"></span>
+              <span>INI-CET</span>
+              <span class="text-[10px] font-mono text-[#788279]" id="pyqCountInicet">0</span>
+            </button>
+            <button type="button" data-exam="FMGE PYQs"
+              class="pyq-exam-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#f4efe6] text-[#576058] hover:text-[#2c332d] hover:bg-[#ede7da] cursor-pointer border-none transition-all flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#d97706]"></span>
+              <span>FMGE</span>
+              <span class="text-[10px] font-mono text-[#788279]" id="pyqCountFmge">0</span>
             </button>
           </div>
 
-          <!-- View Mode Switcher Track (Month, Week, Timeline) -->
-          <div class="track-3d flex items-center p-1 rounded-xl text-xs">
-            <button id="btnViewMonth" class="px-3.5 py-1 rounded-lg btn-3d-primary font-bold text-white cursor-pointer border-none">Month</button>
-            <button id="btnViewWeek" class="px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent">Week</button>
-            <button id="btnViewTimeline" class="px-3.5 py-1 rounded-lg text-[#576058] hover:text-[#2c332d] font-semibold transition-colors cursor-pointer border-none bg-transparent">Timeline</button>
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-72">
+            <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
+            <input type="text" id="pyqSearchInput"
+              class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d"
+              placeholder="Search by paper, year or topic...">
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- MAIN CALENDAR GRID VIEW SECTION (Identical to Admin Calendar Grid Structure) -->
-    <div id="viewSectionCalendar" class="panel-3d rounded-2xl overflow-hidden mb-6">
-      <div class="overflow-x-auto">
-        <div class="min-w-[980px] lg:min-w-full">
-          <!-- Weekday Headers -->
-          <div id="facultyWeekdayHeaders" class="grid grid-cols-7 border-b border-[#e5dfd5] bg-[#f7f4ed] text-center text-xs font-bold text-[#576058]">
-            <div class="py-3 text-[#c26d3e] font-extrabold">Sun</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Mon</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Tue</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Wed</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Thu</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Fri</div>
-            <div class="py-3 border-l border-[#e5dfd5]">Sat</div>
-          </div>
+        <!-- Question Bank Documents Grid -->
+        <div id="pyqDocumentsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Rendered dynamically by facultyApp.js -->
+        </div>
 
-          <!-- Grid Body (Populated dynamically with divide-y divide-[#ece5d8]) -->
-          <div class="grid grid-cols-7 auto-rows-fr divide-y divide-[#ece5d8]" id="facultyCalendarGrid">
-            <!-- Dynamic calendar rows rendered here by facultyApp.js -->
+        <!-- Empty State Container -->
+        <div id="pyqEmptyState" class="hidden panel-3d rounded-2xl p-12 text-center bg-white border border-[#ded5c6]">
+          <div class="w-14 h-14 rounded-2xl bg-[#f4efe6] text-[#8b958c] flex items-center justify-center mx-auto mb-3">
+            <span class="material-symbols-outlined text-[30px]">search_off</span>
           </div>
+          <h3 class="font-headline font-bold text-lg text-[#2c332d]">No Question Banks Found</h3>
+          <p class="text-xs text-[#68736a] mt-1 max-w-sm mx-auto">
+            No past year question papers match your selected search or exam filter for this subject.
+          </p>
         </div>
       </div>
-    </div>
 
-    <!-- DEDICATED WEEK VIEW SECTION (Identical to Admin Weekly Timetable Matrix) -->
-    <div id="viewSectionWeek" class="hidden mb-6">
-      <div id="facultyWeekContainer"></div>
-    </div>
-
-    <!-- DEDICATED TIMELINE VIEW SECTION (Identical to Admin Timeline Agenda) -->
-    <div id="viewSectionTimeline" class="hidden mb-6">
-      <div id="facultyTimelineContainer"></div>
-    </div>
-
-  </main>
+    </main>
   </div>
 
   <!-- ========================================================================= -->
   <!-- 2. MOBILE FACULTY VIEW (Active on <= 767px)                              -->
   <!-- ========================================================================= -->
-<!-- BEGIN: Mobile Device Frame -->
-<div id="faculty-mobile-view" class="w-full max-w-[430px] min-h-screen flex flex-col relative pb-safe bg-terra-bg border-x border-terra-border/50 mx-auto overflow-x-hidden">
-<!-- BEGIN: TopBar Header -->
-<header class="sticky top-0 z-30 bg-terra-bg/95 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-terra-border flex flex-col gap-2.5">
-<!-- Main Brand & Profile Row -->
-<div class="flex items-center justify-between">
-<!-- Logo and Portal Tag -->
-<div class="flex items-center gap-2">
-  <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo" class="w-8 h-8 object-contain rounded-lg shadow-xs border border-terra-border/60">
-  <div>
-    <div class="flex items-center gap-1.5 leading-none">
-      <span class="font-bold text-sm tracking-tight text-terra-charcoal">PW MedEd</span>
-    </div>
-    <p class="text-[10px] text-terra-muted mt-0.5 font-medium">Academic Year 2026-27</p>
-  </div>
-</div>
-<!-- Right Tools: Notifications & Faculty Avatar -->
-<div class="flex items-center gap-2">
-<!-- Notification Bell with Badge -->
-<button id="mobileNotificationBtn" aria-label="Notifications" class="w-9 h-9 rounded-full bg-terra-sand/60 hover:bg-terra-sand flex items-center justify-center text-terra-charcoal relative transition-colors cursor-pointer" type="button">
-<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-<span id="mobileNotificationBadge" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-terra-amber ring-2 ring-terra-bg"></span>
-</button>
-<!-- Faculty Profile Mini Pill -->
-<div class="relative">
-  <button type="button" id="mobileProfileBtn" aria-label="Faculty Profile Menu" aria-expanded="false" class="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-terra-sand hover:bg-terra-sandHover border border-terra-border/80 cursor-pointer transition-colors focus:outline-none">
-    <div id="mobileProfileAvatar" class="w-6 h-6 rounded-full bg-terra-forest text-white text-[10px] font-semibold flex items-center justify-center">
-      RJ
-    </div>
-    <div class="text-left leading-none pr-0.5">
-      <div id="mobileProfileName" class="text-[11px] font-bold text-terra-charcoal truncate max-w-[80px]">Dr. Rajesh</div>
-      <div id="mobileProfileSubject" class="text-[9px] text-terra-muted truncate max-w-[80px]">Biochem</div>
-    </div>
-    <svg class="w-3 h-3 text-terra-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-    </svg>
-  </button>
-
-  <!-- Profile Dropdown Menu Card -->
-  <div id="mobileProfileDropdown" class="hidden absolute right-0 top-full mt-2 w-64 bg-white border border-terra-border rounded-xl shadow-2xl p-3 z-50 transition-all text-xs">
-    <!-- User Info Header -->
-    <div class="pb-2.5 border-b border-terra-border/60">
-      <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In Faculty</span>
-      <div id="mobileDropdownName" class="text-xs font-bold text-terra-charcoal leading-snug mt-0.5">Dr. Rajesh Jambhulkar</div>
-      <div id="mobileDropdownSubject" class="text-[10px] font-medium text-terra-forest leading-tight mt-0.5">Biochemistry HOD</div>
-      <div id="mobileDropdownEmail" class="text-[10px] text-terra-muted truncate mt-0.5">rajesh.j@pwmeded.edu.in</div>
-    </div>
-
-    <div id="mobileFacultyProfilesList" class="hidden"></div>
-
-    <!-- Logout Action Button -->
-    <div class="pt-2">
-      <button type="button" onclick="document.getElementById('mobileProfileDropdown').classList.add('hidden'); window.location.href='/faculty-login.html';" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] transition-colors text-left cursor-pointer border-none bg-transparent">
-        <svg class="w-4 h-4 text-[#b83230]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-        </svg>
-        <span>Sign Out / Logout</span>
-      </button>
-    </div>
-  </div>
-</div>
-</div>
-</div>
-
-<!-- Cohort Selector Dropdown -->
-<div class="relative w-full">
-  <button id="mobileBatchBtn" class="w-full bg-terra-sand/70 hover:bg-terra-sand border border-terra-border rounded-xl px-3 py-2 flex items-center justify-between text-left transition-colors cursor-pointer" type="button">
-    <div class="flex items-center gap-2 min-w-0">
-      <svg class="w-4 h-4 text-terra-forest shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M12 14l9-5-9-5-9 5 9 5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-      </svg>
-      <span id="mobileBatchLabel" class="text-xs font-semibold text-terra-charcoal truncate">All Batches • Combined Schedule</span>
-    </div>
-    <svg class="w-3.5 h-3.5 text-terra-muted shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M8 9l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-    </svg>
-  </button>
-  
-  <!-- Cohort Switcher Dropdown Menu Card -->
-  <div id="mobileBatchDropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-terra-border rounded-xl shadow-2xl z-50 py-1">
-    <div id="mobileBatchDropdownList" class="space-y-0.5">
-      <!-- Dynamically populated with Batches -->
-    </div>
-  </div>
-</div>
-</header>
-<!-- END: TopBar Header -->
-
-<!-- BEGIN: Main Scrollable Content -->
-<main class="flex-1 px-4 py-3 space-y-4">
-<!-- BEGIN: Quick Summary Metrics (Swipeable Horizon) -->
-<section aria-label="Schedule Overview Metrics">
-<div class="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4 snap-x">
-<!-- Metric 1: Today's status -->
-<div id="mobileMetricToday" class="snap-start shrink-0 w-[145px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
-<div class="flex items-center justify-between">
-<span class="text-[10px] font-semibold uppercase tracking-wider text-terra-muted">Today</span>
-<div class="w-6 h-6 rounded-lg bg-terra-forestLight text-terra-forest flex items-center justify-center">
-<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</div>
-</div>
-<div class="mt-2">
-<div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileTodayCount">0</span> <span class="text-xs font-medium text-terra-muted">Classes</span></div>
-<p id="mobileTodaySubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight">No clinical sessions today</p>
-</div>
-</div>
-
-<!-- Metric 2: Lectures Ahead -->
-<div id="mobileMetricUpcoming" class="snap-start shrink-0 w-[155px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
-<div class="flex items-center justify-between">
-<span class="text-[10px] font-semibold uppercase tracking-wider text-terra-amber">Upcoming</span>
-<div class="w-6 h-6 rounded-lg bg-terra-amberBg text-terra-amber flex items-center justify-center">
-<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</div>
-</div>
-<div class="mt-2">
-<div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileUpcomingCount">5</span> <span class="text-xs font-medium text-terra-muted">Ahead</span></div>
-<p id="mobileUpcomingSubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight truncate">Next: Sat 17 Oct • Biochem</p>
-</div>
-</div>
-
-<!-- Metric 3: Total in Scope -->
-<div id="mobileMetricTotal" class="snap-start shrink-0 w-[155px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
-<div class="flex items-center justify-between">
-<span class="text-[10px] font-semibold uppercase tracking-wider text-terra-forest">Total Scope</span>
-<div class="w-6 h-6 rounded-lg bg-terra-forestLight text-terra-forest flex items-center justify-center">
-<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</div>
-</div>
-<div class="mt-2">
-<div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileTotalCount">5</span> <span class="text-xs font-medium text-terra-muted">Classes</span></div>
-<p id="mobileTotalSubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight">10.0 total teaching hrs</p>
-</div>
-</div>
-</div>
-</section>
-<!-- END: Quick Summary Metrics -->
-
-<!-- BEGIN: Month Navigation & View Filter Controls -->
-<section class="space-y-2.5">
-<!-- Month Title and Chevrons -->
-<div class="flex items-center justify-between">
-<div>
-<div class="flex items-center gap-2">
-<h2 id="mobilePeriodTitle" class="text-lg font-bold text-terra-charcoal tracking-tight">October 2026</h2>
-</div>
-<p class="text-[11px] text-terra-muted flex items-center gap-1.5 mt-0.5">
-<span class="w-1.5 h-1.5 rounded-full bg-terra-forest"></span>
-Subject: <span id="mobileFacultySubtitle" class="font-medium text-terra-charcoal">Biochemistry</span>
-</p>
-</div>
-<!-- Date Navigation Buttons -->
-<div class="flex items-center gap-1 bg-terra-sand/80 p-0.5 rounded-xl border border-terra-border">
-<button id="mobilePrevPeriodBtn" aria-label="Previous period" class="w-7 h-7 rounded-lg flex items-center justify-center text-terra-charcoal hover:bg-white transition-colors cursor-pointer" type="button">
-<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</button>
-<button id="mobileTodayPeriodBtn" class="px-2 h-7 rounded-lg bg-white text-terra-charcoal text-[11px] font-bold shadow-sm flex items-center justify-center cursor-pointer" type="button">
-Today
-</button>
-<button id="mobileNextPeriodBtn" aria-label="Next period" class="w-7 h-7 rounded-lg flex items-center justify-center text-terra-charcoal hover:bg-white transition-colors cursor-pointer" type="button">
-<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-</svg>
-</button>
-</div>
-</div>
-
-<!-- View Segmented Switcher -->
-<div class="grid grid-cols-3 gap-1 bg-terra-sand p-1 rounded-xl border border-terra-border">
-<button id="mobileBtnViewMonth" class="py-1.5 text-xs font-bold rounded-lg bg-terra-forest text-white text-center shadow-sm transition-all cursor-pointer" type="button">
-Month
-</button>
-<button id="mobileBtnViewWeek" class="py-1.5 text-xs font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer" type="button">
-Week
-</button>
-<button id="mobileBtnViewAgenda" class="py-1.5 text-xs font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer" type="button">
-Agenda
-</button>
-</div>
-</section>
-<!-- END: Month Navigation & View Filter Controls -->
-
-<!-- ========================================================================= -->
-<!-- 1. MONTH VIEW SECTION CONTAINER                                           -->
-<!-- ========================================================================= -->
-<div id="mobileViewSectionMonth" class="space-y-4">
-<!-- BEGIN: Touch-Optimized Mini Month Calendar Grid -->
-<section aria-label="Month View Grid" class="bg-terra-card rounded-2xl p-3 border border-terra-border shadow-soft">
-<!-- Days of Week Header -->
-<div class="grid grid-cols-7 text-center pb-2 border-b border-terra-border/60">
-<span class="text-[11px] font-bold text-terra-amber">Sun</span>
-<span class="text-[11px] font-semibold text-terra-muted">Mon</span>
-<span class="text-[11px] font-semibold text-terra-muted">Tue</span>
-<span class="text-[11px] font-semibold text-terra-muted">Wed</span>
-<span class="text-[11px] font-semibold text-terra-muted">Thu</span>
-<span class="text-[11px] font-semibold text-terra-muted">Fri</span>
-<span class="text-[11px] font-semibold text-terra-forest">Sat</span>
-</div>
-
-<!-- 7-Column Days Grid (Dynamically Rendered by Controller) -->
-<div id="mobileCalendarDaysGrid" class="grid grid-cols-7 gap-y-1.5 gap-x-1 pt-2.5 text-center text-xs">
-<!-- Dynamic days inserted here -->
-</div>
-
-<!-- Mini Legend -->
-<div class="mt-3 pt-2.5 border-t border-terra-border flex items-center justify-around text-[10px] font-medium text-terra-muted">
-<div class="flex items-center gap-1.5">
-<span class="w-2 h-2 rounded-full bg-terra-forest"></span>
-<span id="mobileLegendLiveCount">Live Class (5)</span>
-</div>
-<div class="flex items-center gap-1.5">
-<span class="w-2 h-2 rounded-full bg-terra-amber"></span>
-<span>Cool Off / Holiday</span>
-</div>
-<div class="flex items-center gap-1.5">
-<span class="w-2 h-2 rounded-full border border-terra-forest"></span>
-<span id="mobileLegendTodayText">Today (15 Oct)</span>
-</div>
-</div>
-</section>
-<!-- END: Touch-Optimized Mini Month Calendar Grid -->
-</div>
-
-<!-- ========================================================================= -->
-<!-- 2. WEEK VIEW SECTION CONTAINER (Hidden by default)                        -->
-<!-- ========================================================================= -->
-<div id="mobileViewSectionWeek" class="hidden space-y-4">
-  <!-- BEGIN: Week View Grid Strip -->
-  <section aria-label="Week View Grid" class="bg-white rounded-2xl p-3 border border-[#E6DED2] shadow-sm space-y-2.5">
-    <div class="flex items-center justify-between text-[11px] font-bold text-[#706E6B] px-0.5">
-      <span id="mobileWeekRangeBadge">Week 3: Oct 12 – Oct 18</span>
-      <span id="mobileWeekLiveCount" class="text-[#2D553E] font-bold">1 Live Session</span>
-    </div>
-    <div id="mobileWeekDaysGrid" class="grid grid-cols-7 gap-1 text-center">
-      <!-- Dynamically populated 7 days -->
-    </div>
-    <div class="mt-2 pt-2 border-t border-[#E6DED2] flex items-center justify-around text-[10px] font-medium text-[#706E6B]">
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2D553E]"></span><span id="mobileWeekLegendLive">Live Class (5)</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#C86D3B]"></span><span>Cool Off / Holiday</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full border border-[#2D553E]"></span><span id="mobileWeekLegendToday">Today (15 Oct)</span></div>
-    </div>
-  </section>
-  <!-- END: Week View Grid Strip -->
-  <div id="mobileWeekScheduleContainer" class="hidden"></div>
-</div>
-
-<!-- ========================================================================= -->
-<!-- SHARED: SELECTED SCHEDULE & UPCOMING LECTURES (Visible in Month & Week)   -->
-<!-- ========================================================================= -->
-<div id="mobileSharedScheduleSections" class="space-y-4">
-  <!-- BEGIN: Selected Day Agenda Section -->
-  <section aria-label="Detailed Agenda For Selected Date" class="space-y-3">
-    <div class="flex items-end justify-between gap-3 pb-0.5">
-      <div class="min-w-0">
-        <h3 class="text-xs font-bold text-terra-charcoal uppercase tracking-wider whitespace-nowrap">Selected Schedule</h3>
-        <p id="mobileSelectedDateTitle" class="text-xs text-terra-muted font-medium mt-0.5 truncate">Saturday, 17 Oct 2026</p>
-      </div>
-      <span id="mobileSelectedDateBadge" class="text-[11px] font-semibold text-terra-forest bg-terra-forestLight px-2.5 py-1 rounded-md border border-terra-forest/20 whitespace-nowrap shrink-0">
-        1 Lecture
-      </span>
-    </div>
-
-    <!-- Featured Lecture Cards Container for Selected Date -->
-    <div id="mobileSelectedScheduleContainer" class="space-y-3">
-      <!-- Dynamically populated with lecture cards or empty state -->
-    </div>
-  </section>
-  <!-- END: Selected Day Agenda Section -->
-
-  <!-- BEGIN: Chronological Scope Agenda (Remaining Month Events) -->
-  <section aria-label="Remaining Schedule Agenda" class="space-y-3 pt-1">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-bold text-terra-charcoal uppercase tracking-wide">Upcoming Lectures</h3>
-      <span id="mobileUpcomingLecturesHeader" class="text-xs font-semibold text-terra-muted">4 Lectures Left</span>
-    </div>
-    <div id="mobileUpcomingLecturesContainer" class="space-y-2.5">
-      <!-- Dynamically populated with upcoming lectures stream -->
-    </div>
-  </section>
-  <!-- END: Chronological Scope Agenda -->
-</div>
-
-<!-- ========================================================================= -->
-<!-- 3. AGENDA VIEW SECTION CONTAINER (Hidden by default)                      -->
-<!-- ========================================================================= -->
-<div id="mobileViewSectionAgenda" class="hidden space-y-3">
-  <div class="flex items-center justify-between">
-    <h3 class="text-sm font-bold text-terra-charcoal uppercase tracking-wide">Full Chronological Agenda</h3>
-    <span id="mobileAgendaCountBadge" class="text-xs font-semibold text-terra-muted">All Lectures</span>
-  </div>
-  <div id="mobileAgendaScheduleContainer" class="space-y-3">
-    <!-- Dynamically populated agenda list -->
-  </div>
-</div>
-</main>
-<!-- END: Main Scrollable Content -->
-
-<!-- BEGIN: Notification Drawer Bottom Sheet -->
-<div id="notification-drawer" class="fixed inset-0 z-50 flex flex-col justify-end max-w-[430px] mx-auto hidden">
-  <!-- Scrim / Backdrop -->
-  <div id="mobileNotificationBackdrop" class="fixed inset-0 bg-terra-charcoal/40 backdrop-blur-[2px] transition-opacity cursor-pointer"></div>
-
-  <!-- Bottom Sheet Panel -->
-  <div class="relative bg-white rounded-t-3xl border-t border-terra-border shadow-2xl z-10 flex flex-col max-h-[85vh] transition-transform">
-    <!-- Drag Handle -->
-    <div id="mobileNotificationDragHandle" class="w-full flex justify-center pt-3 pb-1 cursor-pointer">
-      <div class="w-10 h-1 rounded-full bg-terra-border"></div>
-    </div>
-
-    <!-- Header -->
-    <div class="px-4 py-3 border-b border-terra-border/60 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h3 class="text-base font-bold text-terra-charcoal">Notifications</h3>
-        <span id="mobileNotificationCountBadge" class="text-[11px] font-bold bg-terra-forestLight text-terra-forest px-2 py-0.5 rounded-full border border-terra-forest/20">All</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="mobileNotificationMarkReadBtn" type="button" class="text-xs font-semibold text-terra-forest hover:text-terra-forestHover transition-colors cursor-pointer">
-          Mark all as read
-        </button>
-        <button id="mobileNotificationCloseBtn" type="button" class="w-7 h-7 rounded-full bg-terra-sand flex items-center justify-center text-terra-muted hover:text-terra-charcoal transition-colors cursor-pointer" aria-label="Close notifications">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- Notification Alerts List -->
-    <div id="mobileNotificationFeed" class="p-4 space-y-3 overflow-y-auto no-scrollbar max-h-[50vh]">
-      <!-- Dynamically rendered notification items -->
-    </div>
-
-    <!-- Quick Action / Footer -->
-    <div class="p-4 pt-2 border-t border-terra-border/60 bg-terra-bg/50">
-      <button id="mobileNotificationDismissBtn" type="button" class="w-full py-2.5 rounded-xl bg-terra-forest hover:bg-terra-forestHover text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
-        Dismiss
-      </button>
-    </div>
-  </div>
-</div>
-<!-- END: Notification Drawer Bottom Sheet -->
-
-<!-- BEGIN: Lecture Details Bottom Sheet Modal -->
-<div id="lecture-modal-backdrop" class="fixed inset-0 bg-black/45 backdrop-blur-[2px] z-50 transition-opacity flex items-end justify-center hidden cursor-pointer">
-  <div id="lecture-bottom-sheet" class="w-full max-w-[430px] bg-white rounded-t-[28px] shadow-2xl border-t border-[#ded5c6] max-h-[88vh] flex flex-col transition-transform duration-300 transform translate-y-full relative overflow-hidden cursor-default">
-    
-    <!-- Drag Handle Indicator -->
-    <div class="pt-3 pb-1 flex justify-center bg-white shrink-0">
-      <div class="w-12 h-1.5 bg-[#d4cdbf] rounded-full"></div>
-    </div>
-
-    <!-- Modal Header -->
-    <div class="px-5 pt-2 pb-3 border-b border-[#e5dfd5] bg-white shrink-0">
-      <div class="flex items-start justify-between gap-3">
-        <div class="space-y-1">
-          <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d inline-block" id="mobileModalSubjectBadge">
-            Biochemistry
-          </span>
-          <h3 class="font-headline font-bold text-lg text-[#2c332d] leading-snug" id="mobileModalTopic">
-            Lecture Topic
-          </h3>
-          <div id="mobileModalBatch" class="inline-flex items-center gap-1.5 flex-wrap text-xs text-[#68736a]">
-            <!-- Batch Badge + Platform Badge + Chapter -->
+  <!-- BEGIN: Mobile Device Frame -->
+  <div id="faculty-mobile-view"
+    class="w-full max-w-[430px] min-h-screen flex flex-col relative pb-safe bg-terra-bg border-x border-terra-border/50 mx-auto overflow-x-hidden">
+    <!-- BEGIN: TopBar Header -->
+    <header
+      class="sticky top-0 z-30 bg-terra-bg/95 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-terra-border flex flex-col gap-2.5">
+      <!-- Main Brand & Profile Row -->
+      <div class="flex items-center justify-between">
+        <!-- Logo and Portal Tag -->
+        <div class="flex items-center gap-2">
+          <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
+            class="w-8 h-8 object-contain rounded-lg shadow-xs border border-terra-border/60">
+          <div>
+            <div class="flex items-center gap-1.5 leading-none">
+              <span class="font-bold text-sm tracking-tight text-terra-charcoal">PW MedEd</span>
+            </div>
+            <p class="text-[10px] text-terra-muted mt-0.5 font-medium">Academic Year 2026-27</p>
           </div>
         </div>
-        <button id="mobileModalCloseBtn" type="button" class="text-[#68736a] hover:text-[#2c332d] p-1.5 rounded-xl hover:bg-[#f4efe6] transition-colors cursor-pointer shrink-0" aria-label="Close dialog">
-          <span class="material-symbols-outlined text-[20px]">close</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Scrollable Modal Content Body -->
-    <div class="overflow-y-auto px-5 py-3.5 space-y-3 no-scrollbar flex-1 pb-4 text-xs">
-      
-      <!-- Delivery Platform Box -->
-      <div class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between" id="mobileModalPlatformRow">
-        <span class="font-semibold text-[#68736a]">Delivery Platform:</span>
-        <span id="mobileModalPlatformText" class="font-bold text-[#2c332d] flex items-center gap-1.5">
-          <!-- Populated dynamically -->
-        </span>
-      </div>
-
-      <!-- Lecture Status Box -->
-      <div class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between" id="mobileModalStatusRow">
-        <span class="font-semibold text-[#68736a]">Lecture Status:</span>
-        <span id="mobileModalStatusText" class="font-bold text-[#2c332d] flex items-center gap-1.5">
-          <!-- Populated dynamically -->
-        </span>
-      </div>
-
-      <!-- Date & Day, Timings & Assigned Faculty Grid Box -->
-      <div class="grid grid-cols-2 gap-3 p-3 bg-[#faf7f2] rounded-xl border border-[#e8e2d8]">
-        <div>
-          <span class="text-[10px] uppercase font-bold text-[#68736a] block">Date &amp; Day</span>
-          <span class="font-bold text-[#2c332d] text-xs" id="mobileModalDate">Scheduled Date</span>
-        </div>
-        <div>
-          <span class="text-[10px] uppercase font-bold text-[#68736a] block">Timings &amp; Duration</span>
-          <span class="font-bold text-[#4a7c59] font-mono text-xs" id="mobileModalTimings">7:00 PM - 9:00 PM</span>
-          <span class="text-[10px] text-[#788279] block" id="mobileModalDuration">• 2 Hours</span>
-        </div>
-        <div class="col-span-2 pt-1 border-t border-[#e8e2d8]/60">
-          <span class="text-[10px] uppercase font-bold text-[#68736a] block">Assigned Faculty</span>
-          <span class="font-bold text-[#2c332d] text-xs" id="mobileModalFaculty">Faculty Name</span>
-        </div>
-      </div>
-
-      <!-- Curriculum Topic & Objectives Box -->
-      <div>
-        <span class="text-[10px] uppercase font-bold text-[#68736a] block mb-1">Curriculum Topic &amp; Objectives</span>
-        <p class="text-xs text-[#576058] bg-[#fdfbf7] p-3 rounded-xl border border-[#e8e2d8] leading-relaxed" id="mobileModalTopicText">
-          Detailed curricular session according to NMC guidelines.
-        </p>
-      </div>
-
-    </div>
-
-    <!-- Bottom Fixed Actions inside Modal -->
-    <div class="p-4 bg-white border-t border-[#e5dfd5] shrink-0" id="mobileModalActionContainer">
-      <div class="flex items-center gap-2" id="mobileModalFooter">
-        <div class="flex items-center gap-2 flex-1" id="mobileModalRescheduleCancelRow">
-          <button id="mobileModalRescheduleBtn" type="button" class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#f4efe6] hover:bg-[#eae3d5] text-[#2c332d] font-bold text-xs border border-[#ded5c6] flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
-            <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">edit_calendar</span>
-            <span>Reschedule</span>
+        <!-- Right Tools: Notifications & Faculty Avatar -->
+        <div class="flex items-center gap-2">
+          <!-- Notification Bell with Badge -->
+          <button id="mobileNotificationBtn" aria-label="Notifications"
+            class="w-9 h-9 rounded-full bg-terra-sand/60 hover:bg-terra-sand flex items-center justify-center text-terra-charcoal relative transition-colors cursor-pointer"
+            type="button">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            <span id="mobileNotificationBadge"
+              class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-terra-amber ring-2 ring-terra-bg"></span>
           </button>
-          <button id="mobileModalCancelBtn" type="button" class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#fcf2ee] hover:bg-[#f9e5dc] text-[#c26d3e] font-bold text-xs border border-[#f5cfbf] flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
-            <span class="material-symbols-outlined text-[16px] text-[#c26d3e]">cancel</span>
-            <span>Cancel</span>
+          <!-- Faculty Profile Mini Pill -->
+          <div class="relative">
+            <button type="button" id="mobileProfileBtn" aria-label="Faculty Profile Menu" aria-expanded="false"
+              class="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-terra-sand hover:bg-terra-sandHover border border-terra-border/80 cursor-pointer transition-colors focus:outline-none">
+              <div id="mobileProfileAvatar"
+                class="w-6 h-6 rounded-full bg-terra-forest text-white text-[10px] font-semibold flex items-center justify-center">
+                RJ
+              </div>
+              <div class="text-left leading-none pr-0.5">
+                <div id="mobileProfileName" class="text-[11px] font-bold text-terra-charcoal truncate max-w-[80px]">Dr.
+                  Rajesh</div>
+                <div id="mobileProfileSubject" class="text-[9px] text-terra-muted truncate max-w-[80px]">Biochem</div>
+              </div>
+              <svg class="w-3 h-3 text-terra-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </button>
+
+            <!-- Profile Dropdown Menu Card -->
+            <div id="mobileProfileDropdown"
+              class="hidden absolute right-0 top-full mt-2 w-64 bg-white border border-terra-border rounded-xl shadow-2xl p-3 z-50 transition-all text-xs">
+              <!-- User Info Header -->
+              <div class="pb-2.5 border-b border-terra-border/60">
+                <span class="text-[10px] font-bold uppercase text-[#68736a] tracking-wider block font-label">Logged In
+                  Faculty</span>
+                <div id="mobileDropdownName" class="text-xs font-bold text-terra-charcoal leading-snug mt-0.5">Dr.
+                  Rajesh Jambhulkar</div>
+                <div id="mobileDropdownSubject" class="text-[10px] font-medium text-terra-forest leading-tight mt-0.5">
+                  Biochemistry HOD</div>
+                <div id="mobileDropdownEmail" class="text-[10px] text-terra-muted truncate mt-0.5">
+                  rajesh.j@pwmeded.edu.in</div>
+              </div>
+
+              <div id="mobileFacultyProfilesList" class="hidden"></div>
+
+              <!-- Logout Action Button -->
+              <div class="pt-2">
+                <button type="button"
+                  onclick="document.getElementById('mobileProfileDropdown').classList.add('hidden'); window.location.href='/faculty-login.html';"
+                  class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-bold text-[#b83230] hover:bg-[#fdf2f2] transition-colors text-left cursor-pointer border-none bg-transparent">
+                  <svg class="w-4 h-4 text-[#b83230]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  <span>Sign Out / Logout</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cohort Selector Dropdown -->
+      <div class="relative w-full">
+        <button id="mobileBatchBtn"
+          class="w-full bg-terra-sand/70 hover:bg-terra-sand border border-terra-border rounded-xl px-3 py-2 flex items-center justify-between text-left transition-colors cursor-pointer"
+          type="button">
+          <div class="flex items-center gap-2 min-w-0">
+            <svg class="w-4 h-4 text-terra-forest shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14l9-5-9-5-9 5 9 5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              <path
+                d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+                stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            <span id="mobileBatchLabel" class="text-xs font-semibold text-terra-charcoal truncate">All Batches •
+              Combined Schedule</span>
+          </div>
+          <svg class="w-3.5 h-3.5 text-terra-muted shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M8 9l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </button>
+
+        <!-- Cohort Switcher Dropdown Menu Card -->
+        <div id="mobileBatchDropdown"
+          class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-terra-border rounded-xl shadow-2xl z-50 py-1">
+          <div id="mobileBatchDropdownList" class="space-y-0.5">
+            <!-- Dynamically populated with Batches -->
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- END: TopBar Header -->
+
+    <!-- BEGIN: Main Scrollable Content -->
+    <main class="flex-1 px-4 py-3 space-y-4">
+      <!-- BEGIN: Quick Summary Metrics (Swipeable Horizon) -->
+      <section aria-label="Schedule Overview Metrics">
+        <div class="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4 snap-x">
+          <!-- Metric 1: Today's status -->
+          <div id="mobileMetricToday"
+            class="snap-start shrink-0 w-[145px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-terra-muted">Today</span>
+              <div class="w-6 h-6 rounded-lg bg-terra-forestLight text-terra-forest flex items-center justify-center">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileTodayCount">0</span> <span
+                  class="text-xs font-medium text-terra-muted">Classes</span></div>
+              <p id="mobileTodaySubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight">No clinical sessions
+                today</p>
+            </div>
+          </div>
+
+          <!-- Metric 2: Lectures Ahead -->
+          <div id="mobileMetricUpcoming"
+            class="snap-start shrink-0 w-[155px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-terra-amber">Upcoming</span>
+              <div class="w-6 h-6 rounded-lg bg-terra-amberBg text-terra-amber flex items-center justify-center">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  </path>
+                </svg>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileUpcomingCount">5</span> <span
+                  class="text-xs font-medium text-terra-muted">Ahead</span></div>
+              <p id="mobileUpcomingSubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight truncate">Next:
+                Sat 17 Oct • Biochem</p>
+            </div>
+          </div>
+
+          <!-- Metric 3: Total in Scope -->
+          <div id="mobileMetricTotal"
+            class="snap-start shrink-0 w-[155px] bg-terra-card border border-terra-border rounded-2xl p-3 shadow-soft flex flex-col justify-between cursor-pointer active:scale-98 transition-transform">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-terra-forest">Total Scope</span>
+              <div class="w-6 h-6 rounded-lg bg-terra-forestLight text-terra-forest flex items-center justify-center">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-width="2"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="text-xl font-extrabold text-terra-charcoal"><span id="mobileTotalCount">5</span> <span
+                  class="text-xs font-medium text-terra-muted">Classes</span></div>
+              <p id="mobileTotalSubtitle" class="text-[10px] text-terra-muted mt-0.5 leading-tight">10.0 total teaching
+                hrs</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- END: Quick Summary Metrics -->
+
+      <!-- BEGIN: Month Navigation & View Filter Controls -->
+      <section class="space-y-2.5">
+        <!-- Month Title and Chevrons -->
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="mobilePeriodTitle" class="text-lg font-bold text-terra-charcoal tracking-tight">October 2026</h2>
+            </div>
+            <p class="text-[11px] text-terra-muted flex items-center gap-1.5 mt-0.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-terra-forest"></span>
+              Subject: <span id="mobileFacultySubtitle" class="font-medium text-terra-charcoal">Biochemistry</span>
+            </p>
+          </div>
+          <!-- Date Navigation Buttons -->
+          <div class="flex items-center gap-1 bg-terra-sand/80 p-0.5 rounded-xl border border-terra-border">
+            <button id="mobilePrevPeriodBtn" aria-label="Previous period"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-terra-charcoal hover:bg-white transition-colors cursor-pointer"
+              type="button">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </button>
+            <button id="mobileTodayPeriodBtn"
+              class="px-2 h-7 rounded-lg bg-white text-terra-charcoal text-[11px] font-bold shadow-sm flex items-center justify-center cursor-pointer"
+              type="button">
+              Today
+            </button>
+            <button id="mobileNextPeriodBtn" aria-label="Next period"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-terra-charcoal hover:bg-white transition-colors cursor-pointer"
+              type="button">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- View Segmented Switcher -->
+        <div class="grid grid-cols-4 gap-1 bg-terra-sand p-1 rounded-xl border border-terra-border">
+          <button id="mobileBtnViewMonth"
+            class="py-1.5 text-[11px] font-bold rounded-lg bg-terra-forest text-white text-center shadow-sm transition-all cursor-pointer"
+            type="button">
+            Month
+          </button>
+          <button id="mobileBtnViewWeek"
+            class="py-1.5 text-[11px] font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer"
+            type="button">
+            Week
+          </button>
+          <button id="mobileBtnViewAgenda"
+            class="py-1.5 text-[11px] font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer"
+            type="button">
+            Agenda
+          </button>
+          <button id="mobileBtnViewPyq"
+            class="py-1.5 text-[11px] font-semibold rounded-lg text-terra-muted hover:text-terra-charcoal text-center transition-all cursor-pointer flex items-center justify-center gap-1"
+            type="button">
+            <span>PYQs</span>
           </button>
         </div>
-        <button id="mobileModalCloseSecondaryBtn" type="button" class="btn-3d-primary px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
-          Close
-        </button>
+      </section>
+      <!-- END: Month Navigation & View Filter Controls -->
+
+      <!-- ========================================================================= -->
+      <!-- 1. MONTH VIEW SECTION CONTAINER                                           -->
+      <!-- ========================================================================= -->
+      <div id="mobileViewSectionMonth" class="space-y-4">
+        <!-- BEGIN: Touch-Optimized Mini Month Calendar Grid -->
+        <section aria-label="Month View Grid"
+          class="bg-terra-card rounded-2xl p-3 border border-terra-border shadow-soft">
+          <!-- Days of Week Header -->
+          <div class="grid grid-cols-7 text-center pb-2 border-b border-terra-border/60">
+            <span class="text-[11px] font-bold text-terra-amber">Sun</span>
+            <span class="text-[11px] font-semibold text-terra-muted">Mon</span>
+            <span class="text-[11px] font-semibold text-terra-muted">Tue</span>
+            <span class="text-[11px] font-semibold text-terra-muted">Wed</span>
+            <span class="text-[11px] font-semibold text-terra-muted">Thu</span>
+            <span class="text-[11px] font-semibold text-terra-muted">Fri</span>
+            <span class="text-[11px] font-semibold text-terra-forest">Sat</span>
+          </div>
+
+          <!-- 7-Column Days Grid (Dynamically Rendered by Controller) -->
+          <div id="mobileCalendarDaysGrid" class="grid grid-cols-7 gap-y-1.5 gap-x-1 pt-2.5 text-center text-xs">
+            <!-- Dynamic days inserted here -->
+          </div>
+
+          <!-- Mini Legend -->
+          <div
+            class="mt-3 pt-2.5 border-t border-terra-border flex items-center justify-around text-[10px] font-medium text-terra-muted">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-terra-forest"></span>
+              <span id="mobileLegendLiveCount">Live Class (5)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-terra-amber"></span>
+              <span>Cool Off / Holiday</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full border border-terra-forest"></span>
+              <span id="mobileLegendTodayText">Today (15 Oct)</span>
+            </div>
+          </div>
+        </section>
+        <!-- END: Touch-Optimized Mini Month Calendar Grid -->
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 2. WEEK VIEW SECTION CONTAINER (Hidden by default)                        -->
+      <!-- ========================================================================= -->
+      <div id="mobileViewSectionWeek" class="hidden space-y-4">
+        <!-- BEGIN: Week View Grid Strip -->
+        <section aria-label="Week View Grid"
+          class="bg-white rounded-2xl p-3 border border-[#E6DED2] shadow-sm space-y-2.5">
+          <div class="flex items-center justify-between text-[11px] font-bold text-[#706E6B] px-0.5">
+            <span id="mobileWeekRangeBadge">Week 3: Oct 12 – Oct 18</span>
+            <span id="mobileWeekLiveCount" class="text-[#2D553E] font-bold">1 Live Session</span>
+          </div>
+          <div id="mobileWeekDaysGrid" class="grid grid-cols-7 gap-1 text-center">
+            <!-- Dynamically populated 7 days -->
+          </div>
+          <div
+            class="mt-2 pt-2 border-t border-[#E6DED2] flex items-center justify-around text-[10px] font-medium text-[#706E6B]">
+            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#2D553E]"></span><span
+                id="mobileWeekLegendLive">Live Class (5)</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#C86D3B]"></span><span>Cool Off
+                / Holiday</span></div>
+            <div class="flex items-center gap-1.5"><span
+                class="w-2 h-2 rounded-full border border-[#2D553E]"></span><span id="mobileWeekLegendToday">Today (15
+                Oct)</span></div>
+          </div>
+        </section>
+        <!-- END: Week View Grid Strip -->
+        <div id="mobileWeekScheduleContainer" class="hidden"></div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- SHARED: SELECTED SCHEDULE & UPCOMING LECTURES (Visible in Month & Week)   -->
+      <!-- ========================================================================= -->
+      <div id="mobileSharedScheduleSections" class="space-y-4">
+        <!-- BEGIN: Selected Day Agenda Section -->
+        <section aria-label="Detailed Agenda For Selected Date" class="space-y-3">
+          <div class="flex items-end justify-between gap-3 pb-0.5">
+            <div class="min-w-0">
+              <h3 class="text-xs font-bold text-terra-charcoal uppercase tracking-wider whitespace-nowrap">Selected
+                Schedule</h3>
+              <p id="mobileSelectedDateTitle" class="text-xs text-terra-muted font-medium mt-0.5 truncate">Saturday, 17
+                Oct 2026</p>
+            </div>
+            <span id="mobileSelectedDateBadge"
+              class="text-[11px] font-semibold text-terra-forest bg-terra-forestLight px-2.5 py-1 rounded-md border border-terra-forest/20 whitespace-nowrap shrink-0">
+              1 Lecture
+            </span>
+          </div>
+
+          <!-- Featured Lecture Cards Container for Selected Date -->
+          <div id="mobileSelectedScheduleContainer" class="space-y-3">
+            <!-- Dynamically populated with lecture cards or empty state -->
+          </div>
+        </section>
+        <!-- END: Selected Day Agenda Section -->
+
+        <!-- BEGIN: Chronological Scope Agenda (Remaining Month Events) -->
+        <section aria-label="Remaining Schedule Agenda" class="space-y-3 pt-1">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-terra-charcoal uppercase tracking-wide">Upcoming Lectures</h3>
+            <span id="mobileUpcomingLecturesHeader" class="text-xs font-semibold text-terra-muted">4 Lectures
+              Left</span>
+          </div>
+          <div id="mobileUpcomingLecturesContainer" class="space-y-2.5">
+            <!-- Dynamically populated with upcoming lectures stream -->
+          </div>
+        </section>
+        <!-- END: Chronological Scope Agenda -->
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 3. AGENDA VIEW SECTION CONTAINER (Hidden by default)                      -->
+      <!-- ========================================================================= -->
+      <div id="mobileViewSectionAgenda" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-terra-charcoal uppercase tracking-wide">Full Chronological Agenda</h3>
+          <span id="mobileAgendaCountBadge" class="text-xs font-semibold text-terra-muted">All Lectures</span>
+        </div>
+        <div id="mobileAgendaScheduleContainer" class="space-y-3">
+          <!-- Dynamically populated agenda list -->
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 4. MOBILE SUBJECT QUESTION BANK & PYQ SECTION                             -->
+      <!-- ========================================================================= -->
+      <div id="mobileViewSectionPyq" class="hidden space-y-3.5">
+        <div class="bg-terra-card rounded-2xl p-3.5 border border-terra-border space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span
+                class="w-8 h-8 rounded-xl bg-terra-forest text-white flex items-center justify-center text-sm font-bold">
+                <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              </span>
+              <div>
+                <h3 class="text-xs font-bold text-terra-charcoal uppercase tracking-wide">Subject PYQs</h3>
+                <p id="mobilePyqSubjectLabel" class="text-[11px] text-terra-muted font-medium">Mapped Subject Question
+                  Banks</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile Exam Switcher -->
+          <div class="grid grid-cols-4 gap-1 pt-1.5 border-t border-terra-border/60 text-[10px] font-bold">
+            <button type="button" data-mobile-exam="all"
+              class="mobile-pyq-exam-btn py-1 rounded-lg bg-terra-forest text-white text-center cursor-pointer">All</button>
+            <button type="button" data-mobile-exam="NEET PG PYQs"
+              class="mobile-pyq-exam-btn py-1 rounded-lg bg-terra-sand text-terra-muted text-center cursor-pointer">NEET</button>
+            <button type="button" data-mobile-exam="INI-CET PYQs"
+              class="mobile-pyq-exam-btn py-1 rounded-lg bg-terra-sand text-terra-muted text-center cursor-pointer">INI-CET</button>
+            <button type="button" data-mobile-exam="FMGE PYQs"
+              class="mobile-pyq-exam-btn py-1 rounded-lg bg-terra-sand text-terra-muted text-center cursor-pointer">FMGE</button>
+          </div>
+        </div>
+
+        <!-- Mobile Document Cards List -->
+        <div id="mobilePyqCardsContainer" class="space-y-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </main>
+    <!-- END: Main Scrollable Content -->
+
+    <!-- BEGIN: Notification Drawer Bottom Sheet -->
+    <div id="notification-drawer" class="fixed inset-0 z-50 flex flex-col justify-end max-w-[430px] mx-auto hidden">
+      <!-- Scrim / Backdrop -->
+      <div id="mobileNotificationBackdrop"
+        class="fixed inset-0 bg-terra-charcoal/40 backdrop-blur-[2px] transition-opacity cursor-pointer"></div>
+
+      <!-- Bottom Sheet Panel -->
+      <div
+        class="relative bg-white rounded-t-3xl border-t border-terra-border shadow-2xl z-10 flex flex-col max-h-[85vh] transition-transform">
+        <!-- Drag Handle -->
+        <div id="mobileNotificationDragHandle" class="w-full flex justify-center pt-3 pb-1 cursor-pointer">
+          <div class="w-10 h-1 rounded-full bg-terra-border"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="px-4 py-3 border-b border-terra-border/60 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-terra-charcoal">Notifications</h3>
+            <span id="mobileNotificationCountBadge"
+              class="text-[11px] font-bold bg-terra-forestLight text-terra-forest px-2 py-0.5 rounded-full border border-terra-forest/20">All</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="mobileNotificationMarkReadBtn" type="button"
+              class="text-xs font-semibold text-terra-forest hover:text-terra-forestHover transition-colors cursor-pointer">
+              Mark all as read
+            </button>
+            <button id="mobileNotificationCloseBtn" type="button"
+              class="w-7 h-7 rounded-full bg-terra-sand flex items-center justify-center text-terra-muted hover:text-terra-charcoal transition-colors cursor-pointer"
+              aria-label="Close notifications">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Alerts List -->
+        <div id="mobileNotificationFeed" class="p-4 space-y-3 overflow-y-auto no-scrollbar max-h-[50vh]">
+          <!-- Dynamically rendered notification items -->
+        </div>
+
+        <!-- Quick Action / Footer -->
+        <div class="p-4 pt-2 border-t border-terra-border/60 bg-terra-bg/50">
+          <button id="mobileNotificationDismissBtn" type="button"
+            class="w-full py-2.5 rounded-xl bg-terra-forest hover:bg-terra-forestHover text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+            Dismiss
+          </button>
+        </div>
       </div>
     </div>
+    <!-- END: Notification Drawer Bottom Sheet -->
 
+    <!-- BEGIN: Lecture Details Bottom Sheet Modal -->
+    <div id="lecture-modal-backdrop"
+      class="fixed inset-0 bg-black/45 backdrop-blur-[2px] z-50 transition-opacity flex items-end justify-center hidden cursor-pointer">
+      <div id="lecture-bottom-sheet"
+        class="w-full max-w-[430px] bg-white rounded-t-[28px] shadow-2xl border-t border-[#ded5c6] max-h-[88vh] flex flex-col transition-transform duration-300 transform translate-y-full relative overflow-hidden cursor-default">
+
+        <!-- Drag Handle Indicator -->
+        <div class="pt-3 pb-1 flex justify-center bg-white shrink-0">
+          <div class="w-12 h-1.5 bg-[#d4cdbf] rounded-full"></div>
+        </div>
+
+        <!-- Modal Header -->
+        <div class="px-5 pt-2 pb-3 border-b border-[#e5dfd5] bg-white shrink-0">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+              <span
+                class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d inline-block"
+                id="mobileModalSubjectBadge">
+                Biochemistry
+              </span>
+              <h3 class="font-headline font-bold text-lg text-[#2c332d] leading-snug" id="mobileModalTopic">
+                Lecture Topic
+              </h3>
+              <div id="mobileModalBatch" class="inline-flex items-center gap-1.5 flex-wrap text-xs text-[#68736a]">
+                <!-- Batch Badge + Platform Badge + Chapter -->
+              </div>
+            </div>
+            <button id="mobileModalCloseBtn" type="button"
+              class="text-[#68736a] hover:text-[#2c332d] p-1.5 rounded-xl hover:bg-[#f4efe6] transition-colors cursor-pointer shrink-0"
+              aria-label="Close dialog">
+              <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Modal Content Body -->
+        <div class="overflow-y-auto px-5 py-3.5 space-y-3 no-scrollbar flex-1 pb-4 text-xs">
+
+          <!-- Delivery Platform Box -->
+          <div
+            class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between"
+            id="mobileModalPlatformRow">
+            <span class="font-semibold text-[#68736a]">Delivery Platform:</span>
+            <span id="mobileModalPlatformText" class="font-bold text-[#2c332d] flex items-center gap-1.5">
+              <!-- Populated dynamically -->
+            </span>
+          </div>
+
+          <!-- Lecture Status Box -->
+          <div
+            class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between"
+            id="mobileModalStatusRow">
+            <span class="font-semibold text-[#68736a]">Lecture Status:</span>
+            <span id="mobileModalStatusText" class="font-bold text-[#2c332d] flex items-center gap-1.5">
+              <!-- Populated dynamically -->
+            </span>
+          </div>
+
+          <!-- Date & Day, Timings & Assigned Faculty Grid Box -->
+          <div class="grid grid-cols-2 gap-3 p-3 bg-[#faf7f2] rounded-xl border border-[#e8e2d8]">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-[#68736a] block">Date &amp; Day</span>
+              <span class="font-bold text-[#2c332d] text-xs" id="mobileModalDate">Scheduled Date</span>
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-bold text-[#68736a] block">Timings &amp; Duration</span>
+              <span class="font-bold text-[#4a7c59] font-mono text-xs" id="mobileModalTimings">7:00 PM - 9:00 PM</span>
+              <span class="text-[10px] text-[#788279] block" id="mobileModalDuration">• 2 Hours</span>
+            </div>
+            <div class="col-span-2 pt-1 border-t border-[#e8e2d8]/60">
+              <span class="text-[10px] uppercase font-bold text-[#68736a] block">Assigned Faculty</span>
+              <span class="font-bold text-[#2c332d] text-xs" id="mobileModalFaculty">Faculty Name</span>
+            </div>
+          </div>
+
+          <!-- Curriculum Topic & Objectives Box -->
+          <div>
+            <span class="text-[10px] uppercase font-bold text-[#68736a] block mb-1">Curriculum Topic &amp;
+              Objectives</span>
+            <p class="text-xs text-[#576058] bg-[#fdfbf7] p-3 rounded-xl border border-[#e8e2d8] leading-relaxed"
+              id="mobileModalTopicText">
+              Detailed curricular session according to NMC guidelines.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Bottom Fixed Actions inside Modal -->
+        <div class="p-4 bg-white border-t border-[#e5dfd5] shrink-0" id="mobileModalActionContainer">
+          <div class="flex items-center gap-2" id="mobileModalFooter">
+            <div class="flex items-center gap-2 flex-1" id="mobileModalRescheduleCancelRow">
+              <button id="mobileModalRescheduleBtn" type="button"
+                class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#f4efe6] hover:bg-[#eae3d5] text-[#2c332d] font-bold text-xs border border-[#ded5c6] flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
+                <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">edit_calendar</span>
+                <span>Reschedule</span>
+              </button>
+              <button id="mobileModalCancelBtn" type="button"
+                class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#fcf2ee] hover:bg-[#f9e5dc] text-[#c26d3e] font-bold text-xs border border-[#f5cfbf] flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
+                <span class="material-symbols-outlined text-[16px] text-[#c26d3e]">cancel</span>
+                <span>Cancel</span>
+              </button>
+            </div>
+            <button id="mobileModalCloseSecondaryBtn" type="button"
+              class="btn-3d-primary px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+              Close
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- END: Lecture Details Bottom Sheet Modal -->
   </div>
-</div>
-<!-- END: Lecture Details Bottom Sheet Modal -->
-</div>
-<!-- END: Mobile Device Frame -->
+  <!-- END: Mobile Device Frame -->
 
 
 
   <!-- LECTURE DETAIL MODAL (Matching Admin Modal Structure with Google Calendar & .ics export) -->
-  <div id="facultyEventDetailModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+  <div id="facultyEventDetailModal"
+    class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl border border-[#ded5c6] modal-3d max-w-lg w-full p-6 relative">
       <div class="flex items-start justify-between pb-3 border-b border-[#e5dfd5] mb-4">
         <div>
-          <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d" id="modalSubjectBadge">
+          <span
+            class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#eef4f0] text-[#3b6347] border border-[#cde0d3] badge-3d"
+            id="modalSubjectBadge">
             Biochemistry
           </span>
           <h3 class="font-headline font-bold text-xl text-[#2c332d] mt-1.5 leading-snug" id="modalDetailTitle">
@@ -966,23 +1319,28 @@ Agenda
           </h3>
           <p class="text-xs text-[#68736a] mt-0.5" id="modalDetailBatch">Batch Name</p>
         </div>
-        <button id="closeFacultyEventModal" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#f4efe6] cursor-pointer">
+        <button id="closeFacultyEventModal"
+          class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#f4efe6] cursor-pointer">
           <span class="material-symbols-outlined text-[22px]">close</span>
         </button>
       </div>
 
       <div class="space-y-3 text-xs">
-        <div class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex flex-col gap-1.5" id="facultyModalProgramRow">
+        <div class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex flex-col gap-1.5"
+          id="facultyModalProgramRow">
           <div class="flex items-center justify-between">
             <span class="font-semibold text-[#68736a]">Course / Stream:</span>
             <span id="facultyModalProgramText" class="font-bold text-[#2c332d] flex items-center gap-1.5">MBBS</span>
           </div>
           <div class="flex items-center justify-between border-t border-[#eee7dc] pt-1.5">
             <span class="font-semibold text-[#68736a] shrink-0">Batch (Spreadsheet):</span>
-            <span id="facultyModalBatchText" class="font-bold text-[#2c332d] truncate text-right text-xs" style="max-width:240px">Prarambh 2026 Batch</span>
+            <span id="facultyModalBatchText" class="font-bold text-[#2c332d] truncate text-right text-xs"
+              style="max-width:240px">Prarambh 2026 Batch</span>
           </div>
         </div>
-        <div class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between" id="modalDetailPlatformRow">
+        <div
+          class="text-xs text-[#576058] bg-[#fbf9f5] p-2.5 rounded-xl border border-[#e8e2d8] flex items-center justify-between"
+          id="modalDetailPlatformRow">
           <span class="font-semibold text-[#68736a]">Delivery Platform:</span>
           <span id="facultyModalPlatformText" class="font-bold text-[#2c332d] flex items-center gap-1.5"></span>
         </div>
@@ -1003,19 +1361,24 @@ Agenda
         </div>
 
         <div>
-          <span class="text-[10px] uppercase font-bold text-[#68736a] block mb-1">Curriculum Topic &amp; Objectives</span>
-          <p class="text-xs text-[#576058] bg-[#fdfbf7] p-3 rounded-xl border border-[#e8e2d8] leading-relaxed" id="modalDetailTopic">
+          <span class="text-[10px] uppercase font-bold text-[#68736a] block mb-1">Curriculum Topic &amp;
+            Objectives</span>
+          <p class="text-xs text-[#576058] bg-[#fdfbf7] p-3 rounded-xl border border-[#e8e2d8] leading-relaxed"
+            id="modalDetailTopic">
             Detailed syllabus coverage.
           </p>
         </div>
 
-        <div class="flex items-center justify-between pt-3 border-t border-[#e5dfd5] gap-2 flex-wrap" id="modalDetailFooter">
+        <div class="flex items-center justify-between pt-3 border-t border-[#e5dfd5] gap-2 flex-wrap"
+          id="modalDetailFooter">
           <div class="flex items-center gap-2" id="modalDetailActionButtonsGroup">
-            <button id="modalDetailRescheduleBtn" type="button" class="px-3.5 py-2 rounded-xl bg-[#f4efe6] hover:bg-[#eae3d5] text-[#2c332d] font-bold text-xs border border-[#ded5c6] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
+            <button id="modalDetailRescheduleBtn" type="button"
+              class="px-3.5 py-2 rounded-xl bg-[#f4efe6] hover:bg-[#eae3d5] text-[#2c332d] font-bold text-xs border border-[#ded5c6] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
               <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">edit_calendar</span>
               <span>Reschedule</span>
             </button>
-            <button id="modalDetailCancelBtn" type="button" class="px-3.5 py-2 rounded-xl bg-[#fcf2ee] hover:bg-[#f9e5dc] text-[#c26d3e] font-bold text-xs border border-[#f5cfbf] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
+            <button id="modalDetailCancelBtn" type="button"
+              class="px-3.5 py-2 rounded-xl bg-[#fcf2ee] hover:bg-[#f9e5dc] text-[#c26d3e] font-bold text-xs border border-[#f5cfbf] flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
               <span class="material-symbols-outlined text-[16px] text-[#c26d3e]">cancel</span>
               <span>Cancel</span>
             </button>
@@ -1029,17 +1392,22 @@ Agenda
   </div>
 
   <!-- FACULTY RIGHT-SIDE NOTIFICATION SLIDE-OVER DRAWER -->
-  <div id="facultyNotificationModal" class="hidden fixed inset-0 z-50 pointer-events-none transition-all overflow-hidden">
+  <div id="facultyNotificationModal"
+    class="hidden fixed inset-0 z-50 pointer-events-none transition-all overflow-hidden">
     <!-- Backdrop -->
-    <div id="facultyNotificationBackdrop" class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <div id="facultyNotificationBackdrop"
+      class="fixed inset-0 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300">
+    </div>
 
     <!-- Drawer Panel -->
-    <aside id="facultyNotificationDrawer" class="fixed inset-y-0 right-0 max-w-md w-full bg-white modal-3d p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 pointer-events-auto shadow-2xl">
+    <aside id="facultyNotificationDrawer"
+      class="fixed inset-y-0 right-0 max-w-md w-full bg-white modal-3d p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 pointer-events-auto shadow-2xl">
       <div>
         <!-- Drawer Header -->
         <div class="flex items-center justify-between pb-4 border-b border-[#e5dfd5]">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
+            <div
+              class="w-8 h-8 rounded-lg bg-[#eef4f0] text-[#4a7c59] flex items-center justify-center border border-[#cde0d3] shadow-xs">
               <span class="material-symbols-outlined text-[20px]">mark_email_unread</span>
             </div>
             <div>
@@ -1047,7 +1415,8 @@ Agenda
               <p class="text-[11px] text-[#68736a] font-medium">Automated class reminders sent to registered email</p>
             </div>
           </div>
-          <button id="closeFacultyNotificationBtn" class="w-8 h-8 rounded-lg hover:bg-[#f4efe6] text-[#68736a] flex items-center justify-center transition-colors cursor-pointer">
+          <button id="closeFacultyNotificationBtn"
+            class="w-8 h-8 rounded-lg hover:bg-[#f4efe6] text-[#68736a] flex items-center justify-center transition-colors cursor-pointer">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
@@ -1056,9 +1425,12 @@ Agenda
         <div class="mt-4 flex items-center justify-between px-0.5 border-b border-[#ece5d8] pb-2.5">
           <div class="flex items-center gap-1.5">
             <span class="text-[11px] font-bold text-[#2c332d]">My Class Reminders</span>
-            <span id="facultyNotifBadgeFilterCount" class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3] badge-3d">0 Received</span>
+            <span id="facultyNotifBadgeFilterCount"
+              class="text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-2 py-0.5 rounded border border-[#cde0d3] badge-3d">0
+              Received</span>
           </div>
-          <button type="button" id="facultyMarkAllReadBtn" class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent">
+          <button type="button" id="facultyMarkAllReadBtn"
+            class="text-[11px] font-bold text-[#4a7c59] hover:text-[#3d6b4b] cursor-pointer border-none bg-transparent">
             Mark all read
           </button>
         </div>
@@ -1078,10 +1450,106 @@ Agenda
     </aside>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- MODAL: IN-PORTAL CLINICAL QUESTION BANK & PYQ PDF VIEWER                   -->
+  <!-- ========================================================================= -->
+  <div id="pdfViewerModal"
+    class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 transition-all duration-200">
+    <div
+      class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d w-full max-w-5xl flex flex-col h-[94vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+
+      <!-- Viewer Top Action Bar -->
+      <div
+        class="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-[#ede7da] border-b border-[#ded5c6] flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div
+            class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#4a7c59] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <span class="material-symbols-outlined text-[18px] sm:text-[20px]">picture_as_pdf</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-nowrap overflow-hidden">
+              <span id="pdfModalExamBadge"
+                class="px-2 py-0.5 rounded text-[9.5px] sm:text-[10px] font-bold bg-[#0284c7] text-white uppercase tracking-wider shrink-0 whitespace-nowrap">
+                NEET PG PYQs
+              </span>
+              <span id="pdfModalSubjectBadge"
+                class="px-2 py-0.5 rounded text-[9.5px] sm:text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] shrink-0 whitespace-nowrap">
+                Anatomy
+              </span>
+              <span id="pdfModalPagesBadge"
+                class="text-[10px] sm:text-[11px] font-mono text-[#68736a] hidden sm:inline whitespace-nowrap">
+                • 68 Pages
+              </span>
+            </div>
+            <h3 class="font-headline font-bold text-xs sm:text-sm text-[#2c332d] truncate mt-0.5 leading-tight"
+              id="pdfModalTitle" title="Document Title">
+              Document Title
+            </h3>
+          </div>
+        </div>
+
+        <!-- Right Window Controls -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <!-- Full Window / Open in New Tab -->
+          <a id="pdfModalOpenTabBtn" href="#" target="_blank" rel="noopener noreferrer"
+            class="h-8 w-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl bg-white hover:bg-[#f4efe6] border border-[#ded5c6] text-xs font-bold text-[#2c332d] flex items-center justify-center gap-1.5 transition-colors no-underline shadow-2xs cursor-pointer"
+            title="Open full PDF in new browser tab">
+            <span class="material-symbols-outlined text-[16px] text-[#2d4d37]">open_in_new</span>
+            <span class="hidden sm:inline">Full Tab</span>
+          </a>
+
+          <!-- Direct Download Action -->
+          <button id="pdfModalDownloadBtn" type="button"
+            class="btn-3d-secondary h-8 w-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl bg-[#eef4f0] hover:bg-[#dcefe0] border border-[#cde0d3] text-xs font-bold text-[#2d4d37] flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+            title="Download PDF to local device">
+            <span class="material-symbols-outlined text-[16px] text-[#4a7c59]">download</span>
+            <span class="hidden sm:inline">Download</span>
+          </button>
+
+          <!-- Close Modal Top Button -->
+          <button id="closePdfViewerBtn" type="button"
+            onclick="if(window.closeMedEdPdfViewer){window.closeMedEdPdfViewer();}else if(window.pyqController){window.pyqController.closeViewer();}else{document.getElementById('pdfViewerModal').classList.add('hidden');document.getElementById('pdfViewerIframe').src='about:blank';}"
+            class="relative z-30 w-8 h-8 rounded-xl bg-white hover:bg-[#ded5c6] text-[#68736a] hover:text-[#2c332d] border border-[#ded5c6] flex items-center justify-center transition-colors cursor-pointer"
+            title="Close Reader">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Real Embedded PDF Document Viewer -->
+      <div id="pdfViewerIframeContainer"
+        class="flex-1 min-h-0 w-full relative bg-[#323639] overflow-y-auto overflow-x-hidden flex flex-col"
+        style="-webkit-overflow-scrolling: touch; touch-action: pan-y;">
+        <iframe id="pdfViewerIframe" class="w-full h-full border-0 bg-white" src="about:blank"
+          title="PDF Document Viewer" style="width: 100%; height: 100%; min-height: 100%; border: none;"
+          scrolling="yes"></iframe>
+      </div>
+
+      <!-- Viewer Bottom Action Footer -->
+      <div
+        class="relative z-20 px-4 sm:px-6 py-2.5 bg-[#ede7da] border-t border-[#ded5c6] flex items-center justify-between shrink-0 text-xs">
+        <span class="text-[#68736a] flex items-center gap-1.5 truncate mr-2">
+          <span class="material-symbols-outlined text-[15px] text-[#4a7c59] shrink-0">lock_open_right</span>
+          <span id="pdfFooterAccessNote" class="truncate">Faculty Access Granted for this Subject</span>
+        </span>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="closePdfViewerBottomBtn" type="button"
+            onclick="if(window.closeMedEdPdfViewer){window.closeMedEdPdfViewer();}else if(window.pyqController){window.pyqController.closeViewer();}else{document.getElementById('pdfViewerModal').classList.add('hidden');document.getElementById('pdfViewerIframe').src='about:blank';}"
+            class="relative z-30 btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer active:scale-95 shadow-xs">
+            Close Viewer
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MODAL: FACULTY EMAIL PREVIEW MODAL -->
-  <div id="facultyEmailPreviewModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
-    <div class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
-      
+  <div id="facultyEmailPreviewModal"
+    class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div
+      class="bg-[#fbf9f5] rounded-2xl border border-[#ded5c6] modal-3d max-w-2xl w-full flex flex-col max-h-[92vh] overflow-hidden shadow-2xl">
+
       <!-- Email Client Window Bar -->
       <div class="px-4 py-3 bg-[#ede7da] border-b border-[#ded5c6] flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -1093,7 +1561,8 @@ Agenda
             <span>PW MedEd Notification Delivery</span>
           </span>
         </div>
-        <button id="closeFacultyEmailPreviewBtn" class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#ded5c6] cursor-pointer">
+        <button id="closeFacultyEmailPreviewBtn"
+          class="text-[#68736a] hover:text-[#2c332d] p-1 rounded-lg hover:bg-[#ded5c6] cursor-pointer">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -1102,17 +1571,24 @@ Agenda
       <div class="px-5 py-3 bg-white border-b border-[#e5dfd5] text-xs space-y-1.5">
         <div class="flex items-baseline">
           <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">From:</span>
-          <span id="facultyEmailPreviewFrom" class="font-semibold text-[#2c332d]">academic-reminders@pwmeded.edu.in</span>
-          <span class="ml-2 text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3]">Verified Sender</span>
+          <span id="facultyEmailPreviewFrom"
+            class="font-semibold text-[#2c332d]">academic-reminders@pwmeded.edu.in</span>
+          <span
+            class="ml-2 text-[10px] font-bold text-[#4a7c59] bg-[#eef4f0] px-1.5 py-0.2 rounded border border-[#cde0d3]">Verified
+            Sender</span>
         </div>
         <div class="flex items-baseline">
           <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">To:</span>
-          <span id="facultyEmailPreviewTo" class="font-semibold text-[#2c332d]">Dr. Rajesh Jambhulkar &lt;rajesh.j@pwmeded.edu.in&gt;</span>
-          <span class="ml-2 text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-1.5 py-0.2 rounded border border-[#eed9cc]">My Registered Email</span>
+          <span id="facultyEmailPreviewTo" class="font-semibold text-[#2c332d]">Dr. Rajesh Jambhulkar
+            &lt;rajesh.j@pwmeded.edu.in&gt;</span>
+          <span
+            class="ml-2 text-[10px] font-bold text-[#c26d3e] bg-[#fbf3ec] px-1.5 py-0.2 rounded border border-[#eed9cc]">My
+            Registered Email</span>
         </div>
         <div class="flex items-baseline">
           <span class="w-20 font-bold uppercase text-[10px] text-[#68736a]">Subject:</span>
-          <span id="facultyEmailPreviewSubject" class="font-bold text-[#2c332d]">[PW MedEd] Class Reminder: Enzymes &amp; Catalysis</span>
+          <span id="facultyEmailPreviewSubject" class="font-bold text-[#2c332d]">[PW MedEd] Class Reminder: Enzymes
+            &amp; Catalysis</span>
         </div>
       </div>
 
@@ -1127,7 +1603,8 @@ Agenda
           <span class="material-symbols-outlined text-[15px] text-[#4a7c59]">check_circle</span>
           <span>Delivered automatically prior to live lecture</span>
         </span>
-        <button id="closeFacultyEmailPreviewBottomBtn" class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
+        <button id="closeFacultyEmailPreviewBottomBtn"
+          class="btn-3d-secondary px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer">
           Close Email
         </button>
       </div>
@@ -1136,15 +1613,17 @@ Agenda
   </div>
 
   <!-- Toast Notification -->
-  <div id="facultyToast" class="fixed bottom-6 right-6 z-50 bg-[#2d4d37] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all transform translate-y-10 opacity-0 pointer-events-none">
+  <div id="facultyToast"
+    class="fixed bottom-6 right-6 z-50 bg-[#2d4d37] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all transform translate-y-10 opacity-0 pointer-events-none">
     <span class="material-symbols-outlined text-[16px] text-[#8ecf9e]">check_circle</span>
     <span id="facultyToastText">Action successful</span>
   </div>
 
   <!-- Application Script -->
-  
+
 
   <!-- Application Script -->
   <script type="module" src="js/facultyApp.js"></script>
 </body>
+
 </html>
