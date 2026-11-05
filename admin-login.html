@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" name="viewport">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>PW MedEd - Admin Portal Login</title>
   <!-- Progressive Web App (PWA) & Full-Screen Mobile App Settings -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -110,59 +110,6 @@
     .font-headline {
       font-family: 'Literata', Georgia, serif;
     }
-
-    /* Mobile Responsive Optimizations for Admin Login */
-    @supports (padding: env(safe-area-inset-top)) {
-      body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
-    }
-
-    @media (max-width: 480px) {
-      #adminLoginCard {
-        padding: 1.35rem 1.15rem !important;
-        border-radius: 1.25rem !important;
-        box-shadow: 0 4px 20px rgba(46, 50, 48, 0.08) !important;
-      }
-      #google-admin-signin {
-        padding-left: 0.75rem !important;
-        padding-right: 0.75rem !important;
-      }
-    }
-
-    @media (max-width: 360px) {
-      #adminLoginCard {
-        padding: 1.1rem 0.9rem !important;
-      }
-      #adminSignInBtnText {
-        font-size: 0.8125rem !important;
-      }
-    }
-
-    @media (max-height: 680px) {
-      header {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-      }
-      main {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-      }
-      #adminLoginCard {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-      }
-      #adminLoginCard .mb-6 {
-        margin-bottom: 0.75rem !important;
-      }
-      footer {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-      }
-    }
   </style>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -239,55 +186,55 @@
 </head>
 
 <body
-  class="bg-surface font-body text-on-surface min-h-[100dvh] flex flex-col justify-between antialiased selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+  class="bg-surface font-body text-on-surface min-h-screen flex flex-col justify-between antialiased selection:bg-primary-container selection:text-on-primary-container">
 
   <!-- Header -->
-  <header class="w-full py-3 sm:py-5 flex-shrink-0 px-4 sm:px-6">
-    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2.5 sm:gap-3">
+  <header class="w-full py-4 sm:py-6 flex-shrink-0">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
         <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
-          class="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-xl shadow-[0_4px_16px_rgba(74,124,89,0.20)] shrink-0">
+          class="w-10 h-10 object-contain rounded-xl shadow-[0_4px_16px_rgba(74,124,89,0.20)]">
         <div class="flex flex-col">
-          <span class="font-headline text-base sm:text-lg font-bold tracking-tight text-on-surface leading-tight">PW MedEd</span>
+          <span class="font-headline text-lg font-bold tracking-tight text-on-surface leading-tight">PW MedEd</span>
         </div>
       </div>
       <div
-        class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-[11px] sm:text-xs font-semibold tracking-wide shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
-        <span>Academic Suite</span>
+        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold tracking-wide">
+        <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+        Academic Suite
       </div>
     </div>
   </header>
 
   <!-- Main Content Container -->
-  <main class="flex-1 flex items-center justify-center px-3.5 sm:px-6 py-4 sm:py-8 w-full overflow-y-auto">
-    <div class="w-full max-w-md mx-auto my-auto flex justify-center items-center">
+  <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 w-full">
+    <div class="w-full max-w-xl mx-auto my-auto py-2 px-2 flex justify-center items-center">
 
       <!-- ADMIN LOGIN CARD -->
       <div id="adminLoginCard"
-        class="w-full bg-white rounded-2xl sm:rounded-3xl shadow-[0_4px_24px_rgba(46,50,48,0.08)] border-t-4 border-[#4a7c59] p-5 sm:p-8 md:p-9 relative overflow-hidden flex flex-col items-center transition-all duration-300">
+        class="w-full max-w-md bg-white rounded-2xl shadow-[0_4px_24px_rgba(46,50,48,0.06)] border-t-4 border-[#4a7c59] p-7 sm:p-9 relative overflow-hidden flex flex-col items-center transition-all duration-300">
 
         <img src="https://i.postimg.cc/x8hMwJ8D/PW-MEDED-logo-03-(3).png" alt="PW MedEd Logo"
-          class="w-13 h-13 sm:w-16 sm:h-16 object-contain rounded-xl sm:rounded-2xl shadow-sm mb-2.5 sm:mb-3.5">
+          class="w-16 h-16 object-contain rounded-2xl shadow-sm mb-3.5">
 
-        <div class="flex flex-col items-center text-center w-full mb-4 sm:mb-6">
-          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 mb-1 sm:mb-1.5 font-headline">PW MedEd</h1>
+        <div class="flex flex-col items-center text-center w-full mb-6">
+          <h1 class="text-2xl font-bold tracking-tight text-neutral-900 mb-1.5 font-headline">PW MedEd</h1>
           <div
-            class="inline-flex items-center px-2.5 sm:px-3 py-0.5 rounded-full bg-[#f4efe6] text-[#4a7c59] text-[10px] sm:text-[11px] font-bold tracking-wider uppercase mb-1 sm:mb-1.5 border border-[#e5dfd5]">
+            class="inline-flex items-center px-3 py-0.5 rounded-full bg-[#f4efe6] text-[#4a7c59] text-[11px] font-semibold tracking-wider uppercase mb-1.5">
             ADMIN PORTAL
           </div>
-          <p class="text-xs sm:text-sm text-neutral-500 max-w-[280px] sm:max-w-xs mx-auto leading-relaxed">
+          <p class="text-xs sm:text-sm text-neutral-500 max-w-xs mx-auto leading-relaxed">
             Sign in to manage academic schedules and calendar
           </p>
         </div>
 
         <!-- Dynamic Animated Lock Container -->
-        <div class="w-full flex flex-col items-center mb-4 sm:mb-6">
+        <div class="w-full flex flex-col items-center mb-6">
           <div
-            class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#f4efe6] border border-[#e5e0d8] text-neutral-600 flex items-center justify-center transition-all duration-300 relative shadow-sm"
+            class="w-12 h-12 rounded-full bg-[#f4efe6] border border-[#e5e0d8] text-neutral-600 flex items-center justify-center transition-all duration-300 relative shadow-sm"
             id="adminLockIconContainer">
             <!-- Lock SVG with dynamic shackle -->
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300" fill="none" id="adminLockSvg" viewBox="0 0 32 32">
+            <svg class="w-6 h-6 transition-all duration-300" fill="none" id="adminLockSvg" viewBox="0 0 32 32">
               <path class="lock-shackle" d="M11 14V9.5C11 6.74 13.24 4.5 16 4.5C18.76 4.5 21 6.74 21 9.5V14"
                 id="adminLockShackle" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
               <rect fill="currentColor" height="13.5" opacity="0.18" rx="3.5" width="18" x="7" y="14"></rect>
@@ -306,9 +253,9 @@
 
         <div class="w-full flex flex-col items-center">
           <button
-            class="w-full flex items-center justify-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-white hover:bg-[#f6faf7] active:bg-[#edf5f0] text-neutral-900 font-semibold text-xs sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md border-2 border-[#4a7c59] active:scale-[0.99] focus:outline-none ring-2 ring-[#4a7c59]/25 cursor-pointer min-h-[46px] sm:min-h-[48px]"
+            class="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-white hover:bg-[#f6faf7] text-neutral-900 font-semibold text-sm transition-all duration-300 shadow-sm hover:shadow-md border-2 border-[#4a7c59] active:scale-[0.99] focus:outline-none ring-2 ring-[#4a7c59]/25 cursor-pointer"
             id="google-admin-signin" type="button" onclick="triggerGoogleOAuth()">
-            <svg aria-hidden="true" class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
               <path
                 d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
                 fill="#4285F4"></path>
@@ -322,18 +269,18 @@
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.63 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 fill="#EA4335"></path>
             </svg>
-            <span id="adminSignInBtnText" class="truncate font-bold sm:font-semibold">Sign in with Google</span>
+            <span id="adminSignInBtnText">Sign in with Google</span>
           </button>
 
-          <div class="flex items-center justify-center gap-1.5 mt-2.5 text-[11px] sm:text-xs text-neutral-400 text-center">
-            <span class="material-symbols-outlined text-[13px] shrink-0">lock</span>
-            <span class="truncate">Single Sign-On protected by Google Workspace</span>
+          <div class="flex items-center gap-1.5 mt-2.5 text-xs text-neutral-400">
+            <span class="material-symbols-outlined text-[13px]">lock</span>
+            <span>Single Sign-On protected by Google Workspace</span>
           </div>
 
-          <div class="w-full border-t border-[#e8e2d8] my-3.5 sm:my-5"></div>
+          <div class="w-full border-t border-[#e8e2d8] my-5"></div>
 
           <a href="/faculty-login.html"
-            class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#4a7c59] hover:underline transition-colors cursor-pointer py-1">
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4a7c59] hover:underline transition-colors cursor-pointer">
             <span>Switch to Faculty Portal</span>
             <span class="material-symbols-outlined text-sm">arrow_forward</span>
           </a>
@@ -347,15 +294,15 @@
   <div id="accessRestrictedModal"
     class="fixed inset-0 z-50 bg-black/45 backdrop-blur-xs hidden items-center justify-center p-4">
     <div
-      class="bg-white rounded-2xl border border-[#ded5c6] shadow-2xl w-full max-w-[360px] sm:max-w-[420px] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-5 sm:p-6 flex flex-col items-center text-center">
+      class="bg-white rounded-2xl border border-[#ded5c6] shadow-2xl w-full max-w-[420px] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-6 flex flex-col items-center text-center">
       <div
-        class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#ffdad8] border-2 border-[#b83230] text-[#b83230] flex items-center justify-center mb-3 sm:mb-3.5 shadow-xs">
-        <span class="material-symbols-outlined text-xl sm:text-2xl font-bold">gpp_maybe</span>
+        class="w-12 h-12 rounded-full bg-[#ffdad8] border-2 border-[#b83230] text-[#b83230] flex items-center justify-center mb-3.5 shadow-xs">
+        <span class="material-symbols-outlined text-2xl font-bold">gpp_maybe</span>
       </div>
 
-      <h3 class="text-base sm:text-lg font-bold text-neutral-900 mb-1.5 sm:mb-2 font-headline" id="accessModalTitle">Access Restricted</h3>
+      <h3 class="text-lg font-bold text-neutral-900 mb-2 font-headline" id="accessModalTitle">Access Restricted</h3>
 
-      <div class="text-xs text-neutral-600 space-y-1.5 sm:space-y-2 mb-5 sm:mb-6 leading-relaxed" id="accessModalBody">
+      <div class="text-xs text-neutral-600 space-y-2 mb-6 leading-relaxed" id="accessModalBody">
         <p id="accessModalMsg1">The Google account is not authorized for administrative access.</p>
         <p id="accessModalMsg2" class="font-medium text-neutral-700">Only authorized institutional administrator
           accounts (@pwmeded.edu.in, @pw.live) can access this portal.</p>
@@ -369,21 +316,21 @@
   </div>
 
   <!-- Footer -->
-  <footer class="w-full py-3 sm:py-5 mt-auto flex-shrink-0 px-4 sm:px-6">
+  <footer class="w-full py-4 sm:py-6 mt-auto flex-shrink-0">
     <div
-      class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-[11px] sm:text-xs text-neutral-500 text-center sm:text-left">
-      <div class="flex items-center justify-center gap-1.5">
-        <span class="material-symbols-outlined text-sm text-[#4a7c59] shrink-0">verified_user</span>
-        <span>256-bit TLS • CBME 2026 Compliant • NMC Verified</span>
+      class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm text-[#4a7c59]">verified_user</span>
+        <span>256-bit TLS Encryption • CBME 2026 Compliant • NMC Verified</span>
       </div>
-      <nav class="flex flex-wrap items-center justify-center gap-3 sm:gap-6">
-        <a class="hover:text-[#4a7c59] transition-colors py-0.5" href="javascript:void(0)"
+      <nav class="flex items-center gap-6">
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
           onclick="alert('PW MedEd Academic Integrity: All schedules, attendance, and NMC curriculum logs are strictly synchronized and cryptographically audited.')">Academic
           Integrity</a>
-        <a class="hover:text-[#4a7c59] transition-colors py-0.5" href="javascript:void(0)"
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
           onclick="alert('Faculty Helpdesk: For technical assistance or onboarding support, email it-support@pwmeded.edu.in or call Ext: 4401.')">Faculty
           Helpdesk</a>
-        <a class="hover:text-[#4a7c59] transition-colors py-0.5" href="javascript:void(0)"
+        <a class="hover:text-[#4a7c59] transition-colors" href="javascript:void(0)"
           onclick="alert('Terms of Access: Authorized institutional personnel only. Unauthorized access attempts are monitored and recorded.')">Terms
           of Access</a>
       </nav>
