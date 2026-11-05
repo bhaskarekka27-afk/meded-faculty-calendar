@@ -8,7 +8,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-31T09:05:42.142Z",
+    "lastSynced": "2026-11-05T07:23:09.300Z",
     "eventCount": 34,
     "events": [
       {
@@ -384,8 +384,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-prarambh-2026_ev_12",
         "batchId": "batch-prarambh-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -403,8 +403,8 @@ export const DEFAULT_BATCHES = [
         "year": 2026,
         "faculty": "Dr. Vivek Nalgirkar",
         "subject": "Physiology",
-        "chapter": "Homeostatic regulatory mechanisms",
-        "topic": "Feedback , Feedforward , • Efficiency of A Feedback Mechanism",
+        "chapter": "Homeostatic Regulatory Mechanisms",
+        "topic": "Feedback , Feedforward , • Efficiency of a Feedback Mechanism",
         "noLectures": "1",
         "duration": "2 Hours",
         "durationMinutes": 120,
@@ -413,7 +413,7 @@ export const DEFAULT_BATCHES = [
         "endTime": "8:30pm",
         "startHour": 18.5,
         "eventType": "class",
-        "displayTitle": "Feedback , Feedforward , • Efficiency of A Feedback Mechanism",
+        "displayTitle": "Feedback , Feedforward , • Efficiency of a Feedback Mechanism",
         "platform": "app",
         "isYoutube": false,
         "isApp": true
@@ -421,8 +421,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-prarambh-2026_ev_13",
         "batchId": "batch-prarambh-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -458,8 +458,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-prarambh-2026_ev_14",
         "batchId": "batch-prarambh-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -478,7 +478,7 @@ export const DEFAULT_BATCHES = [
         "faculty": "Dr. Rajesh Jambhulkar",
         "subject": "Biochemistry",
         "chapter": "Enzymes",
-        "topic": "Competitive Inhibition , Noncompetitive Inhibition , • Uncompetitive Inhibition , Irreversible Inhibition , • Suicide Inhibition , Feedback Inhibition",
+        "topic": "Competitive Inhibition, Noncompetitive Inhibition, • Uncompetitive Inhibition, Irreversible Inhibition, • Suicide Inhibition, Feedback Inhibition",
         "noLectures": "1",
         "duration": "2 Hours",
         "durationMinutes": 120,
@@ -487,7 +487,7 @@ export const DEFAULT_BATCHES = [
         "endTime": "9:00pm",
         "startHour": 19,
         "eventType": "class",
-        "displayTitle": "Competitive Inhibition , Noncompetitive Inhibition , • Uncompetitive Inhibition , Irreversible Inhibition , • Suicide Inhibition , Feedback Inhibition",
+        "displayTitle": "Competitive Inhibition, Noncompetitive Inhibition, • Uncompetitive Inhibition, Irreversible Inhibition, • Suicide Inhibition, Feedback Inhibition",
         "platform": "app",
         "isYoutube": false,
         "isApp": true
@@ -551,8 +551,8 @@ export const DEFAULT_BATCHES = [
         "year": 2026,
         "faculty": "Dr. Vivek Nalgirkar",
         "subject": "Physiology",
-        "chapter": "Cell membrane",
-        "topic": "Structure , Components , Transport Proteins",
+        "chapter": "Cell Membrane",
+        "topic": "Structure, Components, Transport Proteins",
         "noLectures": "1",
         "duration": "2 Hours",
         "durationMinutes": 120,
@@ -561,7 +561,7 @@ export const DEFAULT_BATCHES = [
         "endTime": "8:30pm",
         "startHour": 18.5,
         "eventType": "class",
-        "displayTitle": "Structure , Components , Transport Proteins",
+        "displayTitle": "Structure, Components, Transport Proteins",
         "platform": "app",
         "isYoutube": false,
         "isApp": true
@@ -1280,7 +1280,7 @@ export const DEFAULT_BATCHES = [
     "platform": "app",
     "isYoutube": false,
     "isApp": true,
-    "lastSynced": "2026-10-31T09:05:44.785Z",
+    "lastSynced": "2026-11-05T07:23:12.427Z",
     "eventCount": 30,
     "events": [
       {
@@ -1471,8 +1471,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-sushruta-2026_ev_7",
         "batchId": "batch-sushruta-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -1508,8 +1508,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-sushruta-2026_ev_8",
         "batchId": "batch-sushruta-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -1545,8 +1545,8 @@ export const DEFAULT_BATCHES = [
       {
         "id": "batch-sushruta-2026_ev_9",
         "batchId": "batch-sushruta-2026",
-        "sheetStatus": "",
-        "isConducted": false,
+        "sheetStatus": "Conducted",
+        "isConducted": true,
         "isCancelled": false,
         "isRescheduled": false,
         "rescheduledDate": "",
@@ -2404,7 +2404,7 @@ export const DEFAULT_BATCHES = [
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-31T09:05:46.264Z",
+    "lastSynced": "2026-11-05T07:23:13.701Z",
     "eventCount": 22,
     "events": [
       {
@@ -3232,7 +3232,7 @@ export const DEFAULT_BATCHES = [
     "platform": "youtube_app",
     "isYoutube": true,
     "isApp": true,
-    "lastSynced": "2026-10-31T09:05:47.670Z",
+    "lastSynced": "2026-11-05T07:23:15.136Z",
     "eventCount": 27,
     "events": [
       {

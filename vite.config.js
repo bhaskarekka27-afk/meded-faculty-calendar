@@ -74,12 +74,12 @@ export default defineConfig({
                 while ((m = re.exec(html)) !== null) tabs.push({ gid: m[1], name: m[2].trim() });
                 const req = (sheet || '').toLowerCase();
                 const match = tabs.find(t => t.name.toLowerCase() === req) ||
-                              tabs.find(t => t.name.toLowerCase().includes(req)) ||
-                              tabs.find(t => req.includes(t.name.toLowerCase())) ||
-                              tabs.find(t => /planner|lecture/i.test(t.name)) ||
-                              tabs.find(t => /schedule/i.test(t.name));
+                  tabs.find(t => t.name.toLowerCase().includes(req)) ||
+                  tabs.find(t => req.includes(t.name.toLowerCase())) ||
+                  tabs.find(t => /planner|lecture/i.test(t.name)) ||
+                  tabs.find(t => /schedule/i.test(t.name));
                 if (match) targetGid = match.gid;
-              } catch (_) {}
+              } catch (_) { }
 
               // Candidate URLs to try in order with cache-busting timestamp
               const urlsToTry = [];
@@ -185,11 +185,11 @@ export default defineConfig({
                 const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}&_t=${Date.now()}`;
                 const response = await fetch(csvUrl);
                 const csvText = await response.text();
-                
+
                 // Read current json to return or update
                 let currentList = [];
                 if (fs.existsSync(ONBOARDING_JSON_FILE)) {
-                  try { currentList = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8')); } catch (_) {}
+                  try { currentList = JSON.parse(fs.readFileSync(ONBOARDING_JSON_FILE, 'utf-8')); } catch (_) { }
                 }
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
@@ -216,7 +216,7 @@ export default defineConfig({
                   res.end(JSON.stringify({ success: true, list: parsed }));
                   return;
                 }
-              } catch (e) {}
+              } catch (e) { }
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
@@ -276,7 +276,7 @@ export default defineConfig({
                   res.end(JSON.stringify({ success: true, batches: parsed }));
                   return;
                 }
-              } catch (e) {}
+              } catch (e) { }
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
@@ -291,7 +291,7 @@ export default defineConfig({
                   const data = JSON.parse(body);
                   let list = [];
                   if (fs.existsSync(BATCHES_JSON_FILE)) {
-                    try { list = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')); } catch (_) {}
+                    try { list = JSON.parse(fs.readFileSync(BATCHES_JSON_FILE, 'utf-8')); } catch (_) { }
                   }
                   if (Array.isArray(data.batches)) {
                     fs.writeFileSync(BATCHES_JSON_FILE, JSON.stringify(data.batches, null, 2), 'utf-8');
@@ -353,7 +353,7 @@ export default defineConfig({
                   res.end(JSON.stringify({ success: true, requests: parsed }));
                   return;
                 }
-              } catch (e) {}
+              } catch (e) { }
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
@@ -368,7 +368,7 @@ export default defineConfig({
                   const data = JSON.parse(body);
                   let list = [];
                   if (fs.existsSync(REQUESTS_JSON_FILE)) {
-                    try { list = JSON.parse(fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8')); } catch (_) {}
+                    try { list = JSON.parse(fs.readFileSync(REQUESTS_JSON_FILE, 'utf-8')); } catch (_) { }
                   }
                   if (Array.isArray(data.requests)) {
                     fs.writeFileSync(REQUESTS_JSON_FILE, JSON.stringify(data.requests, null, 2), 'utf-8');
@@ -439,7 +439,7 @@ export default defineConfig({
                   res.end(JSON.stringify({ success: true, settings: parsed }));
                   return;
                 }
-              } catch (e) {}
+              } catch (e) { }
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
@@ -454,7 +454,7 @@ export default defineConfig({
                   const data = JSON.parse(body);
                   let settings = {};
                   if (fs.existsSync(SETTINGS_JSON_FILE)) {
-                    try { settings = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8')); } catch (_) {}
+                    try { settings = JSON.parse(fs.readFileSync(SETTINGS_JSON_FILE, 'utf-8')); } catch (_) { }
                   }
                   if (data.key) {
                     settings[data.key] = data.value;
@@ -504,7 +504,7 @@ export default defineConfig({
             const pyqFile = resolve(__dirname, 'data_pyq_documents.json');
             let data = { totalDocuments: 0, documents: [], subjects: [], exams: [] };
             if (fs.existsSync(pyqFile)) {
-              try { data = JSON.parse(fs.readFileSync(pyqFile, 'utf-8')); } catch (_) {}
+              try { data = JSON.parse(fs.readFileSync(pyqFile, 'utf-8')); } catch (_) { }
             }
 
             // Sync endpoint

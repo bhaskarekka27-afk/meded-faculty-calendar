@@ -1502,6 +1502,16 @@
 
         <!-- Right Window Controls -->
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <!-- Reader / PDF View Mode Toggle -->
+          <div class="flex items-center bg-[#ded5c6]/60 p-0.5 rounded-xl border border-[#ded5c6] text-[11px] font-bold">
+            <button id="pdfToggleReaderBtn" type="button" class="px-2 py-1 rounded-lg transition-all bg-white text-[#2d4d37] shadow-2xs cursor-pointer" title="In-Portal Reading View (Optimized for Mobile & Desktop)">
+              Reader
+            </button>
+            <button id="pdfTogglePdfBtn" type="button" class="px-2 py-1 rounded-lg transition-all text-[#68736a] hover:text-[#2c332d] cursor-pointer" title="Raw PDF Document View">
+              PDF
+            </button>
+          </div>
+
           <!-- Full Window / Open in New Tab -->
           <a id="pdfModalOpenTabBtn" href="#" target="_blank" rel="noopener noreferrer"
             class="h-8 w-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl bg-white hover:bg-[#f4efe6] border border-[#ded5c6] text-xs font-bold text-[#2c332d] flex items-center justify-center gap-1.5 transition-colors no-underline shadow-2xs cursor-pointer"
