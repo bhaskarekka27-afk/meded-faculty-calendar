@@ -1,7 +1,7 @@
 {
   "driveRootUrl": "https://drive.google.com/drive/folders/1feRfWqO6wi9jUewr1Xm59E8HN4y_HJ4a?usp=drive_link",
   "totalSubjects": 19,
-  "totalDocuments": 60,
+  "totalDocuments": 61,
   "exams": [
     "NEET PG PYQs",
     "INI-CET PYQs",
@@ -131,7 +131,7 @@
         "Parasitology & Stool Microscopy",
         "Infection Control & Biomedical Waste"
       ],
-      "docCount": 3
+      "docCount": 4
     },
     {
       "name": "Forensic Medicine",
@@ -362,6 +362,32 @@
     }
   ],
   "documents": [
+    {
+      "id": "pyq-microbiology-1793863558241",
+      "title": "Microbiology - Rapid Review MCQs (2025).pdf",
+      "edition": "2026 Academic Edition",
+      "year": "2020-2026",
+      "fileSize": "6.5 MB",
+      "pages": 48,
+      "lastUpdated": "2026-11-05",
+      "downloadFileName": "Microbiology_PYQ_QuestionBank.pdf",
+      "summary": "Rapid microbiology repeat analysis for NEET PG.",
+      "subject": "Microbiology",
+      "subjectAliases": [
+        "Microbiology"
+      ],
+      "subjectPhase": "Clinical Specialties",
+      "subjectTopics": [
+        "General Core Topics",
+        "Clinical Vignettes",
+        "High-Yield MCQs"
+      ],
+      "subjectColor": "#4a7c59",
+      "subjectIcon": "folder_special",
+      "exam": "NEET PG PYQs",
+      "verifiedBy": "PW MedEd Academic Directorate",
+      "driveDirectUrl": "https://drive.google.com/drive/folders/1feRfWqO6wi9jUewr1Xm59E8HN4y_HJ4a?usp=drive_link"
+    },
     {
       "id": "pyq-anaesth-neet-1",
       "title": "Anaesthesia - NEET PG (2020-2024) High Yield Solved Question Bank.pdf",

@@ -692,12 +692,22 @@
             </button>
           </div>
 
-          <!-- Search Input -->
-          <div class="relative w-full sm:w-72">
-            <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
-            <input type="text" id="pyqSearchInput"
-              class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d"
-              placeholder="Search by paper, year or topic...">
+          <!-- Right Controls: Auto-Sync Button + Search Input -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <!-- Auto-Fetch & Sync Action Button -->
+            <button id="pyqSyncNowBtn" type="button" title="Auto-fetch and synchronize latest Question Bank PDFs"
+              class="px-2.5 py-1.5 rounded-xl border border-[#cde0d3] bg-[#eef4f0] hover:bg-[#dcefe0] text-[#2d4d37] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs">
+              <span id="pyqSyncIcon" class="material-symbols-outlined text-[16px] text-[#4a7c59]">sync</span>
+              <span id="pyqSyncStatusText" class="hidden sm:inline">Auto-Sync</span>
+            </button>
+
+            <!-- Search Input -->
+            <div class="relative w-full sm:w-64">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#8b958c] text-[17px]">search</span>
+              <input type="text" id="pyqSearchInput"
+                class="w-full bg-[#f4efe6] focus:bg-white text-xs rounded-xl pl-9 pr-3 py-2 text-[#2c332d] placeholder-[#8b958c] border border-transparent focus:border-[#4a7c59] focus:outline-none transition-all input-3d"
+                placeholder="Search by paper, year or topic...">
+            </div>
           </div>
         </div>
 

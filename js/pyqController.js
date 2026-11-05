@@ -7,7 +7,7 @@
  * Super Faculty (Bhaskar Ekka / 'All Subjects') has full access across all 19 medical subjects.
  */
 
-import { PYQ_DATA, getDocumentsForFaculty, getAvailableSubjectsForFaculty } from './pyqData.js';
+import { PYQ_DATA, getDocumentsForFaculty, getAvailableSubjectsForFaculty, updatePyqDocuments } from './pyqData.js';
 
 export class PyqController {
   constructor(facultyApp) {
@@ -16,10 +16,82 @@ export class PyqController {
     this.selectedSubject = 'all';
     this.searchQuery = '';
     this.activeDoc = null;
+    this.isAutoFetching = false;
+    this.autoFetchInterval = null;
+    this.lastSyncedAt = null;
+    this.knownDocIds = new Set((PYQ_DATA.documents || []).map(d => d.id));
   }
 
   init() {
     this.bindDOM();
+    this.bindAutoSync();
+    this.autoFetchNewDocuments(true);
+    this.startAutoFetchTimer();
+  }
+
+  bindAutoSync() {
+    const syncBtn = document.getElementById('pyqSyncNowBtn');
+    syncBtn?.addEventListener('click', () => {
+      this.autoFetchNewDocuments(false);
+    });
+
+    // Auto-fetch immediately when faculty returns to this browser tab
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.autoFetchNewDocuments(true);
+      }
+    });
+    window.addEventListener('focus', () => {
+      this.autoFetchNewDocuments(true);
+    });
+  }
+
+  startAutoFetchTimer() {
+    if (this.autoFetchInterval) clearInterval(this.autoFetchInterval);
+    // Poll for new PDFs every 30 seconds
+    this.autoFetchInterval = setInterval(() => {
+      this.autoFetchNewDocuments(true);
+    }, 30000);
+  }
+
+  async autoFetchNewDocuments(silent = false) {
+    if (this.isAutoFetching) return;
+    this.isAutoFetching = true;
+
+    const syncIcon = document.getElementById('pyqSyncIcon');
+    const syncText = document.getElementById('pyqSyncStatusText');
+
+    if (syncIcon) syncIcon.classList.add('animate-spin');
+    if (syncText && !silent) syncText.textContent = 'Syncing...';
+
+    try {
+      const res = await fetch(`/api/pyq-documents?_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.documents)) {
+          const added = updatePyqDocuments(data.documents);
+          this.lastSyncedAt = new Date();
+          if (added > 0) {
+            data.documents.forEach(d => this.knownDocIds.add(d.id));
+            this.render();
+            this.showToast(`✨ ${added} new Question Bank PDF(s) auto-fetched!`);
+          } else if (!silent) {
+            this.showToast('Question banks are completely up to date!');
+          }
+        }
+      }
+    } catch (err) {
+      if (!silent) console.warn('[PYQ Auto-Fetch] Sync error:', err);
+    } finally {
+      if (syncIcon) syncIcon.classList.remove('animate-spin');
+      if (syncText) {
+        const timeStr = this.lastSyncedAt
+          ? this.lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '';
+        syncText.textContent = timeStr ? `Synced ${timeStr}` : 'Auto-Sync';
+      }
+      this.isAutoFetching = false;
+    }
   }
 
   bindDOM() {
@@ -142,6 +214,9 @@ export class PyqController {
   }
 
   render() {
+    // Automatically check for newly uploaded PDFs in background on render
+    this.autoFetchNewDocuments(true);
+
     const isSuper = this.isSuperFacultyUser();
     const facultySub = this.app.facultySubject || this.app.loggedInSubject || 'Biochemistry';
 

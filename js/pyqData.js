@@ -2108,3 +2108,40 @@ export function getAvailableSubjectsForFaculty(facultySubject, isSuperFaculty = 
     return false;
   });
 }
+
+/**
+ * Merges newly auto-fetched documents into PYQ_DATA in real time
+ * and recalculates subject counts dynamically.
+ * @param {Array} newDocuments 
+ * @returns {number} count of brand new documents added
+ */
+export function updatePyqDocuments(newDocuments) {
+  if (!Array.isArray(newDocuments) || newDocuments.length === 0) return 0;
+  const existingMap = new Map(PYQ_DATA.documents.map(d => [d.id, d]));
+  let addedCount = 0;
+  newDocuments.forEach(doc => {
+    if (!doc || !doc.id) return;
+    if (!existingMap.has(doc.id)) {
+      addedCount++;
+    }
+    existingMap.set(doc.id, doc);
+  });
+  PYQ_DATA.documents = Array.from(existingMap.values());
+  PYQ_DATA.totalDocuments = PYQ_DATA.documents.length;
+
+  // Re-tally subject docCounts
+  if (Array.isArray(PYQ_DATA.subjects)) {
+    PYQ_DATA.subjects.forEach(sub => {
+      const cleanSub = sub.name.trim().toLowerCase();
+      sub.docCount = PYQ_DATA.documents.filter(doc => {
+        if (doc.subject.toLowerCase() === cleanSub) return true;
+        if (Array.isArray(doc.subjectAliases)) {
+          return doc.subjectAliases.some(a => a.toLowerCase() === cleanSub || cleanSub.includes(a.toLowerCase()));
+        }
+        return false;
+      }).length;
+    });
+  }
+
+  return addedCount;
+}

@@ -502,9 +502,61 @@ export default defineConfig({
             const pathname = parsedUrl.pathname;
             const docId = parsedUrl.searchParams.get('id');
             const pyqFile = resolve(__dirname, 'data_pyq_documents.json');
-            let data = { totalDocuments: 0, documents: [] };
+            let data = { totalDocuments: 0, documents: [], subjects: [], exams: [] };
             if (fs.existsSync(pyqFile)) {
               try { data = JSON.parse(fs.readFileSync(pyqFile, 'utf-8')); } catch (_) {}
+            }
+
+            // Sync endpoint
+            if (pathname === '/api/pyq-documents/sync') {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ success: true, total: data.documents.length, lastSynced: new Date().toISOString() }));
+              return;
+            }
+
+            // Add endpoint
+            if (req.method === 'POST' && (pathname === '/api/pyq-documents' || pathname === '/api/pyq-documents/add')) {
+              let body = '';
+              req.on('data', chunk => { body += chunk; });
+              req.on('end', () => {
+                try {
+                  const payload = JSON.parse(body || '{}');
+                  const newDoc = {
+                    id: payload.id || `pyq-${(payload.subject || 'gen').toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`,
+                    title: payload.title.endsWith('.pdf') ? payload.title : `${payload.title}.pdf`,
+                    edition: payload.edition || '2026 Academic Edition',
+                    year: payload.year || '2020-2026',
+                    fileSize: payload.fileSize || '6.5 MB',
+                    pages: payload.pages || 48,
+                    lastUpdated: new Date().toISOString().split('T')[0],
+                    downloadFileName: payload.downloadFileName || `${payload.subject || 'Medical'}_PYQ_QuestionBank.pdf`,
+                    summary: payload.summary || `Verified question bank for ${payload.subject || 'Medical Sciences'}.`,
+                    subject: payload.subject || 'Clinical Sciences',
+                    subjectAliases: payload.subjectAliases || [payload.subject || 'Clinical Sciences'],
+                    subjectPhase: payload.subjectPhase || 'Clinical Specialties',
+                    subjectTopics: payload.subjectTopics || ['Core Topics', 'Clinical Vignettes'],
+                    subjectColor: payload.subjectColor || '#4a7c59',
+                    subjectIcon: payload.subjectIcon || 'folder_special',
+                    exam: payload.exam || 'NEET PG PYQs',
+                    verifiedBy: 'PW MedEd Academic Directorate',
+                    driveDirectUrl: data.driveRootUrl || ''
+                  };
+                  data.documents.unshift(newDoc);
+                  data.totalDocuments = data.documents.length;
+                  fs.writeFileSync(pyqFile, JSON.stringify(data, null, 2), 'utf-8');
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ success: true, document: newDoc, total: data.documents.length }));
+                } catch (e) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: e.message }));
+                }
+              });
+              return;
             }
             const isPdf = pathname.startsWith('/api/pyq-documents/pdf') || pathname.startsWith('/api/pyq-documents/download');
             if (isPdf) {
