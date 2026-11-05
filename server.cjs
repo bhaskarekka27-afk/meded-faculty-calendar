@@ -32,6 +32,8 @@ const MIME = {
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.pdf': 'application/pdf',
   '.map': 'application/json; charset=utf-8'
 };
 
@@ -48,7 +50,8 @@ const ROUTES = {
   '/admin-login': '/admin-login.html',
   '/faculty-login': '/faculty-login.html',
   '/admin/login': '/admin-login.html',
-  '/faculty/login': '/faculty-login.html'
+  '/faculty/login': '/faculty-login.html',
+  '/manifest.json': '/manifest.webmanifest'
 };
 
 function json(res, code, body) {
@@ -2675,7 +2678,12 @@ const server = http.createServer(async (req, res) => {
     }
     res.statusCode = 200;
     res.setHeader('Content-Type', MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream');
-    res.setHeader('Cache-Control', 'no-store');
+    if (pathname === '/sw.js') {
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'no-store');
+    }
     fs.createReadStream(filePath).pipe(res);
   });
 });
