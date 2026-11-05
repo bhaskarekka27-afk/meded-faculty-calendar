@@ -618,44 +618,46 @@
       </div>
 
       <!-- DEDICATED SUBJECT QUESTION BANK & PYQ PDF SECTION -->
-      <div id="viewSectionPyqPdf" class="hidden mb-6 space-y-5">
-        <!-- Subject Header Card -->
+      <div id="viewSectionPyqPdf" class="hidden mb-6 space-y-3.5">
+        <!-- Subject Header Card (Compact & Modern) -->
         <div
-          class="panel-3d rounded-2xl p-5 bg-gradient-to-br from-[#ffffff] via-[#f9fbf9] to-[#edf4ef] border border-[#cde0d3] shadow-sm">
-          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex items-start gap-3.5">
+          class="panel-3d rounded-2xl p-3 sm:p-3.5 bg-gradient-to-r from-[#ffffff] via-[#f8faf8] to-[#edf4ef] border border-[#cde0d3] shadow-xs">
+          <div class="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+            <div class="flex items-center gap-2.5 min-w-0">
               <div
-                class="w-12 h-12 rounded-2xl bg-[#4a7c59] text-white flex items-center justify-center shrink-0 shadow-md">
-                <span class="material-symbols-outlined text-[26px]">folder_special</span>
+                class="w-8 h-8 rounded-xl bg-[#4a7c59] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <span class="material-symbols-outlined text-[18px]">folder_special</span>
               </div>
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h2 class="font-headline font-bold text-xl text-[#2c332d]" id="pyqSectionHeading">Subject Question
+                  <h2 class="font-headline font-bold text-sm sm:text-base text-[#2c332d] truncate" id="pyqSectionHeading">Subject Question
                     Bank & PYQ Repository</h2>
                   <span id="pyqAccessBadge"
-                    class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3]">
+                    class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eef4f0] text-[#2d4d37] border border-[#cde0d3] whitespace-nowrap">
                     Mapped Access: Verified
                   </span>
                 </div>
-                <p class="text-xs text-[#576058] mt-1 leading-relaxed max-w-2xl" id="pyqSectionSubtitle">
-                  Past year examination papers (NEET PG, INI-CET, FMGE) curated specifically for your mapped academic
-                  department.
+                <p class="text-[11px] text-[#576058] mt-0.5 truncate hidden sm:block" id="pyqSectionSubtitle">
+                  Past year examination papers (NEET PG, INI-CET, FMGE) curated specifically for your mapped academic department.
                 </p>
               </div>
+            </div>
+            <div class="hidden md:flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-[#4a7c59] bg-[#eef4f0] px-2.5 py-1 rounded-lg border border-[#cde0d3]">
+              <span class="material-symbols-outlined text-[14px]">verified</span>
+              <span id="pyqSuperSubjectActiveCount">19 Subjects Available</span>
             </div>
           </div>
 
           <!-- Super Faculty Subject Switcher Pills (Visible only when user is mapped to 'All Subjects' e.g. Bhaskar Ekka) -->
-          <div id="pyqSuperSubjectFilterContainer" class="hidden mt-4 pt-3.5 border-t border-[#d8e6dc]">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-[#4a7c59] flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[14px]">tune</span>
-                <span>All-Subject Access Switcher (Testing & Administration)</span>
+          <div id="pyqSuperSubjectFilterContainer" class="hidden mt-2 pt-2 border-t border-[#d8e6dc]/70">
+            <div class="flex items-center justify-between mb-1.5 px-0.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#4a7c59] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">tune</span>
+                <span>All-Subject Access Switcher</span>
               </span>
-              <span id="pyqSuperSubjectActiveCount" class="text-[10px] font-bold text-[#68736a]">19 Subjects
-                Available</span>
+              <span class="text-[10px] font-medium text-[#68736a] md:hidden">19 Subjects</span>
             </div>
-            <div id="pyqSuperSubjectPills" class="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+            <div id="pyqSuperSubjectPills" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
               <!-- Populated dynamically with subject pills -->
             </div>
           </div>

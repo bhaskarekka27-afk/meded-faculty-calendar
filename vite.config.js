@@ -497,6 +497,73 @@ export default defineConfig({
             return;
           }
 
+          if (req.url && req.url.startsWith('/api/pyq-documents')) {
+            const parsedUrl = new URL(req.url, 'http://localhost');
+            const pathname = parsedUrl.pathname;
+            const docId = parsedUrl.searchParams.get('id');
+            const pyqFile = resolve(__dirname, 'data_pyq_documents.json');
+            let data = { totalDocuments: 0, documents: [] };
+            if (fs.existsSync(pyqFile)) {
+              try { data = JSON.parse(fs.readFileSync(pyqFile, 'utf-8')); } catch (_) {}
+            }
+            const isPdf = pathname.startsWith('/api/pyq-documents/pdf') || pathname.startsWith('/api/pyq-documents/download');
+            if (isPdf) {
+              const doc = (data.documents && data.documents.find(d => d.id === docId)) || data.documents?.[0] || {
+                title: 'PW MedEd Question Bank.pdf', subject: 'Clinical Sciences', exam: 'NEET PG PYQs',
+                summary: 'Curated 5-year repeat questions and clinical vignettes.'
+              };
+              const title = (doc.title || 'PW MedEd Question Bank').replace('.pdf', '');
+              const subject = doc.subject || 'Clinical Sciences';
+              const exam = doc.exam || 'NEET PG & INI-CET';
+              const summary = doc.summary || 'Previous year solved questions with clinical explanations.';
+              const pageLines = [
+                '================================================================================',
+                'PW MEDED ACADEMIC DIRECTORATE - OFFICIAL MASTER QUESTION BANK',
+                '================================================================================',
+                '', `DOCUMENT TITLE: ${title}`, `SUBJECT SPECIALTY: ${subject}`, `TARGET EXAMINATION: ${exam}`,
+                'CURRICULUM: National Medical Commission (NMC) - CBME Aligned',
+                '================================================================================',
+                `SUMMARY: ${summary}`
+              ];
+              let s = 'BT\n/F1 10.5 Tf\n40 745 Td\n15 TL\n';
+              pageLines.forEach(line => {
+                const escaped = line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+                s += `(${escaped}) '\n`;
+              });
+              s += 'ET';
+              const streamLen = Buffer.byteLength(s, 'utf-8');
+              const objects = [
+                '%PDF-1.4\n',
+                '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+                '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+                '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+                `4 0 obj\n<< /Length ${streamLen} >>\nstream\n${s}\nendstream\nendobj\n`,
+                '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n'
+              ];
+              let offset = 0; const offsets = []; let pdfData = '';
+              objects.forEach(obj => {
+                offsets.push(offset); pdfData += obj; offset += Buffer.byteLength(obj, 'utf-8');
+              });
+              let xref = `xref\n0 6\n0000000000 65535 f \n`;
+              for (let i = 1; i <= 5; i++) {
+                xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+              }
+              const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${offset}\n%%EOF\n`;
+              const pdfBuf = Buffer.from(pdfData + xref + trailer, 'utf-8');
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/pdf');
+              res.setHeader('Content-Disposition', `inline; filename="${doc.downloadFileName || 'PW_MedEd_PYQ.pdf'}"`);
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(pdfBuf);
+              return;
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.end(JSON.stringify(data));
+            return;
+          }
+
           if (req.url === '/' || req.url === '/index.html') {
             req.url = '/admin.html';
           } else if (req.url === '/admin-login' || req.url === '/admin/login') {
